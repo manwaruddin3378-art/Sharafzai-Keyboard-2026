@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.LinearLayout
 
@@ -18,12 +17,12 @@ class KeyboardService : InputMethodService() {
         listOf(
             listOf("ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج"),
             listOf("ش","س","ی","ب","ل","ا","ت","ن","م","ک","ګ"),
-            listOf("ظ","ط","ز","ر","ذ","د","پ","و","ږ")
+            listOf("ټ","څ","ځ","ډ","ړ","ږ","ښ","ڼ","پ","و","ۍ")
         ),
         listOf(
             listOf("ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج"),
             listOf("ش","س","ي","ب","ل","ا","ت","ن","م","ك","ة"),
-            listOf("ئ","ء","ؤ","ر","لا","ى","ة","و")
+            listOf("ئ","ء","ؤ","ر","ذ","د","و","ى","ة")
         ),
         listOf(
             listOf("q","w","e","r","t","y","u","i","o","p"),
@@ -56,9 +55,11 @@ class KeyboardService : InputMethodService() {
             val line = LinearLayout(this)
             line.orientation = LinearLayout.HORIZONTAL
             line.gravity = Gravity.CENTER
+
             for (key in row) {
                 addKey(line, key)
             }
+
             root.addView(line, rowParams(49))
         }
 
@@ -105,12 +106,7 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(bottom, "↵", 1f) {
-            currentInputConnection?.sendKeyEvent(
-                android.view.KeyEvent(
-                    android.view.KeyEvent.ACTION_DOWN,
-                    android.view.KeyEvent.KEYCODE_ENTER
-                )
-            )
+            currentInputConnection?.commitText("\n", 1)
         }
 
         root.addView(bottom, rowParams(49))
@@ -141,9 +137,7 @@ class KeyboardService : InputMethodService() {
             }
         }
 
-        val params = LinearLayout.LayoutParams(
-            0, dp(46), 1f
-        )
+        val params = LinearLayout.LayoutParams(0, dp(46), 1f)
         params.setMargins(2, 2, 2, 2)
         parent.addView(button, params)
     }
@@ -162,9 +156,7 @@ class KeyboardService : InputMethodService() {
         button.setBackgroundColor(Color.rgb(43, 111, 150))
         button.setOnClickListener { action() }
 
-        val params = LinearLayout.LayoutParams(
-            0, dp(45), weight
-        )
+        val params = LinearLayout.LayoutParams(0, dp(45), weight)
         params.setMargins(2, 2, 2, 2)
         parent.addView(button, params)
     }
