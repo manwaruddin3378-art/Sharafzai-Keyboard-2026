@@ -182,7 +182,13 @@ class KeyboardService : InputMethodService() {
         }
 
         root.addView(header, rowParams(31))
+ suggestionContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.rgb(38, 45, 58))
+        }
 
+        root.addView(suggestionContainer, rowParams(32))
         val numberRow = when (language) {
             0 -> pashtoNumbers
             1 -> arabicNumbers
