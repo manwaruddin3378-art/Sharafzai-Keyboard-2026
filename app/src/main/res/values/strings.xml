@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sharafzai Keyboard</string>
+    <string name="subtype_pashto">Pashto</string>
+    <string name="subtype_arabic">Arabic</string>
+    <string name="subtype_english">English</string>
+</resources>
