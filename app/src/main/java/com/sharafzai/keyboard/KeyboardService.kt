@@ -434,7 +434,24 @@ val output = when {
         params.setMargins(dp(2), dp(2), dp(2), dp(2))
         parent.addView(button, params)
     }
+private fun getOfflineSuggestions(): List<String> {
+    val before = currentInputConnection
+        ?.getTextBeforeCursor(60, 0)
+        ?.toString().orEmpty()
 
+    val currentWord = before
+        .takeLastWhile { it.isLetter() }
+
+    if (currentWord.isEmpty()) return emptyList()
+
+    return offlineWords[language]
+        .orEmpty()
+        .filter {
+            it.startsWith(currentWord, ignoreCase = true) &&
+            !it.equals(currentWord, ignoreCase = true)
+        }
+        .take(3)
+}
     private fun roundedBackground(
         color: Int,
         radius: Int
