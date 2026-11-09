@@ -19,6 +19,7 @@ class KeyboardService : InputMethodService() {
     private var language = 0
     private var shifted = false
     private var caps = false
+    private var suggestionContainer: LinearLayout? = null
  private val offlineWords = mapOf(
         0 to listOf(
             "الله", "محمد", "اسلام", "قرآن", "کتاب",
