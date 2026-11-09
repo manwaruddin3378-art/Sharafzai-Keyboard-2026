@@ -453,6 +453,86 @@ private fun getOfflineSuggestions(): List<String> {
         }
         .take(3)
 }
+
+private fun updateSuggestions() {
+    val container = suggestionContainer ?: return
+    container.removeAllViews()
+
+    val suggestions = getOfflineSuggestions()
+
+    suggestions.forEach { word ->
+        val button = TextView(this).apply {
+            text = word
+            textSize = 16f
+            gravity = Gravity.CENTER
+            setPadding(16, 8, 16, 8)
+            setTextColor(Color.WHITE)
+
+            setOnClickListener {
+                val before = currentInputConnection
+                    ?.getTextBeforeCursor(60, 0)
+                    ?.toString().orEmpty()
+
+                val currentWord = before.takeLastWhile { it.isLetter() }
+
+                currentInputConnection?.deleteSurroundingText(
+                    currentWord.length, 0
+                )
+                currentInputConnection?.commitText(word, 1)
+                updateSuggestions()
+            }
+        }
+
+        container.addView(button)
+    }
+}
+    val container = suggestionContainer ?: return
+    container.removeAllViews()
+
+    val suggestions = getOfflineSuggestions()
+
+    suggestions.forEach { word ->
+        val button = TextView(this).apply {
+            text = word
+            textSize = 16f
+            gravity = Gravity.CENTER
+            setPadding(16, 8, 16, 8)
+            setTextColor(Color.WHITE)
+            setOnClickListener {
+                val before = currentInputConnection
+                    ?.getTextBeforeCursor(60, 0)
+                    ?.toString().orEmpty()
+
+                val currentWord = before.takeLastWhile { it.isLetter() }
+
+                currentInputConnection?.deleteSurroundingText(
+                    currentWord.length, 0
+                )
+                currentInputConnection?.commitText(word, 1)
+                updateSuggestions()
+            }
+        }
+
+        container.addView(button)
+    }
+}
+    val before = currentInputConnection
+        ?.getTextBeforeCursor(60, 0)
+        ?.toString().orEmpty()
+
+    val currentWord = before
+        .takeLastWhile { it.isLetter() }
+
+    if (currentWord.isEmpty()) return emptyList()
+
+    return offlineWords[language]
+        .orEmpty()
+        .filter {
+            it.startsWith(currentWord, ignoreCase = true) &&
+            !it.equals(currentWord, ignoreCase = true)
+        }
+        .take(3)
+}
     private fun roundedBackground(
         color: Int,
         radius: Int
