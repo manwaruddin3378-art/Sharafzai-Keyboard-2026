@@ -198,14 +198,13 @@ class KeyboardService : InputMethodService() {
 
         val bottom = LinearLayout(this)
         bottom.orientation = LinearLayout.HORIZONTAL
+addSpecial(bottom, "←", 0.8f, 42) {
+    sendKey(KeyEvent.KEYCODE_DPAD_LEFT)
+}
 
-        addSpecial(bottom, "Ctrl", 0.8f, 42) {
-            sendKey(KeyEvent.KEYCODE_CTRL_LEFT)
-        }
-
-        addSpecial(bottom, "Alt", 0.8f, 42) {
-            sendKey(KeyEvent.KEYCODE_ALT_LEFT)
-        }
+addSpecial(bottom, "→", 0.8f, 42) {
+    sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
+}      
 
         addSpecial(bottom, "،", 0.7f, 42) {
             val value = if (language == 2) "," else "،"
