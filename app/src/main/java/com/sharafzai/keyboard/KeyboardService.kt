@@ -1,34 +1,122 @@
 package com.sharafzai.keyboard
 
-import android.inputmethodservice.InputMethodService
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.inputmethodservice.InputMethodService
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
 
 class KeyboardService : InputMethodService() {
 
     private var language = 0
     private var shifted = false
+    private var caps = false
 
-    private val languages = listOf(
+    private data class KeySpec(
+        val normal: String,
+        val shifted: String = "",
+        val longPress: String = ""
+    )
+
+    private fun k(a: String, b: String = "", c: String = "") =
+        KeySpec(a, b, c)
+
+    private val pashtoRows = listOf(
         listOf(
-            listOf("ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج"),
-            listOf("ش","س","ی","ب","ل","ا","ت","ن","م","ک","ګ"),
-            listOf("ټ","څ","ځ","ډ","ړ","ږ","ښ","ڼ","پ","و","ۍ")
+            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
+            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
+            k("ع", "َ"), k("ه", "ّ", "هـ"),
+            k("خ", "ځ"), k("ح", "څ"),
+            k("ج", "]"), k("چ", "["),
+            k("\\", "[")
         ),
         listOf(
-            listOf("ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج"),
-            listOf("ش","س","ي","ب","ل","ا","ت","ن","م","ك","ة"),
-            listOf("ئ","ء","ؤ","ر","ذ","د","و","ى","ة")
+            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي"),
+            k("ب", "پ"), k("ل", "أ"), k("ا", "آ"),
+            k("ت", "ټ"), k("ن", "ڼ"), k("م", "ة"),
+            k("ک", ":"), k("ګ", "؛")
         ),
         listOf(
-            listOf("q","w","e","r","t","y","u","i","o","p"),
-            listOf("a","s","d","f","g","h","j","k","l"),
-            listOf("z","x","c","v","b","n","m")
+            k("ظ", "ئ"), k("ط", "ې"), k("ز", "ژ"),
+            k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
+            k("ړ", "ؤ"), k("و", "،"), k("ږ", "."),
+            k("/", "؟")
         )
+    )
+
+    private val arabicRows = listOf(
+        listOf(
+            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
+            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
+            k("ع", "َ"), k("ه", "ّ"), k("خ", "أ"),
+            k("ح", "آ"), k("ج", "ئ"), k("د", "ء"),
+            k("ذ", "ؤ")
+        ),
+        listOf(
+            k("ش", "ْ"), k("س", "ٌ"), k("ي", "ٍ"),
+            k("ب", "ً"), k("ل", "ُ"), k("ا", "ِ"),
+            k("ت", "َ"), k("ن", "ّ"), k("م", "أ"),
+            k("ك", "آ"), k("ة", "ئ"), k("ؤ", "ء")
+        ),
+        listOf(
+            k("ز", "َ"), k("ر", "ِ"), k("ط", "ّ"),
+            k("ظ", "ْ"), k("و", "ٌ"), k("ء", "ٍ"),
+            k("ئ", "ً"), k("أ", "ُ"), k("آ", "ِ"),
+            k("ى", "َ")
+        )
+    )
+
+    private val englishRows = listOf(
+        listOf(
+            k("q", "Q", "1"), k("w", "W", "2"),
+            k("e", "E", "3"), k("r", "R", "4"),
+            k("t", "T", "5"), k("y", "Y", "6"),
+            k("u", "U", "7"), k("i", "I", "8"),
+            k("o", "O", "9"), k("p", "P", "0"),
+            k("[", "{"), k("]", "}")
+        ),
+        listOf(
+            k("a", "A"), k("s", "S"), k("d", "D"),
+            k("f", "F"), k("g", "G"), k("h", "H"),
+            k("j", "J"), k("k", "K"), k("l", "L"),
+            k(";", ":"), k("'", "\"")
+        ),
+        listOf(
+            k("z", "Z"), k("x", "X"), k("c", "C"),
+            k("v", "V"), k("b", "B"), k("n", "N"),
+            k("m", "M"), k(",", "<"), k(".", ">"),
+            k("/", "?")
+        )
+    )
+
+    private val pashtoNumbers = listOf(
+        k("۱", "!", "1"), k("۲", "٬", "2"),
+        k("۳", "٫", "3"), k("۴", "؋", "4"),
+        k("۵", "٪", "5"), k("۶", "×", "6"),
+        k("۷", "»", "7"), k("۸", "«", "8"),
+        k("۹", ")", "9"), k("۰", "(", "0"),
+        k("-", "ـ"), k("=", "+")
+    )
+
+    private val arabicNumbers = listOf(
+        k("١", "!", "1"), k("٢", "@", "2"),
+        k("٣", "#", "3"), k("٤", "$", "4"),
+        k("٥", "%", "5"), k("٦", "^", "6"),
+        k("٧", "&", "7"), k("٨", "*", "8"),
+        k("٩", "(", "9"), k("٠", ")", "0"),
+        k("-", "_"), k("=", "+")
+    )
+
+    private val englishNumbers = listOf(
+        k("1", "!"), k("2", "@"), k("3", "#"),
+        k("4", "$"), k("5", "%"), k("6", "^"),
+        k("7", "&"), k("8", "*"), k("9", "("),
+        k("0", ")"), k("-", "_"), k("=", "+")
     )
 
     override fun onCreateInputView(): View {
@@ -38,127 +126,244 @@ class KeyboardService : InputMethodService() {
     private fun buildKeyboard(): View {
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
-        root.setPadding(3, 5, 3, 5)
-        root.setBackgroundColor(Color.rgb(35, 39, 48))
+        root.setPadding(dp(3), dp(4), dp(3), dp(4))
+        root.setBackgroundColor(Color.rgb(27, 32, 43))
 
-        val title = Button(this)
+        val header = LinearLayout(this)
+        header.orientation = LinearLayout.HORIZONTAL
+        header.gravity = Gravity.CENTER_VERTICAL
+
+        val title = TextView(this)
         title.text = when (language) {
-            0 -> "Sharafzai • پښتو"
-            1 -> "Sharafzai • العربية"
-            else -> "Sharafzai • English"
+            0 -> "SHARAFZAI  •  پښتو"
+            1 -> "SHARAFZAI  •  العربية"
+            else -> "SHARAFZAI  •  ENGLISH"
         }
+        title.textSize = 14f
         title.setTextColor(Color.WHITE)
-        title.setBackgroundColor(Color.rgb(48, 55, 70))
-        root.addView(title, rowParams(42))
+        title.typeface = Typeface.DEFAULT_BOLD
+        title.gravity = Gravity.CENTER
+        header.addView(
+            title,
+            LinearLayout.LayoutParams(0, dp(29), 1f)
+        )
 
-        for (row in languages[language]) {
-            val line = LinearLayout(this)
-            line.orientation = LinearLayout.HORIZONTAL
-            line.gravity = Gravity.CENTER
-
-            for (key in row) {
-                addKey(line, key)
-            }
-
-            root.addView(line, rowParams(49))
-        }
-
-        val controls = LinearLayout(this)
-        controls.orientation = LinearLayout.HORIZONTAL
-
-        addSpecial(controls, "🌐", 1f) {
+        addSpecial(header, "🌐", 0.8f, 29) {
             language = (language + 1) % 3
-            setInputView(buildKeyboard())
+            shifted = false
+            refreshKeyboard()
         }
 
-        addSpecial(controls, "⇧", 1f) {
+        root.addView(header, rowParams(31))
+
+        val numberRow = when (language) {
+            0 -> pashtoNumbers
+            1 -> arabicNumbers
+            else -> englishNumbers
+        }
+        addKeyRow(root, numberRow, 37)
+
+        val rows = when (language) {
+            0 -> pashtoRows
+            1 -> arabicRows
+            else -> englishRows
+        }
+
+        for (row in rows) {
+            addKeyRow(root, row, 42)
+        }
+
+        val controlRow = LinearLayout(this)
+        controlRow.orientation = LinearLayout.HORIZONTAL
+
+        addSpecial(controlRow, "Tab", 0.9f, 39) {
+            currentInputConnection?.commitText("\t", 1)
+        }
+
+        addSpecial(controlRow, "Caps", 1.1f, 39) {
+            caps = !caps
+            refreshKeyboard()
+        }
+
+        addSpecial(controlRow, "⇧", 1f, 39) {
             shifted = !shifted
-            setInputView(buildKeyboard())
+            refreshKeyboard()
         }
 
-        addSpecial(controls, "?123", 1.3f) {
-            currentInputConnection?.commitText("؟", 1)
-        }
-
-        addSpecial(controls, "⌫", 1.2f) {
+        addSpecial(controlRow, "⌫", 1.2f, 39) {
             currentInputConnection?.deleteSurroundingText(1, 0)
         }
 
-        root.addView(controls, rowParams(48))
+        root.addView(controlRow, rowParams(41))
 
         val bottom = LinearLayout(this)
         bottom.orientation = LinearLayout.HORIZONTAL
 
-        addSpecial(bottom, "😊", 1f) {
-            currentInputConnection?.commitText("😊", 1)
+        addSpecial(bottom, "Ctrl", 0.8f, 42) {
+            sendKey(KeyEvent.KEYCODE_CTRL_LEFT)
         }
 
-        addSpecial(bottom, ",", 0.7f) {
-            currentInputConnection?.commitText(",", 1)
+        addSpecial(bottom, "Alt", 0.8f, 42) {
+            sendKey(KeyEvent.KEYCODE_ALT_LEFT)
         }
 
-        addSpecial(bottom, "English/پښتو", 4f) {
+        addSpecial(bottom, "،", 0.7f, 42) {
+            val value = if (language == 2) "," else "،"
+            currentInputConnection?.commitText(value, 1)
+        }
+
+        addSpecial(bottom, "Space", 3.5f, 42) {
             currentInputConnection?.commitText(" ", 1)
         }
 
-        addSpecial(bottom, ".", 0.7f) {
+        addSpecial(bottom, ".", 0.7f, 42) {
             currentInputConnection?.commitText(".", 1)
         }
 
-        addSpecial(bottom, "↵", 1f) {
-            currentInputConnection?.commitText("\n", 1)
+        addSpecial(bottom, "↵", 1f, 42) {
+            sendKey(KeyEvent.KEYCODE_ENTER)
         }
 
-        root.addView(bottom, rowParams(49))
+        root.addView(bottom, rowParams(44))
 
         return root
     }
 
-    private fun addKey(parent: LinearLayout, key: String) {
-        val button = Button(this)
-        button.text = if (language == 2 && shifted) key.uppercase() else key
-        button.textSize = 19f
-        button.typeface = Typeface.DEFAULT
-        button.setTextColor(Color.WHITE)
-        button.isAllCaps = false
-        button.setPadding(0, 0, 0, 0)
-        button.setBackgroundColor(Color.rgb(65, 73, 89))
+    private fun addKeyRow(
+        parent: LinearLayout,
+        keys: List<KeySpec>,
+        height: Int
+    ) {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER
 
-        button.setOnClickListener {
-            val value = if (language == 2 && shifted) {
-                key.uppercase()
-            } else key
+        for ((index, spec) in keys.withIndex()) {
+            val button = Button(this)
 
-            currentInputConnection?.commitText(value, 1)
-
-            if (language == 2 && shifted) {
-                shifted = false
-                setInputView(buildKeyboard())
+            val value = when {
+                shifted && spec.shifted.isNotEmpty() -> spec.shifted
+                language == 2 && (caps || shifted) ->
+                    spec.normal.uppercase()
+                else -> spec.normal
             }
+
+            button.text = value
+            button.textSize = when {
+                keys.size >= 12 -> 13f
+                else -> 15f
+            }
+            button.typeface = Typeface.DEFAULT_BOLD
+            button.isAllCaps = false
+            button.setTextColor(Color.WHITE)
+            button.minimumWidth = 0
+            button.minimumHeight = 0
+            button.setPadding(0, 0, 0, 0)
+
+            val colors = intArrayOf(
+                Color.rgb(55, 92, 130),
+                Color.rgb(61, 105, 139),
+                Color.rgb(72, 87, 126),
+                Color.rgb(57, 112, 117)
+            )
+
+            button.background = roundedBackground(
+                colors[index % colors.size],
+                dp(8)
+            )
+
+            button.setOnClickListener {
+                val output = when {
+                    shifted && spec.shifted.isNotEmpty() ->
+                        spec.shifted
+                    language == 2 && (caps || shifted) ->
+                        spec.normal.uppercase()
+                    else -> spec.normal
+                }
+
+                currentInputConnection?.commitText(output, 1)
+
+                if (shifted && !caps) {
+                    shifted = false
+                    refreshKeyboard()
+                }
+            }
+
+            button.setOnLongClickListener {
+                val alternate = when {
+                    spec.longPress.isNotEmpty() -> spec.longPress
+                    spec.shifted.isNotEmpty() -> spec.shifted
+                    language == 2 -> spec.normal.uppercase()
+                    else -> ""
+                }
+
+                if (alternate.isNotEmpty()) {
+                    currentInputConnection?.commitText(alternate, 1)
+                }
+                true
+            }
+
+            val params = LinearLayout.LayoutParams(
+                0, dp(height), 1f
+            )
+            params.setMargins(dp(1), dp(2), dp(1), dp(2))
+            row.addView(button, params)
         }
 
-        val params = LinearLayout.LayoutParams(0, dp(46), 1f)
-        params.setMargins(2, 2, 2, 2)
-        parent.addView(button, params)
+        parent.addView(row, rowParams(height + 3))
     }
 
     private fun addSpecial(
         parent: LinearLayout,
         label: String,
         weight: Float,
+        height: Int,
         action: () -> Unit
     ) {
         val button = Button(this)
         button.text = label
-        button.textSize = 15f
+        button.textSize = 12f
         button.isAllCaps = false
+        button.typeface = Typeface.DEFAULT_BOLD
         button.setTextColor(Color.WHITE)
-        button.setBackgroundColor(Color.rgb(43, 111, 150))
+        button.minimumWidth = 0
+        button.minimumHeight = 0
+        button.setPadding(0, 0, 0, 0)
+        button.background = roundedBackground(
+            Color.rgb(28, 137, 157),
+            dp(8)
+        )
         button.setOnClickListener { action() }
 
-        val params = LinearLayout.LayoutParams(0, dp(45), weight)
-        params.setMargins(2, 2, 2, 2)
+        val params = LinearLayout.LayoutParams(
+            0, dp(height), weight
+        )
+        params.setMargins(dp(2), dp(2), dp(2), dp(2))
         parent.addView(button, params)
+    }
+
+    private fun roundedBackground(
+        color: Int,
+        radius: Int
+    ): GradientDrawable {
+        return GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = radius.toFloat()
+            setStroke(dp(1), Color.rgb(90, 115, 145))
+        }
+    }
+
+    private fun sendKey(code: Int) {
+        currentInputConnection?.sendKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, code)
+        )
+        currentInputConnection?.sendKeyEvent(
+            KeyEvent(KeyEvent.ACTION_UP, code)
+        )
+    }
+
+    private fun refreshKeyboard() {
+        setInputView(buildKeyboard())
     }
 
     private fun rowParams(height: Int): LinearLayout.LayoutParams {
