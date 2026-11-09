@@ -6,6 +6,9 @@ import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -288,19 +291,41 @@ addSpecial(bottom, "→", 0.8f, 42) {
                 }
             }
 
-            button.setOnLongClickListener {
-                val alternate = when {
-                    spec.longPress.isNotEmpty() -> spec.longPress
-                    spec.shifted.isNotEmpty() -> spec.shifted
-                    language == 2 -> spec.normal.uppercase()
-                    else -> ""
-                }
+           button.setOnLongClickListener {
+    val alternate = when {
+        spec.longPress.isNotEmpty() -> spec.longPress
+        spec.shifted.isNotEmpty() -> spec.shifted
+        language == 2 -> spec.normal.uppercase()
+        else -> ""
+    }
 
-                if (alternate.isNotEmpty()) {
-                    currentInputConnection?.commitText(alternate, 1)
-                }
-                true
-            }
+    if (alternate.isNotEmpty()) {
+        val preview = TextView(this)
+        preview.text = alternate
+        preview.textSize = 25f
+        preview.gravity = Gravity.CENTER
+        preview.setTextColor(Color.WHITE)
+        preview.background = roundedBackground(
+            Color.rgb(28, 137, 157), dp(10)
+        )
+
+        val popup = PopupWindow(
+            preview, dp(60), dp(52), false
+        )
+
+        popup.showAsDropDown(
+            button, 0, -button.height - dp(52)
+        )
+
+        currentInputConnection?.commitText(alternate, 1)
+
+        button.postDelayed({
+            if (popup.isShowing) popup.dismiss()
+        }, 1000)
+    }
+
+    true
+}
 
             val params = LinearLayout.LayoutParams(
                 0, dp(height), 1f
@@ -332,7 +357,42 @@ addSpecial(bottom, "→", 0.8f, 42) {
             Color.rgb(28, 137, 157),
             dp(8)
         )
-        button.setOnClickListener { action() }
+        if (label == "⌫") {
+    val handler = Handler(Looper.getMainLooper())
+    var repeatTask: Runnable? = null
+
+    button.setOnTouchListener { _, event ->
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                action()
+
+                val task = object : Runnable {
+                    override fun run() {
+                        action()
+                        handler.postDelayed(this, 65)
+                    }
+                }
+
+                repeatTask = task
+                handler.postDelayed(task, 400)
+                true
+            }
+
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                repeatTask?.let {
+                    handler.removeCallbacks(it)
+                }
+                repeatTask = null
+                true
+            }
+
+            else -> true
+        }
+    }
+} else {
+    button.setOnClickListener { action() }
+}
 
         val params = LinearLayout.LayoutParams(
             0, dp(height), weight
