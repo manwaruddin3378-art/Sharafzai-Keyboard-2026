@@ -19,7 +19,30 @@ class KeyboardService : InputMethodService() {
     private var language = 0
     private var shifted = false
     private var caps = false
-
+ private val offlineWords = mapOf(
+        0 to listOf(
+            "الله", "محمد", "اسلام", "قرآن", "کتاب",
+            "ښوونځی", "پوهنتون", "افغانستان", "پښتو",
+            "ژبه", "علم", "استاد", "زده کړه", "ملګری",
+            "ورور", "خور", "کور", "کار", "ژوند",
+            "ښه", "مننه", "سلام", "ورځ", "شپه"
+        ),
+        1 to listOf(
+            "الله", "محمد", "الإسلام", "القرآن",
+            "كتاب", "مدرسة", "جامعة", "لغة",
+            "العربية", "علم", "أستاذ", "طالب",
+            "صديق", "بيت", "عمل", "حياة",
+            "شكرا", "مرحبا", "السلام"
+        ),
+        2 to listOf(
+            "the", "this", "that", "there", "their",
+            "they", "these", "those", "hello",
+            "help", "have", "here", "how",
+            "good", "great", "go", "get",
+            "keyboard", "language", "computer",
+            "school", "student", "thank", "thanks"
+        )
+    )
     private data class KeySpec(
         val normal: String,
         val shifted: String = "",
