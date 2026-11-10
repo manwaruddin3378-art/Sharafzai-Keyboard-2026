@@ -688,16 +688,16 @@ refreshKeyboard()
     }
 
     private fun rowParams(height: Int): LinearLayout.LayoutParams {
-        return LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            dp(height)
-        )
-    }
-
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
-    }
+    return LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        dp(height)
+    )
 }
+
+private fun dp(value: Int): Int {
+    return (value * resources.displayMetrics.density).toInt()
+}
+
 private fun saveSettings() {
     getSharedPreferences(
         "SharafzaiSettings",
@@ -706,4 +706,5 @@ private fun saveSettings() {
         .putInt("language", language)
         .putInt("themeIndex", themeIndex)
         .apply()
+}
 }
