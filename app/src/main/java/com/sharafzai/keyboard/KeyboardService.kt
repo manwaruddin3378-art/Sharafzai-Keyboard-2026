@@ -89,25 +89,31 @@ class KeyboardService : InputMethodService() {
 
     private val theme: KeyboardTheme
         get() = themes[themeIndex]
-override fun onCreate() {
-    super.onCreate()
 
-    val prefs = getSharedPreferences(
-        "SharafzaiSettings",
-        MODE_PRIVATE
-    )
+    override fun onCreate() {
+        super.onCreate()
 
-    language = prefs.getInt("language", 0).coerceIn(0, 2)
-    themeIndex = prefs.getInt("themeIndex", 0)
-}
+        val prefs = getSharedPreferences(
+            "SharafzaiSettings",
+            MODE_PRIVATE
+        )
+
+        language = prefs.getInt("language", 0).coerceIn(0, 2)
+        themeIndex = prefs.getInt("themeIndex", 0)
+            .coerceIn(0, themes.size - 1)
+    }
+
     private data class KeySpec(
         val normal: String,
         val shifted: String = "",
         val longPress: String = ""
     )
 
-    private fun k(a: String, b: String = "", c: String = "") =
-        KeySpec(a, b, c)
+    private fun k(
+        a: String,
+        b: String = "",
+        c: String = ""
+    ) = KeySpec(a, b, c)
 
     private val offlineWords = mapOf(
         0 to listOf(
@@ -248,9 +254,12 @@ override fun onCreate() {
         candidatesEnd: Int
     ) {
         super.onUpdateSelection(
-            oldSelStart, oldSelEnd,
-            newSelStart, newSelEnd,
-            candidatesStart, candidatesEnd
+            oldSelStart,
+            oldSelEnd,
+            newSelStart,
+            newSelEnd,
+            candidatesStart,
+            candidatesEnd
         )
         updateSuggestions()
     }
@@ -285,16 +294,17 @@ override fun onCreate() {
         )
 
         addSpecial(header, "🌐", 0.8f, 29) {
-           language = (language + 1) % 3
-shifted = false
-saveSettings()
-refreshKeyboard()
+            language = (language + 1) % 3
+            shifted = false
+            caps = false
+            saveSettings()
+            refreshKeyboard()
         }
 
         addSpecial(header, "🎨", 0.8f, 29) {
-           themeIndex = (themeIndex + 1) % themes.size
-saveSettings()
-refreshKeyboard()
+            themeIndex = (themeIndex + 1) % themes.size
+            saveSettings()
+            refreshKeyboard()
         }
 
         root.addView(header, rowParams(31))
@@ -404,8 +414,10 @@ refreshKeyboard()
             val value = when {
                 shifted && spec.shifted.isNotEmpty() ->
                     spec.shifted
+
                 language == 2 && (caps || shifted) ->
                     spec.normal.uppercase()
+
                 else -> spec.normal
             }
 
@@ -425,7 +437,9 @@ refreshKeyboard()
                 )
             )
 
-            if (spec.shifted.isNotEmpty() || spec.longPress.isNotEmpty()) {
+            if (spec.shifted.isNotEmpty() ||
+                spec.longPress.isNotEmpty()
+            ) {
                 val alternate = TextView(this).apply {
                     text = if (spec.longPress.isNotEmpty()) {
                         spec.longPress
@@ -507,23 +521,35 @@ refreshKeyboard()
                         gravity = Gravity.CENTER
                         setTextColor(Color.WHITE)
                         background = roundedBackground(
-                            theme.special, dp(10)
+                            theme.special,
+                            dp(10)
                         )
                     }
 
                     val popup = PopupWindow(
-                        preview, dp(60), dp(52), false
+                        preview,
+                        dp(60),
+                        dp(52),
+                        false
                     )
 
                     popup.showAsDropDown(
-                        frame, 0, -frame.height - dp(52)
+                        frame,
+                        0,
+                        -frame.height - dp(52)
                     )
 
-                    currentInputConnection?.commitText(alternate, 1)
+                    currentInputConnection?.commitText(
+                        alternate,
+                        1
+                    )
+
                     updateSuggestions()
 
                     preview.postDelayed({
-                        if (popup.isShowing) popup.dismiss()
+                        if (popup.isShowing) {
+                            popup.dismiss()
+                        }
                     }, 900)
                 }
 
@@ -531,10 +557,18 @@ refreshKeyboard()
             }
 
             val params = LinearLayout.LayoutParams(
-                0, dp(height), 1f
+                0,
+                dp(height),
+                1f
             )
 
-            params.setMargins(dp(1), dp(2), dp(1), dp(2))
+            params.setMargins(
+                dp(1),
+                dp(2),
+                dp(1),
+                dp(2)
+            )
+
             row.addView(frame, params)
         }
 
@@ -558,7 +592,8 @@ refreshKeyboard()
             minimumHeight = 0
             setPadding(0, 0, 0, 0)
             background = roundedBackground(
-                theme.special, dp(8)
+                theme.special,
+                dp(8)
             )
         }
 
@@ -588,6 +623,7 @@ refreshKeyboard()
                         repeatTask?.let {
                             handler.removeCallbacks(it)
                         }
+
                         repeatTask = null
                         true
                     }
@@ -596,14 +632,24 @@ refreshKeyboard()
                 }
             }
         } else {
-            button.setOnClickListener { action() }
+            button.setOnClickListener {
+                action()
+            }
         }
 
         val params = LinearLayout.LayoutParams(
-            0, dp(height), weight
+            0,
+            dp(height),
+            weight
         )
 
-        params.setMargins(dp(2), dp(2), dp(2), dp(2))
+        params.setMargins(
+            dp(2),
+            dp(2),
+            dp(2),
+            dp(2)
+        )
+
         parent.addView(button, params)
     }
 
@@ -616,18 +662,81 @@ refreshKeyboard()
             it.isLetter()
         }
 
-        if (currentWord.isEmpty()) return emptyList()
+        if (currentWord.isEmpty()) {
+            return emptyList()
+        }
 
         return offlineWords[language]
             .orEmpty()
             .filter {
-                it.startsWith(currentWord, ignoreCase = true) &&
-                !it.equals(currentWord, ignoreCase = true)
+                it.startsWith(
+                    currentWord,
+                    ignoreCase = true
+                ) &&
+                !it.equals(
+                    currentWord,
+                    ignoreCase = true
+                )
             }
             .take(3)
     }
 
-  }
+    private fun updateSuggestions() {
+        val container = suggestionContainer ?: return
+
+        container.removeAllViews()
+
+        val suggestions = getOfflineSuggestions()
+
+        suggestions.forEach { word ->
+
+            val suggestion = TextView(this).apply {
+                text = word
+                textSize = 15f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                setPadding(
+                    dp(10),
+                    dp(3),
+                    dp(10),
+                    dp(3)
+                )
+
+                setOnClickListener {
+                    val before = currentInputConnection
+                        ?.getTextBeforeCursor(60, 0)
+                        ?.toString().orEmpty()
+
+                    val currentWord = before.takeLastWhile {
+                        it.isLetter()
+                    }
+
+                    if (currentWord.isNotEmpty()) {
+                        currentInputConnection
+                            ?.deleteSurroundingText(
+                                currentWord.length,
+                                0
+                            )
+                    }
+
+                    currentInputConnection?.commitText(
+                        word,
+                        1
+                    )
+
+                    updateSuggestions()
+                }
+            }
+
+            val params = LinearLayout.LayoutParams(
+                0,
+                dp(30),
+                1f
+            )
+
+            container.addView(suggestion, params)
+        }
+    }
 
     private fun roundedBackground(
         color: Int,
@@ -644,6 +753,7 @@ refreshKeyboard()
         currentInputConnection?.sendKeyEvent(
             KeyEvent(KeyEvent.ACTION_DOWN, code)
         )
+
         currentInputConnection?.sendKeyEvent(
             KeyEvent(KeyEvent.ACTION_UP, code)
         )
@@ -653,13 +763,20 @@ refreshKeyboard()
         setInputView(buildKeyboard())
     }
 
-         private fun rowParams(height: Int): LinearLayout.LayoutParams {
+    private fun rowParams(
+        height: Int
+    ): LinearLayout.LayoutParams {
         return LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             dp(height)
         )
     }
 
+    private fun dp(value: Int): Int {
+        return (
+            value * resources.displayMetrics.density
+        ).toInt()
+    }
 
     private fun saveSettings() {
         getSharedPreferences(
