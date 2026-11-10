@@ -89,7 +89,17 @@ class KeyboardService : InputMethodService() {
 
     private val theme: KeyboardTheme
         get() = themes[themeIndex]
+override fun onCreate() {
+    super.onCreate()
 
+    val prefs = getSharedPreferences(
+        "SharafzaiSettings",
+        MODE_PRIVATE
+    )
+
+    language = prefs.getInt("language", 0).coerceIn(0, 2)
+    themeIndex = prefs.getInt("themeIndex", 0)
+}
     private data class KeySpec(
         val normal: String,
         val shifted: String = "",
@@ -275,14 +285,16 @@ class KeyboardService : InputMethodService() {
         )
 
         addSpecial(header, "🌐", 0.8f, 29) {
-            language = (language + 1) % 3
-            shifted = false
-            refreshKeyboard()
+           language = (language + 1) % 3
+shifted = false
+saveSettings()
+refreshKeyboard()
         }
 
         addSpecial(header, "🎨", 0.8f, 29) {
-            themeIndex = (themeIndex + 1) % themes.size
-            refreshKeyboard()
+           themeIndex = (themeIndex + 1) % themes.size
+saveSettings()
+refreshKeyboard()
         }
 
         root.addView(header, rowParams(31))
@@ -685,4 +697,13 @@ class KeyboardService : InputMethodService() {
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
     }
+}
+private fun saveSettings() {
+    getSharedPreferences(
+        "SharafzaiSettings",
+        MODE_PRIVATE
+    ).edit()
+        .putInt("language", language)
+        .putInt("themeIndex", themeIndex)
+        .apply()
 }
