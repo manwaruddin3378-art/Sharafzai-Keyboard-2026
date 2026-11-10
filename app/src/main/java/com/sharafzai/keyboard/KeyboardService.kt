@@ -687,7 +687,7 @@ refreshKeyboard()
         setInputView(buildKeyboard())
     }
 
-     private fun rowParams(height: Int): LinearLayout.LayoutParams {
+       private fun rowParams(height: Int): LinearLayout.LayoutParams {
         return LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             dp(height)
