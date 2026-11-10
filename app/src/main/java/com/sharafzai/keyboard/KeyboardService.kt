@@ -7,24 +7,102 @@ import android.inputmethodservice.InputMethodService
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.TextView
 import android.os.Handler
 import android.os.Looper
-import android.view.View
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.PopupWindow
+
 class KeyboardService : InputMethodService() {
 
     private var language = 0
     private var shifted = false
     private var caps = false
+    private var themeIndex = 0
     private var suggestionContainer: LinearLayout? = null
- private val offlineWords = mapOf(
+
+    private data class KeyboardTheme(
+        val background: Int,
+        val keyColors: List<Int>,
+        val special: Int,
+        val suggestion: Int,
+        val accent: Int,
+        val border: Int
+    )
+
+    private val themes = listOf(
+        KeyboardTheme(
+            Color.rgb(27, 32, 43),
+            listOf(
+                Color.rgb(55, 92, 130),
+                Color.rgb(61, 105, 139),
+                Color.rgb(72, 87, 126),
+                Color.rgb(57, 112, 117)
+            ),
+            Color.rgb(28, 137, 157),
+            Color.rgb(38, 45, 58),
+            Color.rgb(255, 205, 80),
+            Color.rgb(90, 115, 145)
+        ),
+        KeyboardTheme(
+            Color.rgb(30, 25, 40),
+            listOf(
+                Color.rgb(100, 65, 135),
+                Color.rgb(115, 75, 145),
+                Color.rgb(80, 65, 125)
+            ),
+            Color.rgb(155, 85, 170),
+            Color.rgb(48, 38, 60),
+            Color.rgb(255, 190, 230),
+            Color.rgb(135, 100, 155)
+        ),
+        KeyboardTheme(
+            Color.rgb(20, 38, 35),
+            listOf(
+                Color.rgb(45, 100, 80),
+                Color.rgb(55, 115, 90),
+                Color.rgb(65, 90, 75)
+            ),
+            Color.rgb(35, 145, 110),
+            Color.rgb(30, 55, 48),
+            Color.rgb(190, 245, 190),
+            Color.rgb(80, 135, 105)
+        ),
+        KeyboardTheme(
+            Color.rgb(35, 35, 35),
+            listOf(
+                Color.rgb(75, 75, 75),
+                Color.rgb(90, 90, 90),
+                Color.rgb(65, 65, 65)
+            ),
+            Color.rgb(100, 100, 100),
+            Color.rgb(48, 48, 48),
+            Color.rgb(255, 220, 120),
+            Color.rgb(120, 120, 120)
+        )
+    )
+
+    private val theme: KeyboardTheme
+        get() = themes[themeIndex]
+
+    private data class KeySpec(
+        val normal: String,
+        val shifted: String = "",
+        val longPress: String = ""
+    )
+
+    private fun k(a: String, b: String = "", c: String = "") =
+        KeySpec(a, b, c)
+
+    private val offlineWords = mapOf(
         0 to listOf(
             "الله", "محمد", "اسلام", "قرآن", "کتاب",
-            "ښوونځی", "پوهنتون", "افغانستان", "پښتو",
-            "ژبه", "علم", "استاد", "زده کړه", "ملګری",
+            "ښوونځی", "پوهنتون", "پښتو", "ژبه",
+            "علم", "استاد", "زده کړه", "ملګری",
             "ورور", "خور", "کور", "کار", "ژوند",
             "ښه", "مننه", "سلام", "ورځ", "شپه"
         ),
@@ -44,14 +122,6 @@ class KeyboardService : InputMethodService() {
             "school", "student", "thank", "thanks"
         )
     )
-    private data class KeySpec(
-        val normal: String,
-        val shifted: String = "",
-        val longPress: String = ""
-    )
-
-    private fun k(a: String, b: String = "", c: String = "") =
-        KeySpec(a, b, c)
 
     private val pashtoRows = listOf(
         listOf(
@@ -150,26 +220,54 @@ class KeyboardService : InputMethodService() {
         return buildKeyboard()
     }
 
+    override fun onStartInputView(
+        info: EditorInfo,
+        restarting: Boolean
+    ) {
+        super.onStartInputView(info, restarting)
+        updateSuggestions()
+    }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int,
+        oldSelEnd: Int,
+        newSelStart: Int,
+        newSelEnd: Int,
+        candidatesStart: Int,
+        candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(
+            oldSelStart, oldSelEnd,
+            newSelStart, newSelEnd,
+            candidatesStart, candidatesEnd
+        )
+        updateSuggestions()
+    }
+
     private fun buildKeyboard(): View {
-        val root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
-        root.setPadding(dp(3), dp(4), dp(3), dp(4))
-        root.setBackgroundColor(Color.rgb(27, 32, 43))
-
-        val header = LinearLayout(this)
-        header.orientation = LinearLayout.HORIZONTAL
-        header.gravity = Gravity.CENTER_VERTICAL
-
-        val title = TextView(this)
-        title.text = when (language) {
-            0 -> "SHARAFZAI  •  پښتو"
-            1 -> "SHARAFZAI  •  العربية"
-            else -> "SHARAFZAI  •  ENGLISH"
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(3), dp(4), dp(3), dp(4))
+            setBackgroundColor(theme.background)
         }
-        title.textSize = 14f
-        title.setTextColor(Color.WHITE)
-        title.typeface = Typeface.DEFAULT_BOLD
-        title.gravity = Gravity.CENTER
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val title = TextView(this).apply {
+            text = when (language) {
+                0 -> "SHARAFZAI  •  پښتو"
+                1 -> "SHARAFZAI  •  العربية"
+                else -> "SHARAFZAI  •  ENGLISH"
+            }
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+        }
+
         header.addView(
             title,
             LinearLayout.LayoutParams(0, dp(29), 1f)
@@ -181,19 +279,27 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
+        addSpecial(header, "🎨", 0.8f, 29) {
+            themeIndex = (themeIndex + 1) % themes.size
+            refreshKeyboard()
+        }
+
         root.addView(header, rowParams(31))
- suggestionContainer = LinearLayout(this).apply {
+
+        suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.rgb(38, 45, 58))
+            setBackgroundColor(theme.suggestion)
         }
 
         root.addView(suggestionContainer, rowParams(32))
+
         val numberRow = when (language) {
             0 -> pashtoNumbers
             1 -> arabicNumbers
             else -> englishNumbers
         }
+
         addKeyRow(root, numberRow, 37)
 
         val rows = when (language) {
@@ -202,12 +308,13 @@ class KeyboardService : InputMethodService() {
             else -> englishRows
         }
 
-        for (row in rows) {
+        rows.forEach { row ->
             addKeyRow(root, row, 42)
         }
 
-        val controlRow = LinearLayout(this)
-        controlRow.orientation = LinearLayout.HORIZONTAL
+        val controlRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
 
         addSpecial(controlRow, "Tab", 0.9f, 39) {
             currentInputConnection?.commitText("\t", 1)
@@ -225,31 +332,37 @@ class KeyboardService : InputMethodService() {
 
         addSpecial(controlRow, "⌫", 1.2f, 39) {
             currentInputConnection?.deleteSurroundingText(1, 0)
+            updateSuggestions()
         }
 
         root.addView(controlRow, rowParams(41))
 
-        val bottom = LinearLayout(this)
-        bottom.orientation = LinearLayout.HORIZONTAL
-addSpecial(bottom, "←", 0.8f, 42) {
-    sendKey(KeyEvent.KEYCODE_DPAD_LEFT)
-}
+        val bottom = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
 
-addSpecial(bottom, "→", 0.8f, 42) {
-    sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
-}      
+        addSpecial(bottom, "←", 0.8f, 42) {
+            sendKey(KeyEvent.KEYCODE_DPAD_LEFT)
+        }
+
+        addSpecial(bottom, "→", 0.8f, 42) {
+            sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
+        }
 
         addSpecial(bottom, "،", 0.7f, 42) {
             val value = if (language == 2) "," else "،"
             currentInputConnection?.commitText(value, 1)
+            updateSuggestions()
         }
 
         addSpecial(bottom, "Space", 3.5f, 42) {
             currentInputConnection?.commitText(" ", 1)
+            updateSuggestions()
         }
 
         addSpecial(bottom, ".", 0.7f, 42) {
             currentInputConnection?.commitText(".", 1)
+            updateSuggestions()
         }
 
         addSpecial(bottom, "↵", 1f, 42) {
@@ -266,113 +379,150 @@ addSpecial(bottom, "→", 0.8f, 42) {
         keys: List<KeySpec>,
         height: Int
     ) {
-        val row = LinearLayout(this)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
 
-        for ((index, spec) in keys.withIndex()) {
-            val button = Button(this)
+        keys.forEachIndexed { index, spec ->
+
+            val frame = FrameLayout(this)
 
             val value = when {
-                shifted && spec.shifted.isNotEmpty() -> spec.shifted
+                shifted && spec.shifted.isNotEmpty() ->
+                    spec.shifted
                 language == 2 && (caps || shifted) ->
                     spec.normal.uppercase()
                 else -> spec.normal
             }
 
-            button.text = value
-            button.textSize = when {
-                keys.size >= 12 -> 13f
-                else -> 15f
+            val mainText = TextView(this).apply {
+                text = value
+                textSize = if (keys.size >= 12) 15f else 18f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
             }
-            button.typeface = Typeface.DEFAULT_BOLD
-            button.isAllCaps = false
-            button.setTextColor(Color.WHITE)
-            button.minimumWidth = 0
-            button.minimumHeight = 0
-            button.setPadding(0, 0, 0, 0)
 
-            val colors = intArrayOf(
-                Color.rgb(55, 92, 130),
-                Color.rgb(61, 105, 139),
-                Color.rgb(72, 87, 126),
-                Color.rgb(57, 112, 117)
+            frame.addView(
+                mainText,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
             )
 
-            button.background = roundedBackground(
-                colors[index % colors.size],
+            if (spec.shifted.isNotEmpty() || spec.longPress.isNotEmpty()) {
+                val alternate = TextView(this).apply {
+                    text = if (spec.longPress.isNotEmpty()) {
+                        spec.longPress
+                    } else {
+                        spec.shifted
+                    }
+                    textSize = 9f
+                    setTextColor(theme.accent)
+                    gravity = Gravity.TOP or Gravity.END
+                    setPadding(0, dp(2), dp(3), 0)
+                }
+
+                frame.addView(
+                    alternate,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        Gravity.TOP or Gravity.END
+                    )
+                )
+            }
+
+            frame.background = roundedBackground(
+                theme.keyColors[index % theme.keyColors.size],
                 dp(8)
             )
 
-            button.setOnClickListener {
-               val before = currentInputConnection
-    ?.getTextBeforeCursor(30, 0)
-    ?.toString().orEmpty()
+            frame.setOnClickListener {
+                val before = currentInputConnection
+                    ?.getTextBeforeCursor(30, 0)
+                    ?.toString().orEmpty()
 
-val previous = before.trimEnd().lastOrNull()
+                val previous = before.trimEnd().lastOrNull()
 
-val sentenceStart = before.isBlank() ||
-    previous == null ||
-    previous in listOf('.', '?', '!', '؟', '\n')
+                val sentenceStart =
+                    before.isBlank() ||
+                    previous == null ||
+                    previous in listOf('.', '?', '!', '؟', '\n')
 
-val output = when {
-    shifted && spec.shifted.isNotEmpty() ->
-        spec.shifted
+                val output = when {
+                    shifted && spec.shifted.isNotEmpty() ->
+                        spec.shifted
 
-    language == 2 && (caps || shifted || sentenceStart) ->
-        spec.normal.uppercase()
+                    language == 2 &&
+                        (caps || shifted || sentenceStart) ->
+                        spec.normal.uppercase()
 
-    else -> spec.normal
-}
+                    else -> spec.normal
+                }
+
                 currentInputConnection?.commitText(output, 1)
 
                 if (shifted && !caps) {
                     shifted = false
                     refreshKeyboard()
                 }
+
+                updateSuggestions()
             }
 
-           button.setOnLongClickListener {
-    val alternate = when {
-        spec.longPress.isNotEmpty() -> spec.longPress
-        spec.shifted.isNotEmpty() -> spec.shifted
-        language == 2 -> spec.normal.uppercase()
-        else -> ""
-    }
+            frame.setOnLongClickListener {
+                val alternate = when {
+                    spec.longPress.isNotEmpty() ->
+                        spec.longPress
 
-    if (alternate.isNotEmpty()) {
-        val preview = TextView(this)
-        preview.text = alternate
-        preview.textSize = 25f
-        preview.gravity = Gravity.CENTER
-        preview.setTextColor(Color.WHITE)
-        preview.background = roundedBackground(
-            Color.rgb(28, 137, 157), dp(10)
-        )
+                    spec.shifted.isNotEmpty() ->
+                        spec.shifted
 
-        val popup = PopupWindow(
-            preview, dp(60), dp(52), false
-        )
+                    language == 2 ->
+                        spec.normal.uppercase()
 
-        popup.showAsDropDown(
-            button, 0, -button.height - dp(52)
-        )
+                    else -> ""
+                }
 
-        currentInputConnection?.commitText(alternate, 1)
+                if (alternate.isNotEmpty()) {
+                    val preview = TextView(this).apply {
+                        text = alternate
+                        textSize = 25f
+                        gravity = Gravity.CENTER
+                        setTextColor(Color.WHITE)
+                        background = roundedBackground(
+                            theme.special, dp(10)
+                        )
+                    }
 
-        button.postDelayed({
-            if (popup.isShowing) popup.dismiss()
-        }, 1000)
-    }
+                    val popup = PopupWindow(
+                        preview, dp(60), dp(52), false
+                    )
 
-    true
-}
+                    popup.showAsDropDown(
+                        frame, 0, -frame.height - dp(52)
+                    )
+
+                    currentInputConnection?.commitText(alternate, 1)
+                    updateSuggestions()
+
+                    preview.postDelayed({
+                        if (popup.isShowing) popup.dismiss()
+                    }, 900)
+                }
+
+                true
+            }
 
             val params = LinearLayout.LayoutParams(
                 0, dp(height), 1f
             )
+
             params.setMargins(dp(1), dp(2), dp(1), dp(2))
-            row.addView(button, params)
+            row.addView(frame, params)
         }
 
         parent.addView(row, rowParams(height + 3))
@@ -385,160 +535,121 @@ val output = when {
         height: Int,
         action: () -> Unit
     ) {
-        val button = Button(this)
-        button.text = label
-        button.textSize = 12f
-        button.isAllCaps = false
-        button.typeface = Typeface.DEFAULT_BOLD
-        button.setTextColor(Color.WHITE)
-        button.minimumWidth = 0
-        button.minimumHeight = 0
-        button.setPadding(0, 0, 0, 0)
-        button.background = roundedBackground(
-            Color.rgb(28, 137, 157),
-            dp(8)
-        )
-        if (label == "⌫") {
-    val handler = Handler(Looper.getMainLooper())
-    var repeatTask: Runnable? = null
-
-    button.setOnTouchListener { _, event ->
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                action()
-
-                val task = object : Runnable {
-                    override fun run() {
-                        action()
-                        handler.postDelayed(this, 65)
-                    }
-                }
-
-                repeatTask = task
-                handler.postDelayed(task, 400)
-                true
-            }
-
-            MotionEvent.ACTION_UP,
-            MotionEvent.ACTION_CANCEL -> {
-                repeatTask?.let {
-                    handler.removeCallbacks(it)
-                }
-                repeatTask = null
-                true
-            }
-
-            else -> true
+        val button = Button(this).apply {
+            text = label
+            textSize = 12f
+            isAllCaps = false
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.WHITE)
+            minimumWidth = 0
+            minimumHeight = 0
+            setPadding(0, 0, 0, 0)
+            background = roundedBackground(
+                theme.special, dp(8)
+            )
         }
-    }
-} else {
-    button.setOnClickListener { action() }
-}
+
+        if (label == "⌫") {
+            val handler = Handler(Looper.getMainLooper())
+            var repeatTask: Runnable? = null
+
+            button.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        action()
+
+                        val task = object : Runnable {
+                            override fun run() {
+                                action()
+                                handler.postDelayed(this, 65)
+                            }
+                        }
+
+                        repeatTask = task
+                        handler.postDelayed(task, 400)
+                        true
+                    }
+
+                    MotionEvent.ACTION_UP,
+                    MotionEvent.ACTION_CANCEL -> {
+                        repeatTask?.let {
+                            handler.removeCallbacks(it)
+                        }
+                        repeatTask = null
+                        true
+                    }
+
+                    else -> true
+                }
+            }
+        } else {
+            button.setOnClickListener { action() }
+        }
 
         val params = LinearLayout.LayoutParams(
             0, dp(height), weight
         )
+
         params.setMargins(dp(2), dp(2), dp(2), dp(2))
         parent.addView(button, params)
     }
-private fun getOfflineSuggestions(): List<String> {
-    val before = currentInputConnection
-        ?.getTextBeforeCursor(60, 0)
-        ?.toString().orEmpty()
 
-    val currentWord = before
-        .takeLastWhile { it.isLetter() }
+    private fun getOfflineSuggestions(): List<String> {
+        val before = currentInputConnection
+            ?.getTextBeforeCursor(60, 0)
+            ?.toString().orEmpty()
 
-    if (currentWord.isEmpty()) return emptyList()
-
-    return offlineWords[language]
-        .orEmpty()
-        .filter {
-            it.startsWith(currentWord, ignoreCase = true) &&
-            !it.equals(currentWord, ignoreCase = true)
+        val currentWord = before.takeLastWhile {
+            it.isLetter()
         }
-        .take(3)
-}
 
-private fun updateSuggestions() {
-    val container = suggestionContainer ?: return
-    container.removeAllViews()
+        if (currentWord.isEmpty()) return emptyList()
 
-    val suggestions = getOfflineSuggestions()
-
-    suggestions.forEach { word ->
-        val button = TextView(this).apply {
-            text = word
-            textSize = 16f
-            gravity = Gravity.CENTER
-            setPadding(16, 8, 16, 8)
-            setTextColor(Color.WHITE)
-
-            setOnClickListener {
-                val before = currentInputConnection
-                    ?.getTextBeforeCursor(60, 0)
-                    ?.toString().orEmpty()
-
-                val currentWord = before.takeLastWhile { it.isLetter() }
-
-                currentInputConnection?.deleteSurroundingText(
-                    currentWord.length, 0
-                )
-                currentInputConnection?.commitText(word, 1)
-                updateSuggestions()
+        return offlineWords[language]
+            .orEmpty()
+            .filter {
+                it.startsWith(currentWord, ignoreCase = true) &&
+                !it.equals(currentWord, ignoreCase = true)
             }
-        }
-
-        container.addView(button)
+            .take(3)
     }
-}
-    val container = suggestionContainer ?: return
-    container.removeAllViews()
 
-    val suggestions = getOfflineSuggestions()
+    private fun updateSuggestions() {
+        val container = suggestionContainer ?: return
+        container.removeAllViews()
 
-    suggestions.forEach { word ->
-        val button = TextView(this).apply {
-            text = word
-            textSize = 16f
-            gravity = Gravity.CENTER
-            setPadding(16, 8, 16, 8)
-            setTextColor(Color.WHITE)
-            setOnClickListener {
-                val before = currentInputConnection
-                    ?.getTextBeforeCursor(60, 0)
-                    ?.toString().orEmpty()
+        val suggestions = getOfflineSuggestions()
 
-                val currentWord = before.takeLastWhile { it.isLetter() }
+        suggestions.forEach { word ->
+            val suggestion = TextView(this).apply {
+                text = word
+                textSize = 16f
+                gravity = Gravity.CENTER
+                setPadding(dp(12), dp(4), dp(12), dp(4))
+                setTextColor(Color.WHITE)
 
-                currentInputConnection?.deleteSurroundingText(
-                    currentWord.length, 0
-                )
-                currentInputConnection?.commitText(word, 1)
-                updateSuggestions()
+                setOnClickListener {
+                    val before = currentInputConnection
+                        ?.getTextBeforeCursor(60, 0)
+                        ?.toString().orEmpty()
+
+                    val currentWord = before.takeLastWhile {
+                        it.isLetter()
+                    }
+
+                    currentInputConnection?.deleteSurroundingText(
+                        currentWord.length, 0
+                    )
+
+                    currentInputConnection?.commitText(word, 1)
+                    updateSuggestions()
+                }
             }
-        }
 
-        container.addView(button)
+            container.addView(suggestion)
+        }
     }
-}
-    val before = currentInputConnection
-        ?.getTextBeforeCursor(60, 0)
-        ?.toString().orEmpty()
 
-    val currentWord = before
-        .takeLastWhile { it.isLetter() }
-
-    if (currentWord.isEmpty()) return emptyList()
-
-    return offlineWords[language]
-        .orEmpty()
-        .filter {
-            it.startsWith(currentWord, ignoreCase = true) &&
-            !it.equals(currentWord, ignoreCase = true)
-        }
-        .take(3)
-}
     private fun roundedBackground(
         color: Int,
         radius: Int
@@ -546,7 +657,7 @@ private fun updateSuggestions() {
         return GradientDrawable().apply {
             setColor(color)
             cornerRadius = radius.toFloat()
-            setStroke(dp(1), Color.rgb(90, 115, 145))
+            setStroke(dp(1), theme.border)
         }
     }
 
