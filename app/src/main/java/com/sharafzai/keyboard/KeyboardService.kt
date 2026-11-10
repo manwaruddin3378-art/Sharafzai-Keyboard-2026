@@ -627,41 +627,7 @@ refreshKeyboard()
             .take(3)
     }
 
-    private fun updateSuggestions() {
-        val container = suggestionContainer ?: return
-        container.removeAllViews()
-
-        val suggestions = getOfflineSuggestions()
-
-        suggestions.forEach { word ->
-            val suggestion = TextView(this).apply {
-                text = word
-                textSize = 16f
-                gravity = Gravity.CENTER
-                setPadding(dp(12), dp(4), dp(12), dp(4))
-                setTextColor(Color.WHITE)
-
-                setOnClickListener {
-                    val before = currentInputConnection
-                        ?.getTextBeforeCursor(60, 0)
-                        ?.toString().orEmpty()
-
-                    val currentWord = before.takeLastWhile {
-                        it.isLetter()
-                    }
-
-                    currentInputConnection?.deleteSurroundingText(
-                        currentWord.length, 0
-                    )
-
-                    currentInputConnection?.commitText(word, 1)
-                    updateSuggestions()
-                }
-            }
-
-            container.addView(suggestion)
-        }
-    }
+  }
 
     private fun roundedBackground(
         color: Int,
