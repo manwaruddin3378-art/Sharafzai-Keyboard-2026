@@ -694,9 +694,6 @@ refreshKeyboard()
         )
     }
 
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
-    }
 
     private fun saveSettings() {
         getSharedPreferences(
