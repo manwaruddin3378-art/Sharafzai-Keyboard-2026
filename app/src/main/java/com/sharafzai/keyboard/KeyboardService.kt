@@ -27,6 +27,7 @@ class KeyboardService : InputMethodService() {
     private var suggestionContainer: LinearLayout? = null
     private var emojiPanelVisible = false
     private var diacriticsPanelVisible = false
+    private var symbolsPanelVisible = false
 
     private data class KeyboardTheme(
         val background: Int,
@@ -334,6 +335,9 @@ class KeyboardService : InputMethodService() {
             language = (language + 1) % 4
             shifted = false
             caps = false
+            emojiPanelVisible = false
+            diacriticsPanelVisible = false
+            symbolsPanelVisible = false
             saveSettings()
             refreshKeyboard()
         }
@@ -384,16 +388,31 @@ class KeyboardService : InputMethodService() {
 
         addSpecial(controlRow, "☺", 0.9f, 39) {
             emojiPanelVisible = !emojiPanelVisible
-            if (emojiPanelVisible) diacriticsPanelVisible = false
+            if (emojiPanelVisible) {
+                diacriticsPanelVisible = false
+                symbolsPanelVisible = false
+            }
             refreshKeyboard()
         }
 
         if (language == 1 || language == 3) {
             addSpecial(controlRow, "◌َ", 0.9f, 39) {
                 diacriticsPanelVisible = !diacriticsPanelVisible
-                if (diacriticsPanelVisible) emojiPanelVisible = false
+                if (diacriticsPanelVisible) {
+                    emojiPanelVisible = false
+                    symbolsPanelVisible = false
+                }
                 refreshKeyboard()
             }
+        }
+
+        addSpecial(controlRow, "#+=", 0.9f, 39) {
+            symbolsPanelVisible = !symbolsPanelVisible
+            if (symbolsPanelVisible) {
+                emojiPanelVisible = false
+                diacriticsPanelVisible = false
+            }
+            refreshKeyboard()
         }
 
         addSpecial(controlRow, "Caps", 1.1f, 39) {
@@ -420,6 +439,15 @@ class KeyboardService : InputMethodService() {
                 k("ٰ"), k("ٓ"), k("ٔ"), k("ٖ")
             )
             addKeyRow(root, diacriticKeys, 34)
+        }
+
+        if (symbolsPanelVisible) {
+            val symbolKeys = listOf(
+                k("@"), k("#"), k("$"), k("%"),
+                k("&"), k("*"), k("+"), k("="),
+                k("/"), k("\\\\"), k("("), k(")")
+            )
+            addKeyRow(root, symbolKeys, 34)
         }
 
         if (emojiPanelVisible) {
