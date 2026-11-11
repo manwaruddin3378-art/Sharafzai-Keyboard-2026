@@ -32,6 +32,13 @@ class MainActivity : Activity() {
         render()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (Build.VERSION.SDK_INT < 31 || getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
+            AlarmStore.read(this).filter { it.enabled }.forEach { scheduleAlarm(it) }
+        }
+    }
+
     private fun render() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
