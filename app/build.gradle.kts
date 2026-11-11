@@ -1,5 +1,3 @@
-import java.net.URL
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,8 +11,8 @@ android {
         applicationId = "com.sharafzai.keyboard"
         minSdk = 21
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.0"
     }
 
     buildTypes {
@@ -41,23 +39,5 @@ android {
 }
 
 dependencies {
-    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
-    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+    // MVP intentionally uses Android's built-in PdfRenderer; no heavy OCR/PDF engine.
 }
-
-tasks.register("downloadOcrTrainedData") {
-    val outputDir = layout.projectDirectory.dir("src/main/assets/tessdata").asFile
-    outputs.dir(outputDir)
-    doLast {
-        outputDir.mkdirs()
-        listOf("ara", "fas", "pus", "eng").forEach { language ->
-            val target = File(outputDir, "$language.traineddata")
-            if (!target.exists() || target.length() < 100_000) {
-                val url = URL("https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/$language.traineddata")
-                url.openStream().use { input -> target.outputStream().use { output -> input.copyTo(output) } }
-            }
-        }
-    }
-}
-
-tasks.named("preBuild").configure { dependsOn("downloadOcrTrainedData") }
