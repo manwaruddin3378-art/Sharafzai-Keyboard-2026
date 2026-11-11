@@ -2,6 +2,9 @@ package com.sharafzai.keyboard
 
 import android.app.*
 import android.content.*
+import android.net.Uri
+import android.database.Cursor
+import android.provider.OpenableColumns
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -81,6 +84,7 @@ class MainActivity : Activity() {
             "calculator" -> showCalculator()
             "adhkar", "morning", "evening" -> showAdhkar(page)
             "phrases" -> showPhrases()
+            "library" -> showLibrary()
             "keyboard" -> showKeyboardSetup()
             "settings" -> showAppSettings()
             else -> showHome()
@@ -111,8 +115,174 @@ class MainActivity : Activity() {
         addButton(root, "اذکار سهار", 1f) { page = "morning"; render() }
         addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
         addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
+        addButton(root, "زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د شرفزی اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
+    }
+
+    private fun showLibrary() {
+        line("خپل PDF کتابونه، شخصي لیکنې او نور اسناد دلته ورزیات کړئ. فایلونه په همدې موبایل کې د کتابتون له لارې لاسرسی لري.")
+        addButton(root, "＋ له موبایل څخه PDF کتاب ورزیات کړئ", 1f) {
+            val pick = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/pdf"
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            }
+            try {
+                startActivityForResult(pick, PDF_PICK_REQUEST)
+            } catch (_: Exception) {
+                Toast.makeText(this, "د فایلونو ټاکلو اپلیکیشن ونه موندل شو", Toast.LENGTH_LONG).show()
+            }
+        }
+        val books = readPdfLibrary()
+        line("ستاسو کتابونه: " + books.length())
+        if (books.length() == 0) {
+            line("تر اوسه PDF کتاب نه دی ورزیات شوی. د پورته تڼۍ له لارې یو PDF وټاکئ.")
+        } else {
+            for (i in 0 until books.length()) {
+                val item = books.optJSONObject(i) ?: continue
+                val title = item.optString("title", "بې نومه PDF")
+                val category = item.optString("category", "نور اسناد")
+                val uri = item.optString("uri", "")
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(10), dp(8), dp(10), dp(8))
+                    setBackgroundColor(Color.rgb(38, 38, 38))
+                }
+                row.addView(TextView(this).apply {
+                    text = title
+                    textSize = 17f
+                    setTextColor(Color.WHITE)
+                })
+                row.addView(TextView(this).apply {
+                    text = category
+                    textSize = 12f
+                    setTextColor(Color.LTGRAY)
+                })
+                val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                addButton(actions, "کتاب پرانیزئ", 1f) { openPdf(uri) }
+                addButton(actions, "له کتابتونه لرې", 1f) {
+                    AlertDialog.Builder(this)
+                        .setTitle("له کتابتونه لرې کول؟")
+                        .setMessage("«" + title + "» به یوازې له شرفزی کتابتونه لرې شي؛ اصلي فایل به نه حذف کېږي.")
+                        .setPositiveButton("لرې کول") { _, _ -> removePdfFromLibrary(uri); render() }
+                        .setNegativeButton("نه", null)
+                        .show()
+                }
+                row.addView(actions)
+                root.addView(row)
+            }
+        }
+        line("یادونه: یوازې PDF فایلونه منل کېږي. د کتاب لوستلو لپاره به د موبایل PDF لوستونکی پرانیستل شي. د کتابتون څخه د لرې کولو سره اصلي فایل نه حذف کېږي.")
+    }
+
+    private fun readPdfLibrary(): org.json.JSONArray {
+        val raw = prefs.getString("pdf_library", "[]") ?: "[]"
+        return runCatching { org.json.JSONArray(raw) }.getOrDefault(org.json.JSONArray())
+    }
+
+    private fun getPdfDisplayName(uri: Uri): String {
+        var name = "PDF کتاب"
+        var cursor: Cursor? = null
+        try {
+            cursor = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index >= 0) name = cursor.getString(index) ?: name
+            }
+        } catch (_: Exception) {
+        } finally {
+            cursor?.close()
+        }
+        return name.removeSuffix(".pdf").removeSuffix(".PDF")
+    }
+
+    private fun savePdfToLibrary(uri: Uri, title: String, category: String) {
+        val books = readPdfLibrary()
+        if ((0 until books.length()).any { books.optJSONObject(it)?.optString("uri") == uri.toString() }) {
+            Toast.makeText(this, "دا PDF له مخکې په کتابتون کې شته", Toast.LENGTH_SHORT).show()
+            return
+        }
+        books.put(org.json.JSONObject()
+            .put("uri", uri.toString())
+            .put("title", title.ifBlank { "PDF کتاب" })
+            .put("category", category)
+            .put("added", System.currentTimeMillis()))
+        prefs.edit().putString("pdf_library", books.toString()).apply()
+        Toast.makeText(this, "PDF کتابتون ته ورزیات شو", Toast.LENGTH_SHORT).show()
+        render()
+    }
+
+    private fun openPdf(uriText: String) {
+        try {
+            val uri = Uri.parse(uriText)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/pdf")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, "د PDF لوستلو اپلیکیشن نشته؛ لومړی یو PDF Reader نصب کړئ", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "دا PDF فایل نه پرانیستل کېږي؛ کېدای شي فایل له خپل ځایه لرې شوی وي", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun removePdfFromLibrary(uriText: String) {
+        val old = readPdfLibrary()
+        val updated = org.json.JSONArray()
+        for (i in 0 until old.length()) {
+            val item = old.optJSONObject(i) ?: continue
+            if (item.optString("uri") != uriText) updated.put(item)
+        }
+        prefs.edit().putString("pdf_library", updated.toString()).apply()
+        runCatching { contentResolver.releasePersistableUriPermission(Uri.parse(uriText), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != PDF_PICK_REQUEST || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        try {
+            val takeFlags = (data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            if (takeFlags != 0) contentResolver.takePersistableUriPermission(uri, takeFlags)
+        } catch (_: Exception) {
+            Toast.makeText(this, "د فایل د اجازې ساتل ممکن نه شول؛ بل فایل وازمویئ", Toast.LENGTH_LONG).show()
+            return
+        }
+        val edit = EditText(this).apply {
+            setText(getPdfDisplayName(uri))
+            hint = "د کتاب یا لیکنې نوم"
+            setTextColor(Color.WHITE)
+        }
+        val category = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("کتاب", "زما شخصي لیکنې", "څېړنې او مقالې", "نور اسناد"))
+        }
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(TextView(this@MainActivity).apply { text = "د کتاب نوم"; setTextColor(Color.WHITE) })
+            addView(edit)
+            addView(TextView(this@MainActivity).apply { text = "ډول"; setTextColor(Color.WHITE); setPadding(0, dp(8), 0, 0) })
+            addView(category)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("کتابتون ته PDF ورزیاتول")
+            .setView(panel)
+            .setPositiveButton("ساتل") { _, _ ->
+                val kinds = listOf("کتاب", "زما شخصي لیکنې", "څېړنې او مقالې", "نور اسناد")
+                savePdfToLibrary(uri, edit.text.toString().trim(), kinds[category.selectedItemPosition])
+            }
+            .setNegativeButton("لغوه") { _, _ ->
+                runCatching { contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            }
+            .show()
+    }
+
+    companion object {
+        private const val PDF_PICK_REQUEST = 7401
     }
 
     private fun showKeyboardSetup() {
