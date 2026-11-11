@@ -85,20 +85,32 @@ class KeyboardService : InputMethodService() {
         val border: Int
     )
 
-    // Three local themes; no network resources or remote fonts are used.
+    // Six lightweight, fully offline color themes with high-contrast text.
     private val themes = listOf(
-        KeyboardTheme(Color.rgb(246, 247, 249),
-            listOf(Color.rgb(255, 255, 255), Color.rgb(250, 251, 253), Color.rgb(241, 244, 247)),
-            Color.rgb(232, 237, 243), Color.rgb(255, 255, 255),
-            Color.rgb(55, 105, 190), Color.rgb(218, 224, 232)),
-        KeyboardTheme(Color.rgb(27, 30, 37),
-            listOf(Color.rgb(55, 60, 70), Color.rgb(47, 52, 62), Color.rgb(39, 44, 54)),
-            Color.rgb(66, 73, 85), Color.rgb(37, 41, 50),
-            Color.rgb(124, 170, 255), Color.rgb(76, 84, 98)),
-        KeyboardTheme(Color.rgb(230, 240, 250),
-            listOf(Color.rgb(255, 255, 255), Color.rgb(244, 249, 255), Color.rgb(224, 237, 250)),
-            Color.rgb(205, 224, 244), Color.rgb(248, 252, 255),
-            Color.rgb(35, 100, 170), Color.rgb(190, 211, 233))
+        KeyboardTheme(Color.rgb(241, 244, 248),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(250, 252, 255), Color.rgb(235, 240, 247)),
+            Color.rgb(224, 232, 242), Color.rgb(251, 252, 254),
+            Color.rgb(39, 104, 160), Color.rgb(207, 217, 230)),
+        KeyboardTheme(Color.rgb(20, 25, 35),
+            listOf(Color.rgb(48, 57, 72), Color.rgb(41, 50, 65), Color.rgb(34, 42, 56)),
+            Color.rgb(57, 68, 86), Color.rgb(29, 36, 49),
+            Color.rgb(90, 165, 240), Color.rgb(73, 86, 108)),
+        KeyboardTheme(Color.rgb(224, 240, 248),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(246, 251, 255), Color.rgb(229, 242, 250)),
+            Color.rgb(194, 221, 239), Color.rgb(244, 250, 254),
+            Color.rgb(20, 116, 157), Color.rgb(181, 211, 228)),
+        KeyboardTheme(Color.rgb(231, 245, 238),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(247, 253, 249), Color.rgb(231, 243, 236)),
+            Color.rgb(208, 232, 218), Color.rgb(248, 253, 249),
+            Color.rgb(39, 128, 95), Color.rgb(188, 218, 199)),
+        KeyboardTheme(Color.rgb(242, 238, 250),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(250, 247, 255), Color.rgb(238, 232, 247)),
+            Color.rgb(225, 217, 241), Color.rgb(251, 249, 255),
+            Color.rgb(115, 84, 160), Color.rgb(211, 199, 230)),
+        KeyboardTheme(Color.rgb(250, 239, 242),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(255, 249, 251), Color.rgb(246, 230, 236)),
+            Color.rgb(241, 220, 228), Color.rgb(255, 249, 251),
+            Color.rgb(173, 75, 105), Color.rgb(230, 199, 211))
     )
 
     private val theme: KeyboardTheme
@@ -119,7 +131,7 @@ class KeyboardService : InputMethodService() {
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
-        soundEnabled = prefs.getBoolean("soundEnabled", false).coerceIn(0, 2)
+        soundEnabled = prefs.getBoolean("soundEnabled", false)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -371,12 +383,13 @@ class KeyboardService : InputMethodService() {
 
         val title = TextView(this).apply {
             text = when (language) {
-                0 -> "SUNDUS  •  پښتو"
-                1 -> "SUNDUS  •  العربية"
-                2 -> "SUNDUS  •  ENGLISH"
-                else -> "SUNDUS  •  دری"
+                0 -> "✦ SUNDUS  |  پښتو"
+                1 -> "✦ SUNDUS  |  العربية"
+                2 -> "✦ SUNDUS  |  ENGLISH"
+                else -> "✦ SUNDUS  |  دری"
             }
-            textSize = 14f
+            textSize = 13f
+            letterSpacing = 0.03f
             setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
@@ -471,10 +484,12 @@ class KeyboardService : InputMethodService() {
         root.addView(topTools, rowParams(37))
 
         adhkarTextView = TextView(this).apply {
-            text = "ذکر:  " + adhkarList[adhkarIndex]
+            text = "ذکر  ✦  " + adhkarList[adhkarIndex]
             textSize = 12f; gravity = Gravity.CENTER
-            setTextColor(Color.WHITE); setPadding(dp(4), 0, dp(4), 0)
-            setBackgroundColor(Color.rgb(35, 35, 35))
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(42, 55, 68))
+            setPadding(dp(8), 0, dp(8), 0)
+            background = roundedBackground(theme.special, dp(9))
+            elevation = dp(1).toFloat()
         }
         root.addView(adhkarTextView, rowParams(25))
 
@@ -706,7 +721,7 @@ class KeyboardService : InputMethodService() {
         parent.addView(fontRow, rowParams(41))
 
         val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val themeNames = listOf("سپین", "تیاره", "آبي")
+        val themeNames = listOf("مرغلرین", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي")
         addSpecial(themeRow, "رنګ: ${themeNames[themeIndex]}", 1.8f, 38) {
             themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
@@ -1167,8 +1182,9 @@ class KeyboardService : InputMethodService() {
 
             frame.background = roundedBackground(
                 theme.keyColors[index % theme.keyColors.size],
-                dp(8)
+                dp(10)
             )
+            frame.elevation = dp(1).toFloat()
 
             frame.setOnClickListener {
                 val before = currentInputConnection
@@ -1195,7 +1211,7 @@ class KeyboardService : InputMethodService() {
 
                 currentInputConnection?.commitText(output, 1)
                 if (hapticEnabled) frame.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-                if (soundEnabled) playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD)
+                if (soundEnabled) (getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager).playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD)
 
                 if (shifted && !caps) {
                     shifted = false
@@ -1255,8 +1271,10 @@ class KeyboardService : InputMethodService() {
             setPadding(0, 0, 0, 0)
             background = roundedBackground(
                 theme.special,
-                dp(8)
+                dp(10)
             )
+            elevation = dp(1).toFloat()
+            letterSpacing = 0.01f
         }
 
         if (label == "Space") {
@@ -1458,6 +1476,8 @@ class KeyboardService : InputMethodService() {
                     dp(10),
                     dp(3)
                 )
+                background = roundedBackground(theme.keyColors[0], dp(8))
+                elevation = dp(1).toFloat()
 
                 setOnClickListener {
                     val before = currentInputConnection
