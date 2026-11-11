@@ -432,24 +432,26 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(32))
 
-        val numberRow = when (language) {
-            0 -> pashtoNumbers
-            1 -> arabicNumbers
-            2 -> englishNumbers
-            else -> dariNumbers
-        }
+        if (!emojiPanelVisible && !clipboardPanelVisible) {
+            val numberRow = when (language) {
+                0 -> pashtoNumbers
+                1 -> arabicNumbers
+                2 -> englishNumbers
+                else -> dariNumbers
+            }
 
-        addKeyRow(root, numberRow, 37)
+            addKeyRow(root, numberRow, 37)
 
-        val rows = when (language) {
-            0 -> pashtoRows
-            1 -> arabicRows
-            2 -> englishRows
-            else -> dariRows
-        }
+            val rows = when (language) {
+                0 -> pashtoRows
+                1 -> arabicRows
+                2 -> englishRows
+                else -> dariRows
+            }
 
-        rows.forEach { row ->
-            addKeyRow(root, row, 42)
+            rows.forEach { row ->
+                addKeyRow(root, row, 42)
+            }
         }
 
         val controlRow = LinearLayout(this).apply {
@@ -530,11 +532,12 @@ class KeyboardService : InputMethodService() {
 
         if (symbolsPanelVisible) {
             val symbolKeys = listOf(
-                k("@"), k("#"), k("$"), k("%"),
-                k("&"), k("*"), k("+"), k("="),
-                k("/"), k("\\"), k("("), k(")")
+                k("@"), k("#"), k("$"), k("%"), k("&"), k("*"), k("+"), k("="),
+                k("/"), k("\\"), k("("), k(")"), k("["), k("]"), k("{"), k("}"),
+                k("<"), k(">"), k("!"), k("?"), k(":"), k(";"), k("~"), k("_"),
+                k("-"), k("—"), k("…"), k("•"), k("©"), k("®"), k("™"), k("٪")
             )
-            addKeyRow(root, symbolKeys, 34)
+            symbolKeys.chunked(8).forEach { row -> addKeyRow(root, row, 32) }
         }
 
         if (emojiPanelVisible) {
@@ -677,7 +680,7 @@ class KeyboardService : InputMethodService() {
             }
         }
         parent.addView(tabs, rowParams(37))
-        groups[emojiCategory.coerceIn(0, groups.lastIndex)].second.chunked(8).forEach { row ->
+        groups[emojiCategory.coerceIn(0, groups.lastIndex)].second.take(24).chunked(8).forEach { row ->
             addKeyRow(parent, row.map { k(it) }, 31)
         }
         val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -734,7 +737,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
-        val categories = listOf("اسلامي", "محاورې", "ډیزایني", "اسلامي ډیزاین")
+        val categories = listOf("اسلامي", "پښتو", "English", "دري", "ډیزاین", "۞")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         categories.forEachIndexed { index, label ->
             addSpecial(categoryRow, label, 1f, 36) { phraseCategory = index; refreshKeyboard() }
@@ -743,7 +746,9 @@ class KeyboardService : InputMethodService() {
         val phrases = when (phraseCategory) {
             0 -> listOf("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ","الْحَمْدُ لِلَّهِ","مَا شَاءَ اللَّهُ","إِنْ شَاءَ اللَّهُ","سُبْحَانَ اللَّهِ","أَسْتَغْفِرُ اللَّهَ","جَزَاكَ اللَّهُ خَيْرًا","بَارَكَ اللَّهُ فِيكَ","السَّلَامُ عَلَيْكُمْ","وَعَلَيْكُمُ السَّلَامُ","صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ","رَضِيَ اللَّهُ عَنْهُ")
             1 -> listOf("السلام علیکم، څنګه یاست؟","وعلیکم السلام، الحمدلله ښه یم","ډېره مننه","هیڅ خبره نه ده","مهرباني وکړئ","الله دې مل شه","په خیر راغلې","ستړی مه شې","بیا به سره ګورو","ستاسو له مرستې مننه","بښنه غواړم","ښه ورځ ولرئ")
-            2 -> listOf("❖ مننه ❖","✦ ښه راغلاست ✦","『 السلام علیکم 』","《 الحمد لله 》","༺ مننه ༻","✧ په خیر اوسئ ✧","◈ بریالی اوسئ ◈","❀ خوښ او خوشحاله اوسئ ❀","★ الله مو مل شه ★")
+            2 -> listOf("Hello!","How are you?","I hope you are well.","Thank you very much.","You're welcome.","Please let me know.","Have a nice day!","Good morning!","Good evening!","See you soon.","May Allah bless you.","Best wishes.")
+            3 -> listOf("سلام، حال شما چطور است؟","تشکر بسیار","خواهش می‌کنم","روز خوش داشته باشید","خداوند نگهدارتان باشد","از همکاری شما سپاسگزارم","به امید دیدار","صبح بخیر","شب بخیر","موفق باشید","ببخشید","لطفاً")
+            4 -> listOf("❖ مننه ❖","✦ ښه راغلاست ✦","『 السلام علیکم 』","《 الحمد لله 》","༺ مننه ༻","✧ په خیر اوسئ ✧","◈ بریالی اوسئ ◈","❀ خوښ او خوشحاله اوسئ ❀","★ الله مو مل شه ★")
             else -> listOf("۞ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۞","۞ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۞","﷽","ﷺ","۞ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ۞","۞ جَزَاكَ اللَّهُ خَيْرًا ۞","﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾","﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾")
         }
         phrases.chunked(3).forEach { group ->
@@ -1157,19 +1162,40 @@ class KeyboardService : InputMethodService() {
             MODE_PRIVATE
         ).getStringSet("personalWords_$language", emptySet()).orEmpty()
 
-        return (offlineWords[language].orEmpty() + personalWords)
-            .distinct()
-            .filter {
-                it.startsWith(
-                    currentWord,
-                    ignoreCase = true
-                ) &&
-                !it.equals(
-                    currentWord,
-                    ignoreCase = true
-                )
-            }
+        val candidates = (offlineWords[language].orEmpty() + personalWords).distinct()
+        val prefixMatches = candidates.filter {
+            it.startsWith(currentWord, ignoreCase = true) &&
+                !it.equals(currentWord, ignoreCase = true)
+        }
+        if (prefixMatches.isNotEmpty()) return prefixMatches.take(3)
+
+        if (currentWord.length < 4) return emptyList()
+        return candidates
+            .map { word -> word to editDistanceAtMostOne(currentWord.lowercase(), word.lowercase()) }
+            .filter { it.second == 1 }
+            .sortedBy { it.second }
+            .map { it.first }
             .take(3)
+    }
+
+    private fun editDistanceAtMostOne(a: String, b: String): Int {
+        if (kotlin.math.abs(a.length - b.length) > 1) return 2
+        var i = 0
+        var j = 0
+        var edits = 0
+        while (i < a.length && j < b.length) {
+            if (a[i] == b[j]) {
+                i++; j++
+            } else {
+                edits++
+                if (edits > 1) return edits
+                if (a.length > b.length) i++
+                else if (b.length > a.length) j++
+                else { i++; j++ }
+            }
+        }
+        if (i < a.length || j < b.length) edits++
+        return edits
     }
 
     private fun addCurrentWordToDictionary() {
