@@ -34,6 +34,7 @@ class KeyboardService : InputMethodService() {
     private var symbolsPanelVisible = false
     private var calculatorPanelVisible = false
     private var toolsPanelVisible = false
+    private var settingsPanelVisible = false
     private var calculatorExpression = ""
 
     private data class KeyboardTheme(
@@ -349,6 +350,7 @@ class KeyboardService : InputMethodService() {
             symbolsPanelVisible = false
             calculatorPanelVisible = false
             toolsPanelVisible = false
+            settingsPanelVisible = false
             saveSettings()
             refreshKeyboard()
         }
@@ -368,6 +370,18 @@ class KeyboardService : InputMethodService() {
         addSpecial(header, "🎨", 0.8f, 29) {
             themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
+            refreshKeyboard()
+        }
+
+        addSpecial(header, "⚙", 0.8f, 29) {
+            settingsPanelVisible = !settingsPanelVisible
+            if (settingsPanelVisible) {
+                emojiPanelVisible = false
+                diacriticsPanelVisible = false
+                symbolsPanelVisible = false
+                calculatorPanelVisible = false
+                toolsPanelVisible = false
+            }
             refreshKeyboard()
         }
 
@@ -416,6 +430,7 @@ class KeyboardService : InputMethodService() {
                 symbolsPanelVisible = false
                 calculatorPanelVisible = false
                 toolsPanelVisible = false
+                settingsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -428,6 +443,7 @@ class KeyboardService : InputMethodService() {
                     symbolsPanelVisible = false
                     calculatorPanelVisible = false
                     toolsPanelVisible = false
+                    settingsPanelVisible = false
                 }
                 refreshKeyboard()
             }
@@ -440,6 +456,7 @@ class KeyboardService : InputMethodService() {
                 diacriticsPanelVisible = false
                 calculatorPanelVisible = false
                 toolsPanelVisible = false
+                settingsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -451,6 +468,7 @@ class KeyboardService : InputMethodService() {
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
                 toolsPanelVisible = false
+                settingsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -462,6 +480,7 @@ class KeyboardService : InputMethodService() {
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
                 calculatorPanelVisible = false
+                settingsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -518,6 +537,10 @@ class KeyboardService : InputMethodService() {
             addToolsPanel(root)
         }
 
+        if (settingsPanelVisible) {
+            addSettingsPanel(root)
+        }
+
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
@@ -553,6 +576,43 @@ class KeyboardService : InputMethodService() {
         root.addView(bottom, rowParams(44))
 
         return root
+    }
+
+    private fun addSettingsPanel(parent: LinearLayout) {
+        val title = TextView(this).apply {
+            text = "د شرفزی کیبورډ تنظیمات"
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        parent.addView(title, rowParams(30))
+
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        addSpecial(row, "رنګ: ${themeIndex + 1}", 1.2f, 40) {
+            themeIndex = (themeIndex + 1) % themes.size
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(row, "اندازه: ${listOf("وړه", "منځنۍ", "لویه")[keySizeLevel]}", 1.4f, 40) {
+            keySizeLevel = (keySizeLevel + 1) % 3
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(row, "ژبه: ${listOf("پښتو", "عربي", "English", "دري")[language]}", 1.5f, 40) {
+            language = (language + 1) % 4
+            shifted = false
+            caps = false
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(row, "بند", 0.7f, 40) {
+            settingsPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(row, rowParams(44))
     }
 
     private fun addToolsPanel(parent: LinearLayout) {
