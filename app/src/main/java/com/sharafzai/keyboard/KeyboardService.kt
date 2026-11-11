@@ -65,11 +65,12 @@ class KeyboardService : InputMethodService() {
         val border: Int
     )
 
+    // Clean, bright white keyboard theme with soft key surfaces.
     private val themes = listOf(
-        KeyboardTheme(Color.rgb(15, 15, 15),
-            listOf(Color.rgb(43, 43, 43), Color.rgb(55, 55, 55), Color.rgb(67, 67, 67)),
-            Color.rgb(78, 78, 78), Color.rgb(27, 27, 27),
-            Color.rgb(235, 235, 235), Color.rgb(105, 105, 105))
+        KeyboardTheme(Color.rgb(246, 247, 249),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(250, 251, 253), Color.rgb(241, 244, 247)),
+            Color.rgb(232, 237, 243), Color.rgb(255, 255, 255),
+            Color.rgb(55, 105, 190), Color.rgb(218, 224, 232))
     )
 
     private val theme: KeyboardTheme
