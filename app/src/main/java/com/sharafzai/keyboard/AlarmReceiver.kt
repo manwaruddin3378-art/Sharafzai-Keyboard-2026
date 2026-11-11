@@ -18,6 +18,26 @@ class AlarmReceiver : BroadcastReceiver() {
         manager.notify(id, builder.setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("د شرفزی الارم").setContentText(label).setCategory(Notification.CATEGORY_ALARM)
             .setPriority(Notification.PRIORITY_MAX).setAutoCancel(true).setContentIntent(open).build())
+
+        // Repeat this alarm at the same local time on the following day.
+        val saved = AlarmStore.read(context).firstOrNull { it.id == id && it.enabled }
+        if (saved != null) {
+            val alarmManager = context.getSystemService(AlarmManager::class.java)
+            if (Build.VERSION.SDK_INT < 31 || alarmManager.canScheduleExactAlarms()) {
+                val next = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, saved.hour)
+                    set(java.util.Calendar.MINUTE, saved.minute)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                    add(java.util.Calendar.DAY_OF_YEAR, 1)
+                }
+                val repeat = PendingIntent.getBroadcast(context, saved.id,
+                    Intent(context, AlarmReceiver::class.java).putExtra("alarm_id", saved.id).putExtra("label", saved.label),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                if (Build.VERSION.SDK_INT >= 23) alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.timeInMillis, repeat)
+                else alarmManager.setExact(AlarmManager.RTC_WAKEUP, next.timeInMillis, repeat)
+            }
+        }
     }
 }
 
