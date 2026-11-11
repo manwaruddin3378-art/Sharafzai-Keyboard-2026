@@ -2,6 +2,8 @@
 package com.sharafzai.keyboard
 
 import android.content.Intent
+import android.content.ClipboardManager
+import android.content.ClipData
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -36,6 +38,9 @@ class KeyboardService : InputMethodService() {
     private var settingsPanelVisible = false
     private var phrasePanelVisible = false
     private var phraseCategory = 0
+    private var clipboardPanelVisible = false
+    private var emojiCategory = 0
+    private var fontStyleIndex = 0
     private var adhkarIndex = 0
     private var adhkarTextView: TextView? = null
     private val adhkarHandler = Handler(Looper.getMainLooper())
@@ -88,6 +93,7 @@ class KeyboardService : InputMethodService() {
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
+        fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         themeIndex = 0
     }
 
@@ -318,10 +324,10 @@ class KeyboardService : InputMethodService() {
 
         val title = TextView(this).apply {
             text = when (language) {
-                0 -> "SHARAFZAI  •  پښتو"
-                1 -> "SHARAFZAI  •  العربية"
-                2 -> "SHARAFZAI  •  ENGLISH"
-                else -> "SHARAFZAI  •  دری"
+                0 -> "SUNDUS  •  پښتو"
+                1 -> "SUNDUS  •  العربية"
+                2 -> "SUNDUS  •  ENGLISH"
+                else -> "SUNDUS  •  دری"
             }
             textSize = 14f
             setTextColor(Color.rgb(38, 45, 55))
@@ -368,6 +374,8 @@ class KeyboardService : InputMethodService() {
                 symbolsPanelVisible = false
                 calculatorPanelVisible = false
                 toolsPanelVisible = false
+                clipboardPanelVisible = false
+                phrasePanelVisible = false
             }
             refreshKeyboard()
         }
@@ -375,14 +383,23 @@ class KeyboardService : InputMethodService() {
         root.addView(header, rowParams(31))
 
         val topTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(topTools, "Tab", 0.8f, 35) { currentInputConnection?.commitText("\t", 1) }
-        addSpecial(topTools, "Tools", 1.0f, 35) {
+        addSpecial(topTools, "📋", 0.8f, 35) {
+            clipboardPanelVisible = !clipboardPanelVisible
+            if (clipboardPanelVisible) {
+                emojiPanelVisible = false; diacriticsPanelVisible = false
+                symbolsPanelVisible = false; calculatorPanelVisible = false
+                toolsPanelVisible = false; settingsPanelVisible = false
+                phrasePanelVisible = false
+            }
+            refreshKeyboard()
+        }
+        addSpecial(topTools, "وسایل", 1.0f, 35) {
             toolsPanelVisible = !toolsPanelVisible
             phrasePanelVisible = false
             if (toolsPanelVisible) {
                 emojiPanelVisible = false; diacriticsPanelVisible = false
                 symbolsPanelVisible = false; calculatorPanelVisible = false
-                settingsPanelVisible = false
+                settingsPanelVisible = false; clipboardPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -393,7 +410,7 @@ class KeyboardService : InputMethodService() {
             if (phrasePanelVisible) {
                 emojiPanelVisible = false; diacriticsPanelVisible = false
                 symbolsPanelVisible = false; calculatorPanelVisible = false
-                settingsPanelVisible = false
+                settingsPanelVisible = false; clipboardPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -439,9 +456,10 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        addSpecial(controlRow, "☺", 0.9f, 39) {
+        addSpecial(controlRow, "😊", 0.9f, 39) {
             emojiPanelVisible = !emojiPanelVisible
             if (emojiPanelVisible) {
+                clipboardPanelVisible = false
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
                 calculatorPanelVisible = false
@@ -520,12 +538,11 @@ class KeyboardService : InputMethodService() {
         }
 
         if (emojiPanelVisible) {
-            val emojiKeys = listOf(
-                k("😀"), k("😂"), k("🥰"), k("😍"),
-                k("😊"), k("😉"), k("😭"), k("😎"),
-                k("🙏"), k("❤️"), k("👍"), k("🌹")
-            )
-            addKeyRow(root, emojiKeys, 34)
+            addEmojiPanel(root)
+        }
+
+        if (clipboardPanelVisible) {
+            addClipboardPanel(root)
         }
 
         if (calculatorPanelVisible) {
@@ -611,6 +628,19 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         parent.addView(row, rowParams(44))
+
+        val fontRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val fontNames = listOf("معیاري", "نسخي", "مونو")
+        addSpecial(fontRow, "فونټ: ${fontNames[fontStyleIndex]}", 1.8f, 38) {
+            fontStyleIndex = (fontStyleIndex + 1) % fontNames.size
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(fontRow, "بندول", 0.8f, 38) {
+            settingsPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(fontRow, rowParams(41))
     }
 
     private fun addToolsPanel(parent: LinearLayout) {
@@ -628,6 +658,79 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         parent.addView(row, rowParams(43))
+    }
+
+    private fun addEmojiPanel(parent: LinearLayout) {
+        val groups = listOf(
+            "مخونه" to listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😎","🤓","🧐","🤔","🤗","🤭","🤫","😴","😭"),
+            "اسلامي" to listOf("🤲","🙏","🕌","🕋","📿","☪️","🌙","⭐","✨","❤️","💚","🤍","🕊️","🌹","🌸","📖","📚","🧎","🧕","🧔","☝️","🤝","💐","🌿","🪷","🫶"),
+            "زړه" to listOf("❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","❣️","💌","💋","💐","🌹"),
+            "لاسونه" to listOf("👍","👎","👏","🙌","👐","🤝","🙏","🤲","✍️","💪","👋","🤚","✋","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","☝️","👇"),
+            "طبیعت" to listOf("🌞","🌙","⭐","🌟","⚡","🔥","🌈","☁️","🌧️","❄️","🌊","🌳","🌴","🌵","🌷","🌸","🌺","🌻","🍀","🍃","🌿","🦋","🐦","🕊️"),
+            "نښې" to listOf("✅","❌","❗","❓","⚠️","💯","♻️","🔔","🔕","📌","📍","🎉","🎊","🎁","🏆","⭐","🔒","🔑","📱","💬","📩","➡️","⬅️","🔝")
+        )
+        val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        groups.forEachIndexed { index, _ ->
+            addSpecial(tabs, listOf("😊","🤲","❤️","👍","🌿","🔣")[index], 1f, 34) {
+                emojiCategory = index
+                refreshKeyboard()
+            }
+        }
+        parent.addView(tabs, rowParams(37))
+        groups[emojiCategory.coerceIn(0, groups.lastIndex)].second.chunked(8).forEach { row ->
+            addKeyRow(parent, row.map { k(it) }, 31)
+        }
+        val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(close, "د ایموجي بندول", 1f, 32) {
+            emojiPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(close, rowParams(35))
+    }
+
+    private fun addClipboardPanel(parent: LinearLayout) {
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(row, "کاپي", 1f, 38) {
+            val selected = currentInputConnection?.getSelectedText(0)?.toString().orEmpty()
+            if (selected.isEmpty()) {
+                Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
+            } else {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Sundus", selected))
+                Toast.makeText(this, "متن کاپي شو", Toast.LENGTH_SHORT).show()
+            }
+        }
+        addSpecial(row, "کټ", 1f, 38) {
+            val connection = currentInputConnection
+            val selected = connection?.getSelectedText(0)?.toString().orEmpty()
+            if (selected.isEmpty()) {
+                Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
+            } else {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Sundus", selected))
+                connection?.commitText("", 1)
+            }
+        }
+        addSpecial(row, "پېسټ", 1f, 38) {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = clipboard.primaryClip
+            if (clip != null && clip.itemCount > 0) {
+                val value = clip.getItemAt(0).coerceToText(this)
+                currentInputConnection?.commitText(value, 1)
+            } else {
+                Toast.makeText(this, "کلیپ‌بورډ تش دی", Toast.LENGTH_SHORT).show()
+            }
+        }
+        addSpecial(row, "ټول انتخاب", 1.2f, 38) {
+            currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
+        }
+        parent.addView(row, rowParams(42))
+        val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(close, "بندول", 1f, 32) {
+            clipboardPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(close, rowParams(35))
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
@@ -832,7 +935,11 @@ class KeyboardService : InputMethodService() {
             val mainText = TextView(this).apply {
                 text = value
                 textSize = if (keys.size >= 12) 15f else 18f
-                typeface = Typeface.DEFAULT_BOLD
+                typeface = when (fontStyleIndex) {
+                    1 -> Typeface.create("serif", Typeface.BOLD)
+                    2 -> Typeface.create("monospace", Typeface.BOLD)
+                    else -> Typeface.DEFAULT_BOLD
+                }
                 setTextColor(Color.rgb(35, 42, 52))
                 gravity = Gravity.CENTER
             }
@@ -1273,6 +1380,7 @@ class KeyboardService : InputMethodService() {
             .putInt("language", language)
             .putInt("themeIndex", themeIndex)
             .putInt("keySizeLevel", keySizeLevel)
+            .putInt("fontStyleIndex", fontStyleIndex)
             .apply()
     }
 }
