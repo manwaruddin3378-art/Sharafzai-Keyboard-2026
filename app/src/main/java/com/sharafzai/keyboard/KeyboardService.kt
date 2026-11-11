@@ -25,6 +25,7 @@ class KeyboardService : InputMethodService() {
     private var caps = false
     private var themeIndex = 0
     private var suggestionContainer: LinearLayout? = null
+    private var emojiPanelVisible = false
 
     private data class KeyboardTheme(
         val background: Int,
@@ -380,6 +381,11 @@ class KeyboardService : InputMethodService() {
             currentInputConnection?.commitText("\t", 1)
         }
 
+        addSpecial(controlRow, "☺", 0.9f, 39) {
+            emojiPanelVisible = !emojiPanelVisible
+            refreshKeyboard()
+        }
+
         addSpecial(controlRow, "Caps", 1.1f, 39) {
             caps = !caps
             refreshKeyboard()
@@ -396,6 +402,15 @@ class KeyboardService : InputMethodService() {
         }
 
         root.addView(controlRow, rowParams(41))
+
+        if (emojiPanelVisible) {
+            val emojiKeys = listOf(
+                k("😀"), k("😂"), k("🥰"), k("😍"),
+                k("😊"), k("😉"), k("😭"), k("😎"),
+                k("🙏"), k("❤️"), k("👍"), k("🌹")
+            )
+            addKeyRow(root, emojiKeys, 34)
+        }
 
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
