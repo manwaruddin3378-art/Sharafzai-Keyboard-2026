@@ -1187,7 +1187,14 @@ class MainActivity : Activity() {
             text = label; isAllCaps = false; setTextColor(Color.WHITE)
             setBackgroundColor(Color.rgb(82, 82, 82)); setOnClickListener { action() }
         }
-        parent.addView(button, LinearLayout.LayoutParams(0, 50, weight).apply { setMargins(3, 3, 3, 3) })
+        // Vertical lists need full-width buttons; horizontal rows share available width by weight.
+        val params = if (parent.orientation == LinearLayout.VERTICAL) {
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(50))
+        } else {
+            LinearLayout.LayoutParams(0, dp(50), weight)
+        }
+        params.setMargins(dp(3), dp(3), dp(3), dp(3))
+        parent.addView(button, params)
     }
 }
 
