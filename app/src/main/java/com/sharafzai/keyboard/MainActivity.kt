@@ -455,7 +455,7 @@ class MainActivity : Activity() {
                 }
             }
         }
-        line("یادونه: قاموسي ژباړه او اتومات ژباړه د آنلاین ژباړن له خدمت څخه ترلاسه کېږي؛ د مهمو علمي او شرعي متنونو ژباړه باید له اصلي متن سره وکتل شي. د AI پوښتنه په ChatGPT کې پرانیستل کېږي.")
+        line("یادونه: قاموسي تعریفونه د FreeDictionaryAPI او Wiktionary له معلوماتو ترلاسه کېږي (CC BY-SA 4.0)؛ د متن اتومات ژباړه MyMemory کاروي. دواړه انټرنېټ غواړي. د مهمو علمي او شرعي متنونو ژباړه له اصلي متن سره حتماً وګورئ. د AI پوښتنه په ChatGPT کې پرانیستل کېږي.")
     }
 
     private fun lookupOnlineDictionary(word: String, source: String, target: String): String {
