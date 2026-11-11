@@ -25,6 +25,7 @@ class KeyboardService : InputMethodService() {
     private var shifted = false
     private var caps = false
     private var themeIndex = 0
+    private var keySizeLevel = 1
     private var suggestionContainer: LinearLayout? = null
     private var emojiPanelVisible = false
     private var diacriticsPanelVisible = false
@@ -105,6 +106,7 @@ class KeyboardService : InputMethodService() {
         language = prefs.getInt("language", 0).coerceIn(0, 3)
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
+        keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
     }
 
     private data class KeySpec(
@@ -347,6 +349,14 @@ class KeyboardService : InputMethodService() {
             addCurrentWordToDictionary()
         }
 
+        addSpecial(header, "↕", 0.8f, 29) {
+            keySizeLevel = (keySizeLevel + 1) % 3
+            saveSettings()
+            refreshKeyboard()
+            val sizeLabel = listOf("وړه", "منځنۍ", "لویه")[keySizeLevel]
+            Toast.makeText(this, "د تڼیو اندازه: $sizeLabel", Toast.LENGTH_SHORT).show()
+        }
+
         addSpecial(header, "🎨", 0.8f, 29) {
             themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
@@ -506,6 +516,7 @@ class KeyboardService : InputMethodService() {
         keys: List<KeySpec>,
         height: Int
     ) {
+        val actualHeight = (height * listOf(0.90f, 1.0f, 1.10f)[keySizeLevel]).toInt()
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -660,7 +671,7 @@ class KeyboardService : InputMethodService() {
 
             val params = LinearLayout.LayoutParams(
                 0,
-                dp(height),
+                dp(actualHeight),
                 1f
             )
 
@@ -674,7 +685,7 @@ class KeyboardService : InputMethodService() {
             row.addView(frame, params)
         }
 
-        parent.addView(row, rowParams(height + 3))
+        parent.addView(row, rowParams(actualHeight + 3))
     }
 
     private fun addSpecial(
@@ -1008,6 +1019,7 @@ class KeyboardService : InputMethodService() {
         ).edit()
             .putInt("language", language)
             .putInt("themeIndex", themeIndex)
+            .putInt("keySizeLevel", keySizeLevel)
             .apply()
     }
 }
