@@ -1254,7 +1254,6 @@ class KeyboardService : InputMethodService() {
                             val steps = (kotlin.math.abs(delta) / dp(12)).toInt().coerceAtLeast(1)
                             repeat(steps) { sendKey(if (delta < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT) }
                         } else action()
-                        view.performClick()
                         true
                     }
                     MotionEvent.ACTION_CANCEL -> true
