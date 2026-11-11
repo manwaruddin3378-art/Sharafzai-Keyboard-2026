@@ -15,6 +15,9 @@ import android.view.Gravity
 import android.widget.*
 import java.text.SimpleDateFormat
 import java.util.*
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.text.PDFTextStripper
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("SharafzaiTools", MODE_PRIVATE) }
@@ -135,6 +138,32 @@ class MainActivity : Activity() {
             }
         }
         val books = readPdfLibrary()
+        line("د کتابونو دننه لټون")
+        val searchInput = EditText(this).apply {
+            hint = "د موضوع، عبارت یا کلمې نوم ولیکئ"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            setSingleLine(true)
+        }
+        root.addView(searchInput, LinearLayout.LayoutParams(-1, dp(52)))
+        val choices = mutableListOf("ټول کتابونه")
+        for (i in 0 until books.length()) {
+            choices.add(books.optJSONObject(i)?.optString("title", "بې نومه PDF") ?: "بې نومه PDF")
+        }
+        val bookChoice = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, choices)
+        }
+        root.addView(bookChoice, LinearLayout.LayoutParams(-1, dp(48)))
+        val searchResults = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        addButton(root, "⌕  موضوع ولټوئ", 1f) {
+            val query = searchInput.text.toString().trim()
+            if (query.isBlank()) {
+                Toast.makeText(this, "لومړی د لټون موضوع ولیکئ", Toast.LENGTH_SHORT).show()
+            } else {
+                searchPdfLibrary(query, books, bookChoice.selectedItemPosition, searchResults)
+            }
+        }
+        root.addView(searchResults)
         line("ستاسو کتابونه: " + books.length())
         if (books.length() == 0) {
             line("تر اوسه PDF کتاب نه دی ورزیات شوی. د پورته تڼۍ له لارې یو PDF وټاکئ.")
@@ -174,6 +203,70 @@ class MainActivity : Activity() {
             }
         }
         line("یادونه: یوازې PDF فایلونه منل کېږي. د کتاب لوستلو لپاره به د موبایل PDF لوستونکی پرانیستل شي. د کتابتون څخه د لرې کولو سره اصلي فایل نه حذف کېږي.")
+    }
+
+    private fun searchPdfLibrary(query: String, books: org.json.JSONArray, selected: Int, resultsView: LinearLayout) {
+        resultsView.removeAllViews()
+        line("لټون روان دی؛ د کتابونو د شمېر او حجم له مخې لږ وخت نیولی شي.")
+        Thread {
+            val found = mutableListOf<String>()
+            val terms = query.lowercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotBlank() }
+            try {
+                PDFBoxResourceLoader.init(applicationContext)
+                val indexes = if (selected == 0) (0 until books.length()).toList() else listOf(selected - 1)
+                for (index in indexes) {
+                    val item = books.optJSONObject(index) ?: continue
+                    val title = item.optString("title", "بې نومه PDF")
+                    val uriText = item.optString("uri", "")
+                    if (uriText.isBlank()) continue
+                    try {
+                        contentResolver.openInputStream(Uri.parse(uriText))?.use { stream ->
+                            PDDocument.load(stream).use { document ->
+                                val stripper = PDFTextStripper()
+                                for (page in 1..document.numberOfPages) {
+                                    stripper.startPage = page
+                                    stripper.endPage = page
+                                    val text = stripper.getText(document)
+                                    val normalized = text.lowercase(Locale.ROOT)
+                                    if (terms.all { normalized.contains(it) }) {
+                                        val first = terms.firstOrNull()?.let { normalized.indexOf(it) } ?: 0
+                                        val start = (first - 90).coerceAtLeast(0)
+                                        val end = (first + 220).coerceAtMost(text.length)
+                                        val excerpt = text.substring(start, end).replace(Regex("\\s+"), " ").trim()
+                                        found.add("$title  |  پاڼه $page\\n$excerpt")
+                                        if (found.size >= 100) break
+                                    }
+                                }
+                            }
+                        } ?: found.add("$title: فایل ته لاسرسی ونه شو.")
+                    } catch (_: Exception) {
+                        found.add("$title: دا PDF لوستل نه شول؛ کېدای شي فایل خوندي/کوډ شوی یا خراب وي.")
+                    }
+                    if (found.size >= 100) break
+                }
+            } catch (_: Exception) {
+                found.add("د PDF لټون کتابتون چمتو نه شو. مهرباني وکړئ وروسته بیا هڅه وکړئ.")
+            }
+            runOnUiThread {
+                resultsView.removeAllViews()
+                val heading = TextView(this).apply {
+                    text = if (found.isEmpty()) "پایله ونه موندل شوه." else "د لټون پایلې: ${found.size}"
+                    textSize = 16f
+                    setTextColor(Color.WHITE)
+                    setPadding(6, dp(10), 6, dp(10))
+                }
+                resultsView.addView(heading)
+                found.forEach { result ->
+                    resultsView.addView(TextView(this).apply {
+                        text = result
+                        textSize = 14f
+                        setTextColor(Color.LTGRAY)
+                        setPadding(dp(8), dp(8), dp(8), dp(8))
+                        setBackgroundColor(Color.rgb(38, 38, 38))
+                    })
+                }
+            }
+        }.start()
     }
 
     private fun readPdfLibrary(): org.json.JSONArray {
