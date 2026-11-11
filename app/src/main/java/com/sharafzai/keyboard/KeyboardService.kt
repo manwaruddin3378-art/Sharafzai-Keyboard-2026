@@ -4,6 +4,10 @@ package com.sharafzai.keyboard
 import android.content.Intent
 import android.content.ClipboardManager
 import android.content.ClipData
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import android.os.Build
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -41,6 +45,12 @@ class KeyboardService : InputMethodService() {
     private var clipboardPanelVisible = false
     private var emojiCategory = 0
     private var fontStyleIndex = 0
+    private var pendingVoiceText = ""
+    private val voiceReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            pendingVoiceText = intent?.getStringExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT).orEmpty()
+        }
+    }
     private var adhkarIndex = 0
     private var adhkarTextView: TextView? = null
     private val adhkarHandler = Handler(Looper.getMainLooper())
@@ -95,6 +105,17 @@ class KeyboardService : InputMethodService() {
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         themeIndex = 0
+        val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(voiceReceiver, voiceFilter)
+        }
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(voiceReceiver) }
+        super.onDestroy()
     }
 
     private data class KeySpec(
@@ -274,6 +295,13 @@ class KeyboardService : InputMethodService() {
         restarting: Boolean
     ) {
         super.onStartInputView(info, restarting)
+        if (pendingVoiceText.isNotBlank()) {
+            val connection = currentInputConnection
+            if (connection != null) {
+                connection.commitText(pendingVoiceText, 1)
+                pendingVoiceText = ""
+            }
+        }
         updateSuggestions()
         startAdhkarRotation()
     }
@@ -339,6 +367,12 @@ class KeyboardService : InputMethodService() {
             title,
             LinearLayout.LayoutParams(0, dp(29), 1f)
         )
+
+        addSpecial(header, "🎙", 0.8f, 29) {
+            startActivity(Intent(this, VoiceInputActivity::class.java)
+                .putExtra("language", language)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
 
         addSpecial(header, "🌐", 0.8f, 29) {
             language = (language + 1) % 4
@@ -432,7 +466,7 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(32))
 
-        if (!emojiPanelVisible && !clipboardPanelVisible) {
+        if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible) {
             val numberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
