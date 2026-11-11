@@ -702,19 +702,33 @@ class MainActivity : Activity() {
     }
 
     private fun savePdfToLibrary(uri: Uri, title: String, category: String) {
-        val books = readPdfLibrary()
-        if ((0 until books.length()).any { books.optJSONObject(it)?.optString("uri") == uri.toString() }) {
-            Toast.makeText(this, "دا PDF له مخکې په کتابتون کې شته", Toast.LENGTH_SHORT).show()
-            return
-        }
-        books.put(org.json.JSONObject()
-            .put("uri", uri.toString())
-            .put("title", title.ifBlank { "PDF کتاب" })
-            .put("category", category)
-            .put("added", System.currentTimeMillis()))
-        prefs.edit().putString("pdf_library", books.toString()).apply()
-        Toast.makeText(this, "PDF کتابتون ته ورزیات شو", Toast.LENGTH_SHORT).show()
-        render()
+        val folder = File(filesDir, "pdf_library").apply { mkdirs() }
+        val destination = File(folder, "book_${System.currentTimeMillis()}.pdf")
+        Toast.makeText(this, "PDF کتابتون ته کاپي کېږي؛ لږ انتظار وکړئ...", Toast.LENGTH_SHORT).show()
+        Thread {
+            val copied = runCatching {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    destination.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw IllegalStateException("PDF فایل لوستل کېدای نه شول")
+            }
+            runOnUiThread {
+                if (copied.isFailure) {
+                    destination.delete()
+                    Toast.makeText(this, "PDF کتابتون ته خوندي نه شو.", Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                val books = readPdfLibrary()
+                books.put(org.json.JSONObject()
+                    .put("uri", Uri.fromFile(destination).toString())
+                    .put("title", title.ifBlank { "PDF کتاب" })
+                    .put("category", category)
+                    .put("added", System.currentTimeMillis()))
+                prefs.edit().putString("pdf_library", books.toString()).apply()
+                runCatching { contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                Toast.makeText(this, "PDF په خپل کتابتون کې خوندي شو", Toast.LENGTH_SHORT).show()
+                render()
+            }
+        }.start()
     }
 
     private fun openPdf(uriText: String) {
@@ -781,7 +795,15 @@ class MainActivity : Activity() {
             if (item.optString("uri") != uriText) updated.put(item)
         }
         prefs.edit().putString("pdf_library", updated.toString()).apply()
-        runCatching { contentResolver.releasePersistableUriPermission(Uri.parse(uriText), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        runCatching {
+            val savedUri = Uri.parse(uriText)
+            if (savedUri.scheme == "file") {
+                val file = File(savedUri.path ?: "")
+                if (file.canonicalPath.startsWith(File(filesDir, "pdf_library").canonicalPath)) file.delete()
+            } else {
+                contentResolver.releasePersistableUriPermission(savedUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        }
     }
 
     @Suppress("DEPRECATION")
