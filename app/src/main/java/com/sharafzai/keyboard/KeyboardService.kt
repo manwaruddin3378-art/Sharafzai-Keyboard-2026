@@ -80,12 +80,20 @@ class KeyboardService : InputMethodService() {
         val border: Int
     )
 
-    // Clean, bright white keyboard theme with soft key surfaces.
+    // Three local themes; no network resources or remote fonts are used.
     private val themes = listOf(
         KeyboardTheme(Color.rgb(246, 247, 249),
             listOf(Color.rgb(255, 255, 255), Color.rgb(250, 251, 253), Color.rgb(241, 244, 247)),
             Color.rgb(232, 237, 243), Color.rgb(255, 255, 255),
-            Color.rgb(55, 105, 190), Color.rgb(218, 224, 232))
+            Color.rgb(55, 105, 190), Color.rgb(218, 224, 232)),
+        KeyboardTheme(Color.rgb(27, 30, 37),
+            listOf(Color.rgb(55, 60, 70), Color.rgb(47, 52, 62), Color.rgb(39, 44, 54)),
+            Color.rgb(66, 73, 85), Color.rgb(37, 41, 50),
+            Color.rgb(124, 170, 255), Color.rgb(76, 84, 98)),
+        KeyboardTheme(Color.rgb(230, 240, 250),
+            listOf(Color.rgb(255, 255, 255), Color.rgb(244, 249, 255), Color.rgb(224, 237, 250)),
+            Color.rgb(205, 224, 244), Color.rgb(248, 252, 255),
+            Color.rgb(35, 100, 170), Color.rgb(190, 211, 233))
     )
 
     private val theme: KeyboardTheme
@@ -104,7 +112,6 @@ class KeyboardService : InputMethodService() {
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
-        themeIndex = 0
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -362,7 +369,7 @@ class KeyboardService : InputMethodService() {
                 else -> "SUNDUS  •  دری"
             }
             textSize = 14f
-            setTextColor(Color.rgb(38, 45, 55))
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
         }
@@ -685,6 +692,19 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         parent.addView(fontRow, rowParams(41))
+
+        val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val themeNames = listOf("سپین", "تیاره", "آبي")
+        addSpecial(themeRow, "رنګ: ${themeNames[themeIndex]}", 1.8f, 38) {
+            themeIndex = (themeIndex + 1) % themes.size
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(themeRow, "بندول", 0.8f, 38) {
+            settingsPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(themeRow, rowParams(41))
     }
 
     private fun addToolsPanel(parent: LinearLayout) {
@@ -1018,7 +1038,7 @@ class KeyboardService : InputMethodService() {
                     2 -> Typeface.create("monospace", Typeface.BOLD)
                     else -> Typeface.DEFAULT_BOLD
                 }
-                setTextColor(Color.rgb(35, 42, 52))
+                setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(35, 42, 52))
                 gravity = Gravity.CENTER
             }
 
@@ -1138,7 +1158,7 @@ class KeyboardService : InputMethodService() {
             textSize = 12f
             isAllCaps = false
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.rgb(45, 52, 62))
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
             minimumWidth = 0
             minimumHeight = 0
             setPadding(0, 0, 0, 0)
@@ -1305,7 +1325,7 @@ class KeyboardService : InputMethodService() {
                 text = word
                 textSize = 15f
                 gravity = Gravity.CENTER
-                setTextColor(Color.rgb(38, 45, 55))
+                setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
                 setPadding(
                     dp(10),
                     dp(3),
