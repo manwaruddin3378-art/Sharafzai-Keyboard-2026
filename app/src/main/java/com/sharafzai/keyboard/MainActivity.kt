@@ -116,11 +116,18 @@ class MainActivity : Activity() {
 
         try {
             root.addView(TextView(this).apply {
-                text = "SHARAFZAI  •  شرفزی اپلیکیشن"
+                text = "SUNDUS  •  سندس"
                 textSize = 22f
                 gravity = Gravity.CENTER
                 setTextColor(Color.WHITE)
                 setPadding(4, 18, 4, 18)
+            })
+            root.addView(TextView(this).apply {
+                text = "د مفتي محمد انوارالدين شرفزي لخوا"
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setTextColor(Color.LTGRAY)
+                setPadding(4, 0, 4, 14)
             })
             if (page != "home") {
                 addButton(root, "⌂  اصلي پاڼې ته ستنېدل", 1f) { page = "home"; render() }
@@ -182,7 +189,7 @@ class MainActivity : Activity() {
         addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
         addButton(root, "زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
-        line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د شرفزی اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
+        line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د سندس اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
     }
 
 
@@ -249,7 +256,7 @@ class MainActivity : Activity() {
     }
 
     private fun showAudioLibrary() {
-        line("د علماوو بیانونه، درسونه او ویناوې دلته ورزیاتې کړئ. آډیو فایلونه د شرفزی اپلیکیشن په خپل حافظه کې ساتل کېږي.")
+        line("د علماوو بیانونه، درسونه او ویناوې دلته ورزیاتې کړئ. آډیو فایلونه د سندس اپلیکیشن په خپل حافظه کې ساتل کېږي.")
         addButton(root, "＋ نوی آډیو بیان ورزیات کړئ", 1f) {
             val pick = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
@@ -631,7 +638,7 @@ class MainActivity : Activity() {
                 root.addView(row)
             }
         }
-        line("یادونه: یوازې PDF فایلونه منل کېږي. کتابونه د شرفزی په خپل لوستونکي کې پرانیستل کېږي؛ اصلي فایل په موبایل کې پر خپل ځای پاتې کېږي.")
+        line("یادونه: یوازې PDF فایلونه منل کېږي. کتابونه د سندس په خپل لوستونکي کې پرانیستل کېږي؛ اصلي فایل په موبایل کې پر خپل ځای پاتې کېږي.")
     }
 
     private fun readPdfLibrary(): org.json.JSONArray {
@@ -831,7 +838,7 @@ class MainActivity : Activity() {
     }
 
     private fun showAppSettings() {
-        line("د شرفزی اپلیکیشن عمومي تنظیمات")
+        line("د سندس اپلیکیشن عمومي تنظیمات")
         addButton(root, "د خبرتیاوو اجازه", 1f) {
             if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 701)
             else Toast.makeText(this, "په دې Android نسخه کې جلا اجازه نه غواړي", Toast.LENGTH_SHORT).show()
