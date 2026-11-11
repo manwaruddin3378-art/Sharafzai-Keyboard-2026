@@ -155,6 +155,7 @@ class MainActivity : Activity() {
                 "pdf_viewer" -> showPdfViewer()
                 "keyboard" -> showKeyboardSetup()
                 "settings" -> showAppSettings()
+                "shortcuts" -> showShortcutTools()
                 else -> showHome()
             }
             if (page == "home") {
@@ -204,6 +205,7 @@ class MainActivity : Activity() {
         addButton(root, "🌐  پښتو، دري، عربي او انګلیسي قاموس او ژباړه", 1f) { page = "language_tools"; render() }
         addButton(root, "📚  زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "⚙️  تنظیمات", 1f) { page = "settings"; render() }
+        addButton(root, "📲  د هرې برخې جلا نښه پر سکرین جوړول", 1f) { page = "shortcuts"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د سندس اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
     }
 
@@ -833,6 +835,55 @@ class MainActivity : Activity() {
         private const val PDF_PICK_REQUEST = 7401
         private const val VOICE_REQUEST = 7402
         private const val AUDIO_PICK_REQUEST = 7403
+    }
+
+    private fun showShortcutTools() {
+        line("د خپلې خوښې برخې لپاره جلا نښه د موبایل پر اصلي سکرین کېږدئ. د Android له خوا به د هرې نښې د جوړولو اجازه جلا وغوښتل شي.")
+        val modules = listOf(
+            Triple("keyboard", "کیبورډ", android.R.drawable.ic_menu_edit),
+            Triple("calculator", "حساب", android.R.drawable.ic_menu_sort_by_size),
+            Triple("alarms", "الارم", android.R.drawable.ic_lock_idle_alarm),
+            Triple("calendar", "کلنډر", android.R.drawable.ic_menu_my_calendar),
+            Triple("adhkar", "اذکار", android.R.drawable.ic_menu_info_details),
+            Triple("phrases", "جملې", android.R.drawable.ic_menu_send),
+            Triple("library", "کتابتون", android.R.drawable.ic_menu_agenda),
+            Triple("voice", "غږ", android.R.drawable.ic_btn_speak_now),
+            Triple("audio", "آډیو", android.R.drawable.ic_media_play),
+            Triple("language_tools", "قاموس", android.R.drawable.ic_menu_search)
+        )
+        modules.forEach { (targetPage, label, iconResource) ->
+            addButton(root, "＋  $label", 1f) {
+                pinModuleShortcut(targetPage, label, iconResource)
+            }
+        }
+    }
+
+    private fun pinModuleShortcut(targetPage: String, label: String, iconResource: Int) {
+        if (Build.VERSION.SDK_INT < 26) {
+            Toast.makeText(this, "په دې Android نسخه کې د جلا شارټکټ جوړولو سیستم نشته.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val manager = getSystemService(android.content.pm.ShortcutManager::class.java)
+        if (manager == null || !manager.isRequestPinShortcutSupported) {
+            Toast.makeText(this, "ستاسو لانچر د جلا شارټکټ جوړولو ملاتړ نه کوي.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val launchIntent = Intent(this, MainActivity::class.java)
+            .setAction(Intent.ACTION_VIEW)
+            .putExtra("open_page", targetPage)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val shortcut = android.content.pm.ShortcutInfo.Builder(this, "sundus_$targetPage")
+            .setShortLabel(label)
+            .setLongLabel("SUNDUS – $label")
+            .setIcon(android.graphics.drawable.Icon.createWithResource(this, iconResource))
+            .setIntent(launchIntent)
+            .build()
+        val accepted = manager.requestPinShortcut(shortcut, null)
+        if (accepted) {
+            Toast.makeText(this, "د «$label» نښې غوښتنه واستول شوه؛ د موبایل پر سکرین یې تایید کړئ.", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "شارټکټ جوړ نه شو؛ بیا هڅه وکړئ.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun showKeyboardSetup() {
