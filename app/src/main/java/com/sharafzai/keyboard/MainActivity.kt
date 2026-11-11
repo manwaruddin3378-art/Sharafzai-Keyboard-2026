@@ -280,7 +280,7 @@ class MainActivity : Activity() {
                                         val from = (first - 90).coerceAtLeast(0)
                                         val to = (first + 260).coerceAtMost(pageText.length)
                                         val excerpt = pageText.substring(from, to).replace(Regex("\\s+"), " ").trim()
-                                        found.add("$title  |  پاڼه $pageNumber\\n$excerpt")
+                                        found.add("$title  |  پاڼه $pageNumber\n$excerpt")
                                         if (found.size >= 100) break
                                     }
                                 }
