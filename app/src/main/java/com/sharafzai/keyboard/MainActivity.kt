@@ -59,7 +59,7 @@ class MainActivity : Activity() {
         page = intent.getStringExtra("open_page") ?: "home"
         handlePdfIntent(intent)
         if (Build.VERSION.SDK_INT >= 26) {
-            getSystemService(NotificationManager::class.java).createNotificationChannel(
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(
                 NotificationChannel("sharafzai_alarms", "Sharafzai Alarms", NotificationManager.IMPORTANCE_HIGH)
             )
         }
@@ -93,7 +93,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (Build.VERSION.SDK_INT < 31 || getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
+        if (Build.VERSION.SDK_INT < 31 || (getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()) {
             AlarmStore.read(this).filter { it.enabled }.forEach { scheduleAlarm(it) }
         }
         if (page == "home") {
@@ -871,7 +871,7 @@ class MainActivity : Activity() {
         line("کیبورډ د موبایل په نورو اپلیکیشنونو کې هم کار کوي. لومړی یې فعال او بیا یې د لیکلو پر مهال انتخاب کړئ.")
         addButton(root, "د کیبورډونو تنظیمات پرانیستل", 1f) { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         addButton(root, "شرفزی کیبورډ انتخابول", 1f) {
-            val manager = getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+            val manager = (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
             manager.showInputMethodPicker()
         }
     }
@@ -1189,7 +1189,7 @@ class MainActivity : Activity() {
         }
         val pending = PendingIntent.getBroadcast(this, alarm.id,
             Intent(this, AlarmReceiver::class.java).putExtra("alarm_id", alarm.id).putExtra("label", alarm.label),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
         if (Build.VERSION.SDK_INT >= 23) manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
         else manager.setExact(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
     }
