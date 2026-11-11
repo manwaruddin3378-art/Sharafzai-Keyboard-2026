@@ -784,7 +784,7 @@ class KeyboardService : InputMethodService() {
         val personalWords = getSharedPreferences(
             "SharafzaiSettings",
             MODE_PRIVATE
-        ).getStringSet("personalWords", emptySet()).orEmpty()
+        ).getStringSet("personalWords_$language", emptySet()).orEmpty()
 
         return (offlineWords[language].orEmpty() + personalWords)
             .distinct()
@@ -813,10 +813,11 @@ class KeyboardService : InputMethodService() {
         }
 
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        val saved = prefs.getStringSet("personalWords", emptySet())
+        val dictionaryKey = "personalWords_$language"
+        val saved = prefs.getStringSet(dictionaryKey, emptySet())
             ?.toMutableSet() ?: mutableSetOf()
         saved.add(word)
-        prefs.edit().putStringSet("personalWords", saved).apply()
+        prefs.edit().putStringSet(dictionaryKey, saved).apply()
         Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه", Toast.LENGTH_SHORT).show()
         updateSuggestions()
     }
