@@ -49,6 +49,7 @@ class KeyboardService : InputMethodService() {
     private var fontStyleIndex = 0
     private var numberRowEnabled = true
     private var hapticEnabled = true
+    private var soundEnabled = false
     private var pendingVoiceText = ""
     private val voiceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -117,7 +118,8 @@ class KeyboardService : InputMethodService() {
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
-        hapticEnabled = prefs.getBoolean("hapticEnabled", true).coerceIn(0, 2)
+        hapticEnabled = prefs.getBoolean("hapticEnabled", true)
+        soundEnabled = prefs.getBoolean("soundEnabled", false).coerceIn(0, 2)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -631,6 +633,12 @@ class KeyboardService : InputMethodService() {
             sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
         }
 
+        if (language == 0 || language == 3) {
+            addSpecial(bottom, "نیم‌فاصله", 1.0f, 42) {
+                currentInputConnection?.commitText("\u200C", 1)
+            }
+        }
+
         addSpecial(bottom, "،", 0.7f, 42) {
             val value = if (language == 2) "," else "،"
             currentInputConnection?.commitText(value, 1)
@@ -723,6 +731,13 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(typingRow, "AutoText تنظیم", 1.2f, 38) { showAutoTextEditor() }
         parent.addView(typingRow, rowParams(41))
+        val soundRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(soundRow, if (soundEnabled) "د تڼیو غږ: فعال" else "د تڼیو غږ: بند", 1f, 38) {
+            soundEnabled = !soundEnabled
+            saveSettings()
+            refreshKeyboard()
+        }
+        parent.addView(soundRow, rowParams(41))
     }
 
     private fun showAutoTextEditor() {
@@ -1180,6 +1195,7 @@ class KeyboardService : InputMethodService() {
 
                 currentInputConnection?.commitText(output, 1)
                 if (hapticEnabled) frame.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                if (soundEnabled) playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD)
 
                 if (shifted && !caps) {
                     shifted = false
@@ -1595,6 +1611,7 @@ class KeyboardService : InputMethodService() {
             .putInt("fontStyleIndex", fontStyleIndex)
             .putBoolean("numberRowEnabled", numberRowEnabled)
             .putBoolean("hapticEnabled", hapticEnabled)
+            .putBoolean("soundEnabled", soundEnabled)
             .apply()
     }
 }
