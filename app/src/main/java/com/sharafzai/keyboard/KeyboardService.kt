@@ -26,6 +26,7 @@ class KeyboardService : InputMethodService() {
     private var themeIndex = 0
     private var suggestionContainer: LinearLayout? = null
     private var emojiPanelVisible = false
+    private var diacriticsPanelVisible = false
 
     private data class KeyboardTheme(
         val background: Int,
@@ -383,7 +384,16 @@ class KeyboardService : InputMethodService() {
 
         addSpecial(controlRow, "☺", 0.9f, 39) {
             emojiPanelVisible = !emojiPanelVisible
+            if (emojiPanelVisible) diacriticsPanelVisible = false
             refreshKeyboard()
+        }
+
+        if (language == 1 || language == 3) {
+            addSpecial(controlRow, "◌َ", 0.9f, 39) {
+                diacriticsPanelVisible = !diacriticsPanelVisible
+                if (diacriticsPanelVisible) emojiPanelVisible = false
+                refreshKeyboard()
+            }
         }
 
         addSpecial(controlRow, "Caps", 1.1f, 39) {
@@ -402,6 +412,15 @@ class KeyboardService : InputMethodService() {
         }
 
         root.addView(controlRow, rowParams(41))
+
+        if (diacriticsPanelVisible && (language == 1 || language == 3)) {
+            val diacriticKeys = listOf(
+                k("َ"), k("ً"), k("ُ"), k("ٌ"),
+                k("ِ"), k("ٍ"), k("ْ"), k("ّ"),
+                k("ٰ"), k("ٓ"), k("ٔ"), k("ٖ")
+            )
+            addKeyRow(root, diacriticKeys, 34)
+        }
 
         if (emojiPanelVisible) {
             val emojiKeys = listOf(
@@ -801,18 +820,54 @@ class KeyboardService : InputMethodService() {
 
     private fun deletePreviousCharacter() {
         val connection = currentInputConnection ?: return
-        val before = connection.getTextBeforeCursor(2, 0)?.toString().orEmpty()
-
+        val before = connection.getTextBeforeCursor(16, 0)?.toString().orEmpty()
         if (before.isEmpty()) return
 
-        val last = before[before.length - 1]
-        val isLowSurrogate = Character.isLowSurrogate(last)
-        val hasMatchingHighSurrogate =
-            before.length >= 2 &&
-            Character.isHighSurrogate(before[before.length - 2])
+        fun previousCodePointStart(index: Int): Int =
+            Character.offsetByCodePoints(before, index, -1)
 
-        val length = if (isLowSurrogate && hasMatchingHighSurrogate) 2 else 1
-        connection.deleteSurroundingText(length, 0)
+        fun isGraphemeExtend(codePoint: Int): Boolean {
+            val type = Character.getType(codePoint)
+            return type == Character.NON_SPACING_MARK.toInt() ||
+                type == Character.COMBINING_SPACING_MARK.toInt() ||
+                type == Character.ENCLOSING_MARK.toInt() ||
+                codePoint in 0xFE00..0xFE0F ||
+                codePoint in 0xE0100..0xE01EF ||
+                codePoint in 0x1F3FB..0x1F3FF ||
+                codePoint == 0x20E3
+        }
+
+        var start = previousCodePointStart(before.length)
+        var codePoint = Character.codePointAt(before, start)
+
+        // Include combining marks, variation selectors and skin-tone modifiers.
+        while (isGraphemeExtend(codePoint) && start > 0) {
+            start = previousCodePointStart(start)
+            codePoint = Character.codePointAt(before, start)
+        }
+
+        // Delete a complete emoji joined with ZWJ, such as a family emoji.
+        while (start > 0) {
+            val possibleJoinerStart = previousCodePointStart(start)
+            if (Character.codePointAt(before, possibleJoinerStart) != 0x200D) break
+            start = possibleJoinerStart
+            if (start == 0) break
+            start = previousCodePointStart(start)
+            codePoint = Character.codePointAt(before, start)
+            while (isGraphemeExtend(codePoint) && start > 0) {
+                start = previousCodePointStart(start)
+                codePoint = Character.codePointAt(before, start)
+            }
+        }
+
+        // Regional-indicator flags are made from pairs of code points.
+        if (codePoint in 0x1F1E6..0x1F1FF && start > 0) {
+            val previousStart = previousCodePointStart(start)
+            val previousCodePoint = Character.codePointAt(before, previousStart)
+            if (previousCodePoint in 0x1F1E6..0x1F1FF) start = previousStart
+        }
+
+        connection.deleteSurroundingText(before.length - start, 0)
     }
 
     private fun performEnterAction() {
