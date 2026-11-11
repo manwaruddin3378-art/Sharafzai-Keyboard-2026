@@ -445,7 +445,7 @@ class KeyboardService : InputMethodService() {
             val symbolKeys = listOf(
                 k("@"), k("#"), k("$"), k("%"),
                 k("&"), k("*"), k("+"), k("="),
-                k("/"), k("\\\\"), k("("), k(")")
+                k("/"), k("\\"), k("("), k(")")
             )
             addKeyRow(root, symbolKeys, 34)
         }
