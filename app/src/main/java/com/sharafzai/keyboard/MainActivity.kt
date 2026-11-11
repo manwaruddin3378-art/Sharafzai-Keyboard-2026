@@ -3,6 +3,8 @@ package com.sharafzai.keyboard
 import android.app.*
 import android.content.*
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Bundle
 import android.provider.Settings
 import android.graphics.Color
@@ -16,6 +18,17 @@ class MainActivity : Activity() {
     private var page = "home"
     private var chosen = Calendar.getInstance()
     private lateinit var root: LinearLayout
+    private var homeDhikrView: TextView? = null
+    private var homeDhikrIndex = 0
+    private val homeDhikrList = listOf("سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ", "الْحَمْدُ لِلَّهِ")
+    private val homeDhikrHandler = Handler(Looper.getMainLooper())
+    private val homeDhikrRotation = object : Runnable {
+        override fun run() {
+            homeDhikrIndex = (homeDhikrIndex + 1) % homeDhikrList.size
+            homeDhikrView?.text = "ذکر:  " + homeDhikrList[homeDhikrIndex]
+            if (homeDhikrView != null) homeDhikrHandler.postDelayed(this, 45_000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +50,15 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT < 31 || getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
             AlarmStore.read(this).filter { it.enabled }.forEach { scheduleAlarm(it) }
         }
+        if (page == "home") {
+            homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+            homeDhikrHandler.postDelayed(homeDhikrRotation, 45_000)
+        }
+    }
+
+    override fun onPause() {
+        homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+        super.onPause()
     }
 
     private fun render() {
@@ -68,13 +90,12 @@ class MainActivity : Activity() {
 
     private fun showHome() {
         line("ستاسو ورځني وسایل او اسلامي اسانتیاوې په یوه ځای کې")
-        val featured = listOf("سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ")
-        val dayIndex = (System.currentTimeMillis() / 45000L % featured.size).toInt()
-        root.addView(TextView(this).apply {
-            text = "ذکر:  " + featured[dayIndex]
+        homeDhikrView = TextView(this).apply {
+            text = "ذکر:  " + homeDhikrList[homeDhikrIndex]
             textSize = 19f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); setPadding(8, 20, 8, 20)
             setBackgroundColor(Color.rgb(45, 45, 45))
-        })
+        }
+        root.addView(homeDhikrView)
         addButton(root, "کیبورډ شرفزی", 1f) { page = "keyboard"; render() }
         addButton(root, "سمارټ کلکولیټر", 1f) { page = "calculator"; render() }
         addButton(root, "الارم او یادوونکي", 1f) { page = "alarms"; render() }
@@ -158,7 +179,24 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "ذکر کاپي شو", Toast.LENGTH_SHORT).show()
             }
         }
+        addButton(root, "د دې اذکارو لپاره یادوونکی جوړ کړئ", 1f) { chooseAdhkarReminder(kind) }
         line("یادونه: دا لومړنی انتخاب دی؛ د بشپړو اذکارو، شمېرونو او روایتونو دقیق تخریج به د وروستۍ نسخې تر خپرېدو مخکې جلا وکتل شي.")
+    }
+
+    private fun chooseAdhkarReminder(kind: String) {
+        val morning = kind == "morning"
+        val evening = kind == "evening"
+        val defaultHour = if (evening) 18 else 6
+        TimePickerDialog(this, { _, hour, minute ->
+            val id = (System.nanoTime() % Int.MAX_VALUE).toInt()
+            val label = if (morning) "د سهار اذکار" else if (evening) "د ماښام اذکار" else "د ورځنیو اذکارو یادونه"
+            val alarm = AlarmItem(id, hour, minute, label, true)
+            val saved = AlarmStore.read(this).toMutableList()
+            saved.add(alarm)
+            AlarmStore.write(this, saved)
+            scheduleAlarm(alarm)
+            Toast.makeText(this, "یادوونکی ثبت شو", Toast.LENGTH_SHORT).show()
+        }, defaultHour, 0, true).show()
     }
 
     private fun showCalculator() {
