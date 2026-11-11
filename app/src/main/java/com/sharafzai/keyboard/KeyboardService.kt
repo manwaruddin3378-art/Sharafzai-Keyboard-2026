@@ -159,23 +159,23 @@ class KeyboardService : InputMethodService() {
     // Rows follow the physical QWERTY positions; shifted characters match Windows.
     private val pashtoRows = listOf(
         listOf(
-            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
-            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
-            k("ع", "َ"), k("ه", "ّ"),
-            k("خ", "ځ"), k("ح", "څ"),
-            k("ج", "]"), k("چ", "[")
+            k("ض", "ْ", "€"), k("ص", "ٌ", "ٱ"), k("ث", "ٍ", "ى"),
+            k("ق", "ً", "\u200E"), k("ف", "ُ", "\u200F"), k("غ", "ِ", "ٓ"),
+            k("ع", "َ", "ٙ"), k("ه", "ّ", "ٰ"),
+            k("خ", "ځ", "'"), k("ح", "څ", "\""),
+            k("ج", "]", "}"), k("چ", "[", "{")
         ),
         listOf(
-            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي"),
-            k("ب", "پ"), k("ل", "أ"), k("ا", "آ"),
-            k("ت", "ټ"), k("ن", "ڼ"), k("م", "ة"),
-            k("ک", ":"), k("ګ", "؛")
+            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي", "ے"),
+            k("ب", "پ", "ں"), k("ل", "أ", "ڷ"), k("ا", "آ", "إ"),
+            k("ت", "ټ", "ٹ"), k("ن", "ڼ", ">"), k("م", "ة", "<"),
+            k("ک", ":", "ك"), k("ګ", "؛", "گ")
         ),
         listOf(
-            k("ظ", "ئ"), k("ط", "ې"), k("ز", "ژ"),
-            k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
-            k("ړ", "ؤ"), k("و", "،"), k("ږ", "."),
-            k("/", "؟")
+            k("ظ", "ئ", "?"), k("ط", "ې", ";"), k("ز", "ژ", "ء"),
+            k("ر", "ء"), k("ذ", "‌"), k("د", "ډ", "ڈ"),
+            k("ړ", "ؤ", "ڑ"), k("و", "،", ","), k("ږ", ".", "ۇ"),
+            k("/", "؟", "ۉ")
         )
     )
 
@@ -344,6 +344,7 @@ class KeyboardService : InputMethodService() {
             emojiPanelVisible = false
             diacriticsPanelVisible = false
             symbolsPanelVisible = false
+            calculatorPanelVisible = false
             saveSettings()
             refreshKeyboard()
         }
@@ -409,6 +410,7 @@ class KeyboardService : InputMethodService() {
             if (emojiPanelVisible) {
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
+                calculatorPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -419,6 +421,7 @@ class KeyboardService : InputMethodService() {
                 if (diacriticsPanelVisible) {
                     emojiPanelVisible = false
                     symbolsPanelVisible = false
+                    calculatorPanelVisible = false
                 }
                 refreshKeyboard()
             }
