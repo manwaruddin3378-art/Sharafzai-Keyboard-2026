@@ -416,14 +416,6 @@ class MainActivity : Activity() {
         }.start()
     }
 
-    override fun onDestroy() {
-        stopAudio()
-        textToSpeech?.stop()
-        textToSpeech?.shutdown()
-        textToSpeech = null
-        super.onDestroy()
-    }
-
     private fun showLanguageTools() {
         line("دا قاموس او ژباړه یوازې هغه وخت انټرنېټ کاروي چې تاسې د اړوندې تڼۍ له لارې غوښتنه وکړئ. د کیبورډ عادي لیکل، شخصي قاموس، یادښتونه، PDF کتابتون، الارم او نور محلي وسایل په خپله انټرنېټ ته متن نه لېږي.")
         val languages = listOf("پښتو" to "ps", "دري" to "fa", "انګلیسي" to "en", "عربي" to "ar")
