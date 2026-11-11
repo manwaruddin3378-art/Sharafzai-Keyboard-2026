@@ -1067,7 +1067,7 @@ class MainActivity : Activity() {
 
     private fun showAlarms() {
         addButton(root, "＋ نوی الارم", 1f) { chooseAlarmTime() }
-        val manager = getSystemService(AlarmManager::class.java)
+        val manager = (getSystemService(Context.ALARM_SERVICE) as AlarmManager)
         if (Build.VERSION.SDK_INT >= 31 && !manager.canScheduleExactAlarms()) {
             addButton(root, "د دقیق الارم اجازه فعاله کړئ", 1f) {
                 startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
@@ -1104,7 +1104,7 @@ class MainActivity : Activity() {
     }
 
     private fun scheduleAlarm(alarm: AlarmItem) {
-        val manager = getSystemService(AlarmManager::class.java)
+        val manager = (getSystemService(Context.ALARM_SERVICE) as AlarmManager)
         if (Build.VERSION.SDK_INT >= 31 && !manager.canScheduleExactAlarms()) {
             Toast.makeText(this, "د دقیق الارم اجازه فعاله کړئ", Toast.LENGTH_LONG).show()
             return
@@ -1123,8 +1123,8 @@ class MainActivity : Activity() {
 
     private fun cancelAlarm(alarm: AlarmItem) {
         val pending = PendingIntent.getBroadcast(this, alarm.id, Intent(this, AlarmReceiver::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        getSystemService(AlarmManager::class.java).cancel(pending)
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
+        (getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(pending)
     }
 
     private fun toggleAlarm(id: Int) {
