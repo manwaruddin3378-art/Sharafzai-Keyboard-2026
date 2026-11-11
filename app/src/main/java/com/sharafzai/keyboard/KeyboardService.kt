@@ -14,7 +14,6 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import android.os.Handler
@@ -171,15 +170,15 @@ class KeyboardService : InputMethodService() {
             k("\\", "*", "|")
         ),
         listOf(
-            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي", "ے"),
-            k("ب", "پ", "ں"), k("ل", "أ", "ڷ"), k("ا", "آ", "إ"),
-            k("ت", "ټ", "ٹ"), k("ن", "ڼ", ">"), k("م", "ة", "<"),
-            k("ک", ":", "ك"), k("ګ", "؛", "گ")
+            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي", "ې"),
+            k("ب", "پ"), k("ل"), k("ا", "آ"),
+            k("ت", "ټ"), k("ن", "ڼ"), k("م"),
+            k("ک"), k("ګ")
         ),
         listOf(
             k("ظ", "ئ", "?"), k("ط", "ې", ";"), k("ز", "ژ", "ء"),
-            k("ر", "ء"), k("ذ", "‌"), k("د", "ډ", "ڈ"),
-            k("ړ", "ؤ", "ڑ"), k("و", "،", ","), k("ږ", ".", "ۇ"),
+            k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
+            k("ړ"), k("و", "،", ","), k("ږ", ".", "ۇ"),
             k("/", "؟", "ۉ")
         )
     )
@@ -821,15 +820,20 @@ class KeyboardService : InputMethodService() {
                 )
             )
 
-            if (spec.shifted.isNotEmpty() ||
-                spec.longPress.isNotEmpty()
-            ) {
+            val longPressOutput = when {
+                spec.longPress.isNotEmpty() -> spec.longPress
+                spec.shifted.isNotEmpty() -> spec.shifted
+                language == 2 -> spec.normal.uppercase()
+                else -> ""
+            }
+
+            if (longPressOutput.isNotEmpty()) {
                 val hint = TextView(this).apply {
-                    text = "اوږد"
-                    textSize = 7f
+                    text = longPressOutput
+                    textSize = 9f
                     setTextColor(theme.accent)
                     gravity = Gravity.TOP or Gravity.END
-                    setPadding(0, dp(2), dp(3), 0)
+                    setPadding(0, dp(1), dp(3), 0)
                 }
 
                 frame.addView(
@@ -881,61 +885,16 @@ class KeyboardService : InputMethodService() {
             }
 
             frame.setOnLongClickListener {
-                val alternate = when {
-                    spec.longPress.isNotEmpty() ->
-                        spec.longPress
+                val alternate = longPressOutput
 
-                    spec.shifted.isNotEmpty() ->
-                        spec.shifted
-
-                    language == 2 ->
-                        spec.normal.uppercase()
-
-                    else -> ""
+                if (alternate.isEmpty()) {
+                    false
+                } else {
+                    // Insert the alternate character immediately on long press.
+                    currentInputConnection?.commitText(alternate, 1)
+                    updateSuggestions()
+                    true
                 }
-
-                if (alternate.isNotEmpty()) {
-                    val preview = TextView(this).apply {
-                        text = alternate
-                        textSize = 25f
-                        gravity = Gravity.CENTER
-                        setTextColor(Color.WHITE)
-                        background = roundedBackground(
-                            theme.special,
-                            dp(10)
-                        )
-                    }
-
-                    val popup = PopupWindow(
-                        preview,
-                        dp(60),
-                        dp(52),
-                        true
-                    )
-
-                    preview.setOnClickListener {
-                        currentInputConnection?.commitText(
-                            alternate,
-                            1
-                        )
-                        updateSuggestions()
-                        popup.dismiss()
-                    }
-
-                    popup.showAsDropDown(
-                        frame,
-                        0,
-                        -frame.height - dp(52)
-                    )
-
-                    preview.postDelayed({
-                        if (popup.isShowing) {
-                            popup.dismiss()
-                        }
-                    }, 3000)
-                }
-
-                true
             }
 
             val params = LinearLayout.LayoutParams(
