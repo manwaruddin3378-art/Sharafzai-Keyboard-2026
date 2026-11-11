@@ -30,6 +30,8 @@ class KeyboardService : InputMethodService() {
     private var emojiPanelVisible = false
     private var diacriticsPanelVisible = false
     private var symbolsPanelVisible = false
+    private var calculatorPanelVisible = false
+    private var calculatorExpression = ""
 
     private data class KeyboardTheme(
         val background: Int,
@@ -426,6 +428,17 @@ class KeyboardService : InputMethodService() {
             if (symbolsPanelVisible) {
                 emojiPanelVisible = false
                 diacriticsPanelVisible = false
+                calculatorPanelVisible = false
+            }
+            refreshKeyboard()
+        }
+
+        addSpecial(controlRow, "🧮", 0.9f, 39) {
+            calculatorPanelVisible = !calculatorPanelVisible
+            if (calculatorPanelVisible) {
+                emojiPanelVisible = false
+                diacriticsPanelVisible = false
+                symbolsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -474,6 +487,10 @@ class KeyboardService : InputMethodService() {
             addKeyRow(root, emojiKeys, 34)
         }
 
+        if (calculatorPanelVisible) {
+            addCalculatorPanel(root)
+        }
+
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
@@ -509,6 +526,145 @@ class KeyboardService : InputMethodService() {
         root.addView(bottom, rowParams(44))
 
         return root
+    }
+
+    private fun addCalculatorPanel(parent: LinearLayout) {
+        val display = TextView(this).apply {
+            text = calculatorExpression.ifEmpty { "0" }
+            textSize = 23f
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            setTextColor(Color.WHITE)
+            setPadding(dp(10), 0, dp(10), 0)
+            background = roundedBackground(theme.suggestion, dp(8))
+        }
+        parent.addView(display, rowParams(42))
+
+        fun addCalculatorRow(labels: List<String>) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+            }
+            labels.forEach { label ->
+                addSpecial(row, label, 1f, 36) {
+                    when (label) {
+                        "C" -> calculatorExpression = ""
+                        "⌫" -> calculatorExpression = calculatorExpression.dropLast(1)
+                        "=" -> {
+                            val result = runCatching {
+                                CalculatorParser(calculatorExpression).parse()
+                            }.getOrNull()
+                            if (result == null) {
+                                Toast.makeText(this, "د محاسبې عبارت سم نه دی", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val answer = java.math.BigDecimal.valueOf(result)
+                                    .stripTrailingZeros()
+                                    .toPlainString()
+                                currentInputConnection?.commitText(answer, 1)
+                                calculatorExpression = answer
+                                calculatorPanelVisible = false
+                            }
+                        }
+                        else -> calculatorExpression += when (label) {
+                            "×" -> "*"
+                            "÷" -> "/"
+                            else -> label
+                        }
+                    }
+                    refreshKeyboard()
+                }
+            }
+            parent.addView(row, rowParams(39))
+        }
+
+        addCalculatorRow(listOf("7", "8", "9", "÷"))
+        addCalculatorRow(listOf("4", "5", "6", "×"))
+        addCalculatorRow(listOf("1", "2", "3", "−"))
+        addCalculatorRow(listOf("C", "0", ".", "+"))
+        addCalculatorRow(listOf("(", ")", "⌫", "="))
+    }
+
+    private class CalculatorParser(private val input: String) {
+        private var position = 0
+
+        fun parse(): Double {
+            val value = parseExpression()
+            skipSpaces()
+            require(position == input.length && value.isFinite())
+            return value
+        }
+
+        private fun parseExpression(): Double {
+            var value = parseTerm()
+            while (true) {
+                skipSpaces()
+                value = when {
+                    take('+') -> value + parseTerm()
+                    take('-') || take('−') -> value - parseTerm()
+                    else -> return value
+                }
+            }
+        }
+
+        private fun parseTerm(): Double {
+            var value = parseFactor()
+            while (true) {
+                skipSpaces()
+                value = when {
+                    take('*') || take('×') -> value * parseFactor()
+                    take('/') || take('÷') -> {
+                        val divisor = parseFactor()
+                        require(divisor != 0.0)
+                        value / divisor
+                    }
+                    else -> return value
+                }
+            }
+        }
+
+        private fun parseFactor(): Double {
+            skipSpaces()
+            if (take('+')) return parseFactor()
+            if (take('-') || take('−')) return -parseFactor()
+            if (take('(')) {
+                val value = parseExpression()
+                skipSpaces()
+                require(take(')'))
+                return value
+            }
+            return parseNumber()
+        }
+
+        private fun parseNumber(): Double {
+            skipSpaces()
+            val start = position
+            var hasDigit = false
+            while (position < input.length && input[position].isDigit()) {
+                position++
+                hasDigit = true
+            }
+            if (position < input.length && input[position] == '.') {
+                position++
+                while (position < input.length && input[position].isDigit()) {
+                    position++
+                    hasDigit = true
+                }
+            }
+            require(hasDigit)
+            return input.substring(start, position).toDouble()
+        }
+
+        private fun take(char: Char): Boolean {
+            if (position < input.length && input[position] == char) {
+                position++
+                return true
+            }
+            return false
+        }
+
+        private fun skipSpaces() {
+            while (position < input.length && input[position].isWhitespace()) {
+                position++
+            }
+        }
     }
 
     private fun addKeyRow(
