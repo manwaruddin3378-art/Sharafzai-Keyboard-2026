@@ -389,7 +389,7 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(bottom, "↵", 1f, 42) {
-            sendKey(KeyEvent.KEYCODE_ENTER)
+            performEnterAction()
         }
 
         root.addView(bottom, rowParams(44))
@@ -440,20 +440,16 @@ class KeyboardService : InputMethodService() {
             if (spec.shifted.isNotEmpty() ||
                 spec.longPress.isNotEmpty()
             ) {
-                val alternate = TextView(this).apply {
-                    text = if (spec.longPress.isNotEmpty()) {
-                        spec.longPress
-                    } else {
-                        spec.shifted
-                    }
-                    textSize = 9f
+                val hint = TextView(this).apply {
+                    text = "اوږد"
+                    textSize = 7f
                     setTextColor(theme.accent)
                     gravity = Gravity.TOP or Gravity.END
                     setPadding(0, dp(2), dp(3), 0)
                 }
 
                 frame.addView(
-                    alternate,
+                    hint,
                     FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.WRAP_CONTENT,
                         FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -655,14 +651,27 @@ class KeyboardService : InputMethodService() {
         parent.addView(button, params)
     }
 
+    private fun isWordCharacter(char: Char): Boolean {
+        val type = Character.getType(char)
+
+        return char.isLetterOrDigit() ||
+            type == Character.NON_SPACING_MARK.toInt() ||
+            type == Character.COMBINING_SPACING_MARK.toInt() ||
+            type == Character.ENCLOSING_MARK.toInt()
+    }
+
+    private fun getCurrentWord(text: String): String {
+        return text.takeLastWhile {
+            isWordCharacter(it)
+        }
+    }
+
     private fun getOfflineSuggestions(): List<String> {
         val before = currentInputConnection
             ?.getTextBeforeCursor(60, 0)
             ?.toString().orEmpty()
 
-        val currentWord = before.takeLastWhile {
-            it.isLetter()
-        }
+        val currentWord = getCurrentWord(before)
 
         if (currentWord.isEmpty()) {
             return emptyList()
@@ -709,9 +718,7 @@ class KeyboardService : InputMethodService() {
                         ?.getTextBeforeCursor(60, 0)
                         ?.toString().orEmpty()
 
-                    val currentWord = before.takeLastWhile {
-                        it.isLetter()
-                    }
+                    val currentWord = getCurrentWord(before)
 
                     if (currentWord.isNotEmpty()) {
                         currentInputConnection
@@ -737,6 +744,38 @@ class KeyboardService : InputMethodService() {
             )
 
             container.addView(suggestion, params)
+        }
+    }
+
+    private fun performEnterAction() {
+        val connection = currentInputConnection ?: return
+        val info = currentInputEditorInfo
+
+        if (info == null) {
+            sendKey(KeyEvent.KEYCODE_ENTER)
+            return
+        }
+
+        val action = info.imeOptions and EditorInfo.IME_MASK_ACTION
+        val noEnterAction =
+            (info.imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
+
+        val supportsEditorAction =
+            action == EditorInfo.IME_ACTION_GO ||
+            action == EditorInfo.IME_ACTION_SEARCH ||
+            action == EditorInfo.IME_ACTION_SEND ||
+            action == EditorInfo.IME_ACTION_NEXT ||
+            action == EditorInfo.IME_ACTION_DONE ||
+            action == EditorInfo.IME_ACTION_PREVIOUS
+
+        if (!noEnterAction && supportsEditorAction) {
+            val handled = connection.performEditorAction(action)
+
+            if (!handled) {
+                sendKey(KeyEvent.KEYCODE_ENTER)
+            }
+        } else {
+            sendKey(KeyEvent.KEYCODE_ENTER)
         }
     }
 
