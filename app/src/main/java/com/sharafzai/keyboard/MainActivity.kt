@@ -39,6 +39,7 @@ class MainActivity : Activity() {
     private var textToSpeech: TextToSpeech? = null
     private var audioPlayer: MediaPlayer? = null
     private var currentAudioPath: String? = null
+    private var voiceTextInput: EditText? = null
     private var chosen = Calendar.getInstance()
     private lateinit var root: LinearLayout
     private var homeDhikrView: TextView? = null
@@ -185,6 +186,7 @@ class MainActivity : Activity() {
             minLines = 5
             gravity = Gravity.TOP
         }
+        voiceTextInput = textBox
         root.addView(textBox, LinearLayout.LayoutParams(-1, dp(150)))
         addButton(root, "🎙 غږ په لیکنه بدلول", 1f) {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -788,9 +790,9 @@ class MainActivity : Activity() {
         if (requestCode == VOICE_REQUEST && resultCode == RESULT_OK) {
             val recognized = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             if (!recognized.isNullOrBlank()) {
-                val focused = currentFocus
-                if (focused is EditText) focused.append(if (focused.text.isNullOrBlank()) recognized else " $recognized")
-                else Toast.makeText(this, recognized, Toast.LENGTH_LONG).show()
+                voiceTextInput?.let { field ->
+                    field.append(if (field.text.isNullOrBlank()) recognized else " $recognized")
+                }
             }
             return
         }
