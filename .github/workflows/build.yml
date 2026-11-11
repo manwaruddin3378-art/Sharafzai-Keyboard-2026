@@ -30,6 +30,18 @@ jobs:
         with:
           gradle-version: '8.2'
 
+      - name: Prepare permanent app signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64 secret" && exit 1)
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD secret" && exit 1)
+          mkdir -p "$HOME/.android"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/sharafzai-release.jks"
+          echo "ANDROID_KEYSTORE_FILE=$HOME/.android/sharafzai-release.jks" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+
       - name: Build APK
         run: gradle :app:assembleRelease
 
