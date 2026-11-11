@@ -43,7 +43,7 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(14, 14, 14, 14)
-            setBackgroundColor(Color.rgb(25, 32, 43))
+            setBackgroundColor(Color.rgb(15, 15, 15))
         }
         root.addView(TextView(this).apply {
             text = if (page == "alarms") "SHARAFZAI • خپلواک الارم" else "SHARAFZAI • خپلواک کلنډر"
@@ -89,7 +89,7 @@ class MainActivity : Activity() {
                 text = dayName
                 textSize = 10f
                 gravity = Gravity.CENTER
-                setTextColor(Color.rgb(190, 215, 225))
+                setTextColor(Color.rgb(205, 205, 205))
             }
             val params = GridLayout.LayoutParams(
                 GridLayout.spec(0),
@@ -123,7 +123,7 @@ class MainActivity : Activity() {
                 setTextColor(Color.WHITE)
                 setBackgroundColor(
                     when {
-                        isSelected -> Color.rgb(28, 137, 157)
+                        isSelected -> Color.rgb(82, 82, 82)
                         isToday -> Color.rgb(75, 83, 96)
                         else -> Color.TRANSPARENT
                     }
@@ -288,7 +288,7 @@ class MainActivity : Activity() {
     private fun addButton(parent: LinearLayout, label: String, weight: Float, action: () -> Unit) {
         val button = Button(this).apply {
             text = label; isAllCaps = false; setTextColor(Color.WHITE)
-            setBackgroundColor(Color.rgb(28, 137, 157)); setOnClickListener { action() }
+            setBackgroundColor(Color.rgb(82, 82, 82)); setOnClickListener { action() }
         }
         parent.addView(button, LinearLayout.LayoutParams(0, 50, weight).apply { setMargins(3, 3, 3, 3) })
     }

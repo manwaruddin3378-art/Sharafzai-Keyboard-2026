@@ -34,6 +34,26 @@ class KeyboardService : InputMethodService() {
     private var calculatorPanelVisible = false
     private var toolsPanelVisible = false
     private var settingsPanelVisible = false
+    private var phrasePanelVisible = false
+    private var phraseCategory = 0
+    private var adhkarIndex = 0
+    private var adhkarTextView: TextView? = null
+    private val adhkarHandler = Handler(Looper.getMainLooper())
+    private val adhkarList = listOf(
+        "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+        "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ",
+        "لَا إِلٰهَ إِلَّا اللَّهُ",
+        "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ",
+        "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ",
+        "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ"
+    )
+    private val adhkarRotation = object : Runnable {
+        override fun run() {
+            adhkarIndex = (adhkarIndex + 1) % adhkarList.size
+            adhkarTextView?.text = "ذکر:  " + adhkarList[adhkarIndex]
+            adhkarHandler.postDelayed(this, 45_000)
+        }
+    }
     private var calculatorExpression = ""
 
     private data class KeyboardTheme(
@@ -46,55 +66,10 @@ class KeyboardService : InputMethodService() {
     )
 
     private val themes = listOf(
-        KeyboardTheme(
-            Color.rgb(27, 32, 43),
-            listOf(
-                Color.rgb(55, 92, 130),
-                Color.rgb(61, 105, 139),
-                Color.rgb(72, 87, 126),
-                Color.rgb(57, 112, 117)
-            ),
-            Color.rgb(28, 137, 157),
-            Color.rgb(38, 45, 58),
-            Color.rgb(255, 205, 80),
-            Color.rgb(90, 115, 145)
-        ),
-        KeyboardTheme(
-            Color.rgb(30, 25, 40),
-            listOf(
-                Color.rgb(100, 65, 135),
-                Color.rgb(115, 75, 145),
-                Color.rgb(80, 65, 125)
-            ),
-            Color.rgb(155, 85, 170),
-            Color.rgb(48, 38, 60),
-            Color.rgb(255, 190, 230),
-            Color.rgb(135, 100, 155)
-        ),
-        KeyboardTheme(
-            Color.rgb(20, 38, 35),
-            listOf(
-                Color.rgb(45, 100, 80),
-                Color.rgb(55, 115, 90),
-                Color.rgb(65, 90, 75)
-            ),
-            Color.rgb(35, 145, 110),
-            Color.rgb(30, 55, 48),
-            Color.rgb(190, 245, 190),
-            Color.rgb(80, 135, 105)
-        ),
-        KeyboardTheme(
-            Color.rgb(35, 35, 35),
-            listOf(
-                Color.rgb(75, 75, 75),
-                Color.rgb(90, 90, 90),
-                Color.rgb(65, 65, 65)
-            ),
-            Color.rgb(100, 100, 100),
-            Color.rgb(48, 48, 48),
-            Color.rgb(255, 220, 120),
-            Color.rgb(120, 120, 120)
-        )
+        KeyboardTheme(Color.rgb(15, 15, 15),
+            listOf(Color.rgb(43, 43, 43), Color.rgb(55, 55, 55), Color.rgb(67, 67, 67)),
+            Color.rgb(78, 78, 78), Color.rgb(27, 27, 27),
+            Color.rgb(235, 235, 235), Color.rgb(105, 105, 105))
     )
 
     private val theme: KeyboardTheme
@@ -112,6 +87,7 @@ class KeyboardService : InputMethodService() {
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
+        themeIndex = 0
     }
 
     private data class KeySpec(
@@ -292,6 +268,20 @@ class KeyboardService : InputMethodService() {
     ) {
         super.onStartInputView(info, restarting)
         updateSuggestions()
+        startAdhkarRotation()
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        adhkarHandler.removeCallbacks(adhkarRotation)
+        adhkarTextView = null
+        super.onFinishInputView(finishingInput)
+    }
+
+    private fun startAdhkarRotation() {
+        adhkarHandler.removeCallbacks(adhkarRotation)
+        adhkarIndex = 0
+        adhkarTextView?.text = "ذکر:  " + adhkarList[adhkarIndex]
+        adhkarHandler.postDelayed(adhkarRotation, 45_000)
     }
 
     override fun onUpdateSelection(
@@ -369,12 +359,6 @@ class KeyboardService : InputMethodService() {
             Toast.makeText(this, "د تڼیو اندازه: $sizeLabel", Toast.LENGTH_SHORT).show()
         }
 
-        addSpecial(header, "🎨", 0.8f, 29) {
-            themeIndex = (themeIndex + 1) % themes.size
-            saveSettings()
-            refreshKeyboard()
-        }
-
         addSpecial(header, "⚙", 0.8f, 29) {
             settingsPanelVisible = !settingsPanelVisible
             if (settingsPanelVisible) {
@@ -388,6 +372,39 @@ class KeyboardService : InputMethodService() {
         }
 
         root.addView(header, rowParams(31))
+
+        val topTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(topTools, "Tab", 0.8f, 35) { currentInputConnection?.commitText("\t", 1) }
+        addSpecial(topTools, "Tools", 1.0f, 35) {
+            toolsPanelVisible = !toolsPanelVisible
+            phrasePanelVisible = false
+            if (toolsPanelVisible) {
+                emojiPanelVisible = false; diacriticsPanelVisible = false
+                symbolsPanelVisible = false; calculatorPanelVisible = false
+                settingsPanelVisible = false
+            }
+            refreshKeyboard()
+        }
+        addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; refreshKeyboard() }
+        addSpecial(topTools, "جملې", 1.0f, 35) {
+            phrasePanelVisible = !phrasePanelVisible
+            toolsPanelVisible = false
+            if (phrasePanelVisible) {
+                emojiPanelVisible = false; diacriticsPanelVisible = false
+                symbolsPanelVisible = false; calculatorPanelVisible = false
+                settingsPanelVisible = false
+            }
+            refreshKeyboard()
+        }
+        root.addView(topTools, rowParams(37))
+
+        adhkarTextView = TextView(this).apply {
+            text = "ذکر:  " + adhkarList[adhkarIndex]
+            textSize = 12f; gravity = Gravity.CENTER
+            setTextColor(Color.WHITE); setPadding(dp(4), 0, dp(4), 0)
+            setBackgroundColor(Color.rgb(35, 35, 35))
+        }
+        root.addView(adhkarTextView, rowParams(25))
 
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -419,10 +436,6 @@ class KeyboardService : InputMethodService() {
 
         val controlRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-        }
-
-        addSpecial(controlRow, "Tab", 0.9f, 39) {
-            currentInputConnection?.commitText("\t", 1)
         }
 
         addSpecial(controlRow, "☺", 0.9f, 39) {
@@ -475,23 +488,6 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        addSpecial(controlRow, "Tools", 1.0f, 39) {
-            toolsPanelVisible = !toolsPanelVisible
-            if (toolsPanelVisible) {
-                emojiPanelVisible = false
-                diacriticsPanelVisible = false
-                symbolsPanelVisible = false
-                calculatorPanelVisible = false
-                settingsPanelVisible = false
-            }
-            refreshKeyboard()
-        }
-
-        addSpecial(controlRow, "Caps", 1.1f, 39) {
-            caps = !caps
-            refreshKeyboard()
-        }
-
         addSpecial(controlRow, "⇧", 1f, 39) {
             shifted = !shifted
             refreshKeyboard()
@@ -533,6 +529,10 @@ class KeyboardService : InputMethodService() {
 
         if (calculatorPanelVisible) {
             addCalculatorPanel(root)
+        }
+
+        if (phrasePanelVisible) {
+            addPhrasePanel(root)
         }
 
         if (toolsPanelVisible) {
@@ -593,11 +593,6 @@ class KeyboardService : InputMethodService() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        addSpecial(row, "رنګ: ${themeIndex + 1}", 1.2f, 40) {
-            themeIndex = (themeIndex + 1) % themes.size
-            saveSettings()
-            refreshKeyboard()
-        }
         addSpecial(row, "اندازه: ${listOf("وړه", "منځنۍ", "لویه")[keySizeLevel]}", 1.4f, 40) {
             keySizeLevel = (keySizeLevel + 1) % 3
             saveSettings()
@@ -632,6 +627,35 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         parent.addView(row, rowParams(43))
+    }
+
+    private fun addPhrasePanel(parent: LinearLayout) {
+        val categories = listOf("اسلامي", "محاورې", "ډیزایني", "اسلامي ډیزاین")
+        val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        categories.forEachIndexed { index, label ->
+            addSpecial(categoryRow, label, 1f, 36) { phraseCategory = index; refreshKeyboard() }
+        }
+        parent.addView(categoryRow, rowParams(39))
+        val phrases = when (phraseCategory) {
+            0 -> listOf("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ","الْحَمْدُ لِلَّهِ","مَا شَاءَ اللَّهُ","إِنْ شَاءَ اللَّهُ","سُبْحَانَ اللَّهِ","أَسْتَغْفِرُ اللَّهَ","جَزَاكَ اللَّهُ خَيْرًا","بَارَكَ اللَّهُ فِيكَ","السَّلَامُ عَلَيْكُمْ","وَعَلَيْكُمُ السَّلَامُ","صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ","رَضِيَ اللَّهُ عَنْهُ")
+            1 -> listOf("السلام علیکم، څنګه یاست؟","وعلیکم السلام، الحمدلله ښه یم","ډېره مننه","هیڅ خبره نه ده","مهرباني وکړئ","الله دې مل شه","په خیر راغلې","ستړی مه شې","بیا به سره ګورو","ستاسو له مرستې مننه","بښنه غواړم","ښه ورځ ولرئ")
+            2 -> listOf("❖ مننه ❖","✦ ښه راغلاست ✦","『 السلام علیکم 』","《 الحمد لله 》","༺ مننه ༻","✧ په خیر اوسئ ✧","◈ بریالی اوسئ ◈","❀ خوښ او خوشحاله اوسئ ❀","★ الله مو مل شه ★")
+            else -> listOf("۞ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۞","۞ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۞","﷽","ﷺ","۞ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ۞","۞ جَزَاكَ اللَّهُ خَيْرًا ۞","﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾","﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾")
+        }
+        phrases.chunked(3).forEach { group ->
+            val phraseRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            group.forEach { phrase ->
+                addSpecial(phraseRow, phrase, 1f, 42) {
+                    currentInputConnection?.commitText("$phrase ", 1)
+                    updateSuggestions()
+                }
+            }
+            repeat(3 - group.size) { addSpecial(phraseRow, " ", 1f, 42) { } }
+            parent.addView(phraseRow, rowParams(45))
+        }
+        val closeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(closeRow, "بندول", 1f, 34) { phrasePanelVisible = false; refreshKeyboard() }
+        parent.addView(closeRow, rowParams(37))
     }
 
     private fun openSharafzaiTools(page: String) {
