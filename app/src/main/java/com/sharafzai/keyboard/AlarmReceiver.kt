@@ -8,7 +8,7 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getIntExtra("alarm_id", 1)
         val label = intent.getStringExtra("label") ?: "شرفزی الارم"
-        val manager = context.getSystemService(NotificationManager::class.java)
+        val manager = (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
         if (Build.VERSION.SDK_INT >= 26) {
             manager.createNotificationChannel(NotificationChannel("sharafzai_alarms", "Sharafzai Alarms", NotificationManager.IMPORTANCE_HIGH))
         }
@@ -20,7 +20,7 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         val title = if (targetPage == "alarms") "د شرفزی الارم" else "د اذکارو یادونه"
         val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java).putExtra("open_page", targetPage),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, "sharafzai_alarms") else Notification.Builder(context)
         manager.notify(id, builder.setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title).setContentText(label).setCategory(Notification.CATEGORY_ALARM)
@@ -29,7 +29,7 @@ class AlarmReceiver : BroadcastReceiver() {
         // Repeat this alarm at the same local time on the following day.
         val saved = AlarmStore.read(context).firstOrNull { it.id == id && it.enabled }
         if (saved != null) {
-            val alarmManager = context.getSystemService(AlarmManager::class.java)
+            val alarmManager = (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
             if (Build.VERSION.SDK_INT < 31 || alarmManager.canScheduleExactAlarms()) {
                 val next = java.util.Calendar.getInstance().apply {
                     set(java.util.Calendar.HOUR_OF_DAY, saved.hour)
