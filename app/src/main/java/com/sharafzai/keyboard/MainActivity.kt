@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.Bundle
 import android.provider.Settings
 import android.graphics.Color
+import android.graphics.Bitmap
 import android.view.Gravity
 import android.widget.*
 import java.text.SimpleDateFormat
@@ -18,6 +19,10 @@ import java.util.*
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.tom_roush.pdfbox.rendering.PDFRenderer
+import com.tom_roush.pdfbox.rendering.ImageType
+import com.googlecode.tesseract.android.TessBaseAPI
+import java.io.File
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("SharafzaiTools", MODE_PRIVATE) }
@@ -205,12 +210,32 @@ class MainActivity : Activity() {
         line("یادونه: یوازې PDF فایلونه منل کېږي. د کتاب لوستلو لپاره به د موبایل PDF لوستونکی پرانیستل شي. د کتابتون څخه د لرې کولو سره اصلي فایل نه حذف کېږي.")
     }
 
+    private fun prepareOcrData(): File {
+        val dataRoot = File(filesDir, "tesseract").apply { mkdirs() }
+        val tessData = File(dataRoot, "tessdata").apply { mkdirs() }
+        listOf("ara", "fas", "pus", "eng").forEach { language ->
+            val target = File(tessData, "$language.traineddata")
+            if (!target.exists() || target.length() < 100_000) {
+                assets.open("tessdata/$language.traineddata").use { input ->
+                    target.outputStream().use { output -> input.copyTo(output) }
+                }
+            }
+        }
+        return dataRoot
+    }
+
     private fun searchPdfLibrary(query: String, books: org.json.JSONArray, selected: Int, resultsView: LinearLayout) {
         resultsView.removeAllViews()
-        line("لټون روان دی؛ د کتابونو د شمېر او حجم له مخې لږ وخت نیولی شي.")
+        val status = TextView(this).apply {
+            text = "د متن او سکین شوو پاڼو لټون روان دی..."
+            setTextColor(Color.LTGRAY)
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        resultsView.addView(status)
         Thread {
             val found = mutableListOf<String>()
             val terms = query.lowercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotBlank() }
+            var tess: TessBaseAPI? = null
             try {
                 PDFBoxResourceLoader.init(applicationContext)
                 val indexes = if (selected == 0) (0 until books.length()).toList() else listOf(selected - 1)
@@ -223,39 +248,62 @@ class MainActivity : Activity() {
                         contentResolver.openInputStream(Uri.parse(uriText))?.use { stream ->
                             PDDocument.load(stream).use { document ->
                                 val stripper = PDFTextStripper()
-                                for (page in 1..document.numberOfPages) {
-                                    stripper.startPage = page
-                                    stripper.endPage = page
-                                    val text = stripper.getText(document)
-                                    val normalized = text.lowercase(Locale.ROOT)
+                                val renderer = PDFRenderer(document)
+                                for (pageNumber in 1..document.numberOfPages) {
+                                    stripper.startPage = pageNumber
+                                    stripper.endPage = pageNumber
+                                    var pageText = stripper.getText(document)
+                                    if (pageText.trim().length < 35) {
+                                        if (tess == null) {
+                                            val api = TessBaseAPI()
+                                            val dataPath = prepareOcrData().absolutePath
+                                            if (!api.init(dataPath, "pus+fas+ara+eng")) {
+                                                api.recycle()
+                                                throw IllegalStateException("OCR ژبني معلومات نه شول چمتو کېدای")
+                                            }
+                                            api.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO)
+                                            tess = api
+                                        }
+                                        val bitmap = renderer.renderImageWithDPI(pageNumber - 1, 220f, ImageType.GRAY)
+                                        try {
+                                            tess?.setImage(bitmap)
+                                            val recognized = tess?.utF8Text ?: ""
+                                            if (recognized.isNotBlank()) pageText = recognized
+                                        } finally {
+                                            bitmap.recycle()
+                                            tess?.clear()
+                                        }
+                                    }
+                                    val normalized = pageText.lowercase(Locale.ROOT)
                                     if (terms.all { normalized.contains(it) }) {
                                         val first = terms.firstOrNull()?.let { normalized.indexOf(it) } ?: 0
-                                        val start = (first - 90).coerceAtLeast(0)
-                                        val end = (first + 220).coerceAtMost(text.length)
-                                        val excerpt = text.substring(start, end).replace(Regex("\\s+"), " ").trim()
-                                        found.add("$title  |  پاڼه $page\\n$excerpt")
+                                        val from = (first - 90).coerceAtLeast(0)
+                                        val to = (first + 260).coerceAtMost(pageText.length)
+                                        val excerpt = pageText.substring(from, to).replace(Regex("\\s+"), " ").trim()
+                                        found.add("$title  |  پاڼه $pageNumber\\n$excerpt")
                                         if (found.size >= 100) break
                                     }
                                 }
                             }
                         } ?: found.add("$title: فایل ته لاسرسی ونه شو.")
-                    } catch (_: Exception) {
-                        found.add("$title: دا PDF لوستل نه شول؛ کېدای شي فایل خوندي/کوډ شوی یا خراب وي.")
+                    } catch (e: Exception) {
+                        found.add("$title: د دې کتاب لوستلو کې ستونزه پېښه شوه: ${e.message ?: "نامعلومه ستونزه"}")
                     }
                     if (found.size >= 100) break
                 }
-            } catch (_: Exception) {
-                found.add("د PDF لټون کتابتون چمتو نه شو. مهرباني وکړئ وروسته بیا هڅه وکړئ.")
+            } catch (e: Exception) {
+                found.add("د OCR چمتو کولو ستونزه: ${e.message ?: "مهرباني وکړئ بیا هڅه وکړئ"}")
+            } finally {
+                tess?.recycle()
             }
             runOnUiThread {
                 resultsView.removeAllViews()
-                val heading = TextView(this).apply {
+                resultsView.addView(TextView(this).apply {
                     text = if (found.isEmpty()) "پایله ونه موندل شوه." else "د لټون پایلې: ${found.size}"
                     textSize = 16f
                     setTextColor(Color.WHITE)
                     setPadding(6, dp(10), 6, dp(10))
-                }
-                resultsView.addView(heading)
+                })
                 found.forEach { result ->
                     resultsView.addView(TextView(this).apply {
                         text = result
