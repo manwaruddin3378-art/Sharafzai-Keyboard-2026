@@ -20,7 +20,7 @@ A lightweight Android on-screen keyboard with Pashto, Dari, Arabic, and English 
 
 ## Important scope notes
 
-This is an actively developed first version. The built-in word lists are starter lists, not complete dictionaries or full spell-checking models. Voice typing, full offline translation, built-in calendar/event management, and prayer-time calculation are not yet implemented. Calendar and alarm buttons are shortcuts to the device's existing system apps. The calculator is a basic offline tool for addition, subtraction, multiplication, and division; it is not a scientific calculator. The Pashto and Dari key layouts still need review against the preferred standard layouts before release.
+This is an actively developed first version. The built-in word lists are starter lists, not complete dictionaries or full spell-checking models. Voice typing, full offline translation, built-in calendar/event management, and prayer-time calculation are not yet implemented. Calendar and alarm buttons are shortcuts to the device's existing system apps. The calculator is a basic offline tool for addition, subtraction, multiplication, and division; it is not a scientific calculator. The Pashto layout is being aligned with Microsoft's published Pashto (Afghanistan) Windows layout, including its Shift and AltGr alternatives; the Dari layout still needs review against the preferred standard before release.
 
 ## Build
 
