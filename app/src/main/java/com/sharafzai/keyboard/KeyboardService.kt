@@ -514,6 +514,7 @@ class KeyboardService : InputMethodService() {
                     calculatorPanelVisible = false
                     toolsPanelVisible = false
                     settingsPanelVisible = false
+                    clipboardPanelVisible = false
                 }
                 refreshKeyboard()
             }
@@ -527,6 +528,7 @@ class KeyboardService : InputMethodService() {
                 calculatorPanelVisible = false
                 toolsPanelVisible = false
                 settingsPanelVisible = false
+                clipboardPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -539,6 +541,7 @@ class KeyboardService : InputMethodService() {
                 symbolsPanelVisible = false
                 toolsPanelVisible = false
                 settingsPanelVisible = false
+                clipboardPanelVisible = false
             }
             refreshKeyboard()
         }
