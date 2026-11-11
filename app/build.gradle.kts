@@ -15,10 +15,19 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("ANDROID_KEYSTORE_FILE") ?: "${System.getProperty("user.home")}/.android/sharafzai-release.jks")
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = "sharafzai"
+            keyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             // Optimized, directly installable APK for distribution.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
