@@ -1279,34 +1279,51 @@ class KeyboardService : InputMethodService() {
         } else if (label == "⌫") {
             val handler = Handler(Looper.getMainLooper())
             var repeatTask: Runnable? = null
+            var wordTask: Runnable? = null
+            var wordDeleteMode = false
 
             button.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        wordDeleteMode = false
                         action()
-
-                        val task = object : Runnable {
+                        val characterRepeat = object : Runnable {
                             override fun run() {
-                                action()
-                                handler.postDelayed(this, 65)
+                                if (!wordDeleteMode) {
+                                    action()
+                                    handler.postDelayed(this, 65)
+                                }
                             }
                         }
-
-                        repeatTask = task
-                        handler.postDelayed(task, 400)
-                        true
-                    }
-
-                    MotionEvent.ACTION_UP,
-                    MotionEvent.ACTION_CANCEL -> {
-                        repeatTask?.let {
-                            handler.removeCallbacks(it)
+                        repeatTask = characterRepeat
+                        handler.postDelayed(characterRepeat, 400)
+                        val switchToWords = Runnable {
+                            wordDeleteMode = true
+                            repeatTask?.let { handler.removeCallbacks(it) }
+                            deletePreviousWord()
+                            val wordRepeat = object : Runnable {
+                                override fun run() {
+                                    if (wordDeleteMode) {
+                                        deletePreviousWord()
+                                        handler.postDelayed(this, 420)
+                                    }
+                                }
+                            }
+                            repeatTask = wordRepeat
+                            handler.postDelayed(wordRepeat, 420)
                         }
-
-                        repeatTask = null
+                        wordTask = switchToWords
+                        handler.postDelayed(switchToWords, 650)
                         true
                     }
-
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        wordTask?.let { handler.removeCallbacks(it) }
+                        repeatTask?.let { handler.removeCallbacks(it) }
+                        wordTask = null
+                        repeatTask = null
+                        wordDeleteMode = false
+                        true
+                    }
                     else -> true
                 }
             }
@@ -1474,6 +1491,17 @@ class KeyboardService : InputMethodService() {
 
             container.addView(suggestion, params)
         }
+    }
+
+    private fun deletePreviousWord() {
+        val connection = currentInputConnection ?: return
+        val before = connection.getTextBeforeCursor(120, 0)?.toString().orEmpty()
+        if (before.isEmpty()) return
+        val trimmed = before.trimEnd()
+        val word = getCurrentWord(trimmed)
+        val count = before.length - (trimmed.length - word.length)
+        if (count > 0) connection.deleteSurroundingText(count, 0) else deletePreviousCharacter()
+        updateSuggestions()
     }
 
     private fun deletePreviousCharacter() {
