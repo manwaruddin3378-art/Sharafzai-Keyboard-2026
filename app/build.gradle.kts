@@ -35,7 +35,7 @@ tasks.register("downloadOcrTrainedData") {
     outputs.dir(outputDir)
     doLast {
         outputDir.mkdirs()
-        listOf("ara", "fas", "eng").forEach { language ->
+        listOf("ara", "fas", "pus", "eng").forEach { language ->
             val target = File(outputDir, "$language.traineddata")
             if (!target.exists() || target.length() < 100_000) {
                 val url = java.net.URL("https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/$language.traineddata")
