@@ -1,4 +1,4 @@
-name: Build Sharafzai App (optimized APK)
+name: Build Sundus App (test APK)
 
 on:
   push:
@@ -30,31 +30,21 @@ jobs:
         with:
           gradle-version: '8.2'
 
-      - name: Prepare permanent app signing key
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: |
-          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64 secret" && exit 1)
-          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD secret" && exit 1)
-          mkdir -p "$HOME/.android"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/sharafzai-release.jks"
-          echo "ANDROID_KEYSTORE_FILE=$HOME/.android/sharafzai-release.jks" >> "$GITHUB_ENV"
-          echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-
-      - name: Build APK
-        run: gradle :app:assembleRelease
+      # Phase 1 test APK uses Android's automatic debug signing.
+      # The permanent private release key remains reserved for production releases.
+      - name: Build test APK
+        run: gradle :app:assembleDebug
 
       - name: Report APK size
         run: |
-          APK="app/build/outputs/apk/release/app-release.apk"
+          APK="app/build/outputs/apk/debug/app-debug.apk"
           SIZE=$(du -h "$APK" | cut -f1)
           BYTES=$(stat -c%s "$APK")
-          echo "APK size: $SIZE ($BYTES bytes)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Sundus test APK size: $SIZE ($BYTES bytes)" >> "$GITHUB_STEP_SUMMARY"
           ls -lh "$APK"
 
-      - name: Upload APK
+      - name: Upload test APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sharafzai-App-APK
-          path: app/build/outputs/apk/release/app-release.apk
+          name: Sundus-App-Test-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
