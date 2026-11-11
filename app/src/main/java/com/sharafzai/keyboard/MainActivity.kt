@@ -107,34 +107,61 @@ class MainActivity : Activity() {
             setPadding(14, 14, 14, 14)
             setBackgroundColor(Color.rgb(15, 15, 15))
         }
-        root.addView(TextView(this).apply {
-            text = "SHARAFZAI  •  شرفزی اپلیکیشن"
-            textSize = 22f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); setPadding(4, 18, 4, 18)
-        })
-        if (page != "home") {
-            addButton(root, "⌂  اصلي پاڼې ته ستنېدل", 1f) { page = "home"; render() }
-        }
-        when (page) {
-            "home" -> showHome()
-            "alarms" -> { line("خپلواک الارم"); showAlarms() }
-            "calendar" -> { line("کلنډر او ورځني یادښتونه"); showCalendar() }
-            "calculator" -> showCalculator()
-            "adhkar", "morning", "evening" -> showAdhkar(page)
-            "phrases" -> showPhrases()
-            "library" -> showLibrary()
-            "pdf_viewer" -> showPdfViewer()
-            "keyboard" -> showKeyboardSetup()
-            "settings" -> showAppSettings()
-            else -> showHome()
-        }
-        if (page == "home") {
+        val scroll = ScrollView(this)
+        scroll.setBackgroundColor(Color.rgb(15, 15, 15))
+        scroll.addView(root)
+        // Show the screen before building page content. If one module fails,
+        // the user sees a readable error instead of a blank black window.
+        setContentView(scroll)
+
+        try {
+            root.addView(TextView(this).apply {
+                text = "SHARAFZAI  •  شرفزی اپلیکیشن"
+                textSize = 22f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                setPadding(4, 18, 4, 18)
+            })
+            if (page != "home") {
+                addButton(root, "⌂  اصلي پاڼې ته ستنېدل", 1f) { page = "home"; render() }
+            }
+            when (page) {
+                "home" -> showHome()
+                "alarms" -> { line("خپلواک الارم"); showAlarms() }
+                "calendar" -> { line("کلنډر او ورځني یادښتونه"); showCalendar() }
+                "calculator" -> showCalculator()
+                "adhkar", "morning", "evening" -> showAdhkar(page)
+                "phrases" -> showPhrases()
+                "library" -> showLibrary()
+                "pdf_viewer" -> showPdfViewer()
+                "keyboard" -> showKeyboardSetup()
+                "settings" -> showAppSettings()
+                else -> showHome()
+            }
+            if (page == "home") {
+                homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+                homeDhikrHandler.postDelayed(homeDhikrRotation, 45_000)
+            } else {
+                homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+                homeDhikrView = null
+            }
+        } catch (error: Exception) {
             homeDhikrHandler.removeCallbacks(homeDhikrRotation)
-            homeDhikrHandler.postDelayed(homeDhikrRotation, 45_000)
-        } else {
-            homeDhikrHandler.removeCallbacks(homeDhikrRotation)
-            homeDhikrView = null
+            root.removeAllViews()
+            root.addView(TextView(this).apply {
+                text = "د پاڼې په پرانیستلو کې ستونزه رامنځته شوه.\n\n${error.javaClass.simpleName}: ${error.localizedMessage ?: "نامعلومه ستونزه"}"
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                setPadding(16, 24, 16, 24)
+            })
+            val retry = Button(this).apply {
+                text = "بیا هڅه"
+                isAllCaps = false
+                setOnClickListener { render() }
+            }
+            root.addView(retry)
+            android.util.Log.e("SharafzaiApp", "Page render failed: $page", error)
         }
-        setContentView(ScrollView(this).apply { addView(root) })
     }
 
     private fun showHome() {
