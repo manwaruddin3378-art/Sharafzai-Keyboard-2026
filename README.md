@@ -31,3 +31,11 @@ The core version is designed to work offline. It does not request Internet permi
 ## Build
 
 GitHub Actions creates an optimized release APK using Java 17 and Android SDK 34. Code and resource shrinking are enabled. The first-stage build must be measured after compilation; no APK size is promised until the actual output is reported.
+
+## Permanent release signing (important for updates)
+
+Release APKs must always use the same private signing key. GitHub Actions reads two repository Actions secrets:
+- `ANDROID_KEYSTORE_BASE64`: Base64 content of the private `sharafzai-release.jks` file.
+- `ANDROID_KEYSTORE_PASSWORD`: its password.
+
+Never commit the keystore or its password to this repository. If either secret is missing, the release build intentionally stops instead of producing an APK signed with a temporary key. Android requires the keyboard IME to be enabled by the user once in system settings; an app cannot silently enable its own keyboard.
