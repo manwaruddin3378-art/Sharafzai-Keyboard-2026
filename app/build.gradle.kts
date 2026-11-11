@@ -11,8 +11,8 @@ android {
         applicationId = "com.sharafzai.keyboard"
         minSdk = 21
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.2"
+        versionCode = 8
+        versionName = "1.3"
     }
 
     signingConfigs {
