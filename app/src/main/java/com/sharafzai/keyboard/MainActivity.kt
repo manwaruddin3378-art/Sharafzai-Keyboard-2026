@@ -85,6 +85,13 @@ class MainActivity : Activity() {
             "settings" -> showAppSettings()
             else -> showHome()
         }
+        if (page == "home") {
+            homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+            homeDhikrHandler.postDelayed(homeDhikrRotation, 45_000)
+        } else {
+            homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+            homeDhikrView = null
+        }
         setContentView(ScrollView(this).apply { addView(root) })
     }
 
