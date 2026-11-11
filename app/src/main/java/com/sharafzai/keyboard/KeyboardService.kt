@@ -397,7 +397,7 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(controlRow, "⌫", 1.2f, 39) {
-            currentInputConnection?.deleteSurroundingText(1, 0)
+            deletePreviousCharacter()
             updateSuggestions()
         }
 
@@ -797,6 +797,22 @@ class KeyboardService : InputMethodService() {
 
             container.addView(suggestion, params)
         }
+    }
+
+    private fun deletePreviousCharacter() {
+        val connection = currentInputConnection ?: return
+        val before = connection.getTextBeforeCursor(2, 0)?.toString().orEmpty()
+
+        if (before.isEmpty()) return
+
+        val last = before[before.length - 1]
+        val isLowSurrogate = Character.isLowSurrogate(last)
+        val hasMatchingHighSurrogate =
+            before.length >= 2 &&
+            Character.isHighSurrogate(before[before.length - 2])
+
+        val length = if (isLowSurrogate && hasMatchingHighSurrogate) 2 else 1
+        connection.deleteSurroundingText(length, 0)
     }
 
     private fun performEnterAction() {
