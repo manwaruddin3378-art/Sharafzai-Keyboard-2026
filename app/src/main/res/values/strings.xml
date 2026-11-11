@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sharafzai App – شرفزی اپلیکیشن</string>
+    <string name="app_name">Sundus – سندس</string>
     <string name="subtype_pashto">Pashto</string>
     <string name="subtype_arabic">Arabic</string>
     <string name="subtype_english">English</string>
     <string name="subtype_dari">Dari</string>
-    <string name="keyboard_name">کیبورډ شرفزی</string>
-    <string name="adhkar_widget_name">د شرفزی اذکار</string>
+    <string name="keyboard_name">کیبورډ سندس</string>
+    <string name="adhkar_widget_name">د سندس اذکار</string>
     <string name="adhkar_widget_description">د موبایل پر اصلي سکرین د اذکارو ښودل</string>
 </resources>
