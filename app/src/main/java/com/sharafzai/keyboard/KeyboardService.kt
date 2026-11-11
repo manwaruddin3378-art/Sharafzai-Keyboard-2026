@@ -1179,6 +1179,7 @@ class KeyboardService : InputMethodService() {
                 }
 
                 currentInputConnection?.commitText(output, 1)
+                if (hapticEnabled) frame.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
 
                 if (shifted && !caps) {
                     shifted = false
@@ -1242,7 +1243,25 @@ class KeyboardService : InputMethodService() {
             )
         }
 
-        if (label == "⌫") {
+        if (label == "Space") {
+            var downX = 0f
+            button.setOnTouchListener { view, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> { downX = event.x; true }
+                    MotionEvent.ACTION_UP -> {
+                        val delta = event.x - downX
+                        if (kotlin.math.abs(delta) > dp(18)) {
+                            val steps = (kotlin.math.abs(delta) / dp(12)).toInt().coerceAtLeast(1)
+                            repeat(steps) { sendKey(if (delta < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT) }
+                        } else action()
+                        view.performClick()
+                        true
+                    }
+                    MotionEvent.ACTION_CANCEL -> true
+                    else -> true
+                }
+            }
+        } else if (label == "⌫") {
             val handler = Handler(Looper.getMainLooper())
             var repeatTask: Runnable? = null
 
@@ -1278,6 +1297,7 @@ class KeyboardService : InputMethodService() {
             }
         } else {
             button.setOnClickListener {
+                if (hapticEnabled) it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
                 action()
             }
         }
