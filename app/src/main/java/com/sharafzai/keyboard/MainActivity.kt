@@ -237,6 +237,7 @@ class MainActivity : Activity() {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageOptions[language.selectedItemPosition].second)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageOptions[language.selectedItemPosition].second)
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
                 putExtra(RecognizerIntent.EXTRA_PROMPT, "اوس خبرې وکړئ")
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             }
