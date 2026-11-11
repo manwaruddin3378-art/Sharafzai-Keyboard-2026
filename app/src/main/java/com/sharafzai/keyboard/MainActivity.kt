@@ -20,12 +20,6 @@ import android.view.Gravity
 import android.widget.*
 import java.text.SimpleDateFormat
 import java.util.*
-import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
-import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.text.PDFTextStripper
-import com.tom_roush.pdfbox.rendering.PDFRenderer
-import com.tom_roush.pdfbox.rendering.ImageType
-import com.googlecode.tesseract.android.TessBaseAPI
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -127,9 +121,6 @@ class MainActivity : Activity() {
             "calculator" -> showCalculator()
             "adhkar", "morning", "evening" -> showAdhkar(page)
             "phrases" -> showPhrases()
-            "language_tools" -> showLanguageTools()
-            "voice_tools" -> showVoiceTools()
-            "audio_library" -> showAudioLibrary()
             "library" -> showLibrary()
             "pdf_viewer" -> showPdfViewer()
             "keyboard" -> showKeyboardSetup()
@@ -162,9 +153,6 @@ class MainActivity : Activity() {
         addButton(root, "اذکار سهار", 1f) { page = "morning"; render() }
         addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
         addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
-        addButton(root, "پښتو ـ انګلیسي ـ عربي قاموس او ژباړه", 1f) { page = "language_tools"; render() }
-        addButton(root, "غږ په لیکنه او لیکنه په غږ", 1f) { page = "voice_tools"; render() }
-        addButton(root, "د علماوو آډیو بیانونه", 1f) { page = "audio_library"; render() }
         addButton(root, "زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د شرفزی اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
@@ -578,32 +566,6 @@ class MainActivity : Activity() {
             }
         }
         val books = readPdfLibrary()
-        line("د کتابونو دننه لټون")
-        val searchInput = EditText(this).apply {
-            hint = "د موضوع، عبارت یا کلمې نوم ولیکئ"
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.LTGRAY)
-            setSingleLine(true)
-        }
-        root.addView(searchInput, LinearLayout.LayoutParams(-1, dp(52)))
-        val choices = mutableListOf("ټول کتابونه")
-        for (i in 0 until books.length()) {
-            choices.add(books.optJSONObject(i)?.optString("title", "بې نومه PDF") ?: "بې نومه PDF")
-        }
-        val bookChoice = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, choices)
-        }
-        root.addView(bookChoice, LinearLayout.LayoutParams(-1, dp(48)))
-        val searchResults = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        addButton(root, "⌕  موضوع ولټوئ", 1f) {
-            val query = searchInput.text.toString().trim()
-            if (query.isBlank()) {
-                Toast.makeText(this, "لومړی د لټون موضوع ولیکئ", Toast.LENGTH_SHORT).show()
-            } else {
-                searchPdfLibrary(query, books, bookChoice.selectedItemPosition, searchResults)
-            }
-        }
-        root.addView(searchResults)
         line("ستاسو کتابونه: " + books.length())
         if (books.length() == 0) {
             line("تر اوسه PDF کتاب نه دی ورزیات شوی. د پورته تڼۍ له لارې یو PDF وټاکئ.")
@@ -643,113 +605,6 @@ class MainActivity : Activity() {
             }
         }
         line("یادونه: یوازې PDF فایلونه منل کېږي. د کتاب لوستلو لپاره به د موبایل PDF لوستونکی پرانیستل شي. د کتابتون څخه د لرې کولو سره اصلي فایل نه حذف کېږي.")
-    }
-
-    private fun prepareOcrData(): File {
-        val dataRoot = File(filesDir, "tesseract").apply { mkdirs() }
-        val tessData = File(dataRoot, "tessdata").apply { mkdirs() }
-        listOf("ara", "fas", "pus", "eng").forEach { language ->
-            val target = File(tessData, "$language.traineddata")
-            if (!target.exists() || target.length() < 100_000) {
-                assets.open("tessdata/$language.traineddata").use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
-                }
-            }
-        }
-        return dataRoot
-    }
-
-    private fun searchPdfLibrary(query: String, books: org.json.JSONArray, selected: Int, resultsView: LinearLayout) {
-        resultsView.removeAllViews()
-        val status = TextView(this).apply {
-            text = "د متن او سکین شوو پاڼو لټون روان دی..."
-            setTextColor(Color.LTGRAY)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
-        }
-        resultsView.addView(status)
-        Thread {
-            val found = mutableListOf<String>()
-            val terms = query.lowercase(Locale.ROOT).split(Regex("\\s+")).filter { it.isNotBlank() }
-            var tess: TessBaseAPI? = null
-            try {
-                PDFBoxResourceLoader.init(applicationContext)
-                val indexes = if (selected == 0) (0 until books.length()).toList() else listOf(selected - 1)
-                for (index in indexes) {
-                    val item = books.optJSONObject(index) ?: continue
-                    val title = item.optString("title", "بې نومه PDF")
-                    val uriText = item.optString("uri", "")
-                    if (uriText.isBlank()) continue
-                    try {
-                        contentResolver.openInputStream(Uri.parse(uriText))?.use { stream ->
-                            PDDocument.load(stream).use { document ->
-                                val stripper = PDFTextStripper()
-                                val renderer = PDFRenderer(document)
-                                for (pageNumber in 1..document.numberOfPages) {
-                                    stripper.startPage = pageNumber
-                                    stripper.endPage = pageNumber
-                                    var pageText = stripper.getText(document)
-                                    if (pageText.trim().length < 35) {
-                                        if (tess == null) {
-                                            val api = TessBaseAPI()
-                                            val dataPath = prepareOcrData().absolutePath
-                                            if (!api.init(dataPath, "pus+fas+ara+eng")) {
-                                                api.recycle()
-                                                throw IllegalStateException("OCR ژبني معلومات نه شول چمتو کېدای")
-                                            }
-                                            api.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO)
-                                            tess = api
-                                        }
-                                        val bitmap = renderer.renderImageWithDPI(pageNumber - 1, 220f, ImageType.GRAY)
-                                        try {
-                                            tess?.setImage(bitmap)
-                                            val recognized = tess?.getUTF8Text() ?: ""
-                                            if (recognized.isNotBlank()) pageText = recognized
-                                        } finally {
-                                            bitmap.recycle()
-                                            tess?.clear()
-                                        }
-                                    }
-                                    val normalized = pageText.lowercase(Locale.ROOT)
-                                    if (terms.all { normalized.contains(it) }) {
-                                        val first = terms.firstOrNull()?.let { normalized.indexOf(it) } ?: 0
-                                        val from = (first - 90).coerceAtLeast(0)
-                                        val to = (first + 260).coerceAtMost(pageText.length)
-                                        val excerpt = pageText.substring(from, to).replace(Regex("\\s+"), " ").trim()
-                                        found.add("$title  |  پاڼه $pageNumber\n$excerpt")
-                                        if (found.size >= 100) break
-                                    }
-                                }
-                            }
-                        } ?: found.add("$title: فایل ته لاسرسی ونه شو.")
-                    } catch (e: Exception) {
-                        found.add("$title: د دې کتاب لوستلو کې ستونزه پېښه شوه: ${e.message ?: "نامعلومه ستونزه"}")
-                    }
-                    if (found.size >= 100) break
-                }
-            } catch (e: Exception) {
-                found.add("د OCR چمتو کولو ستونزه: ${e.message ?: "مهرباني وکړئ بیا هڅه وکړئ"}")
-            } finally {
-                tess?.recycle()
-            }
-            runOnUiThread {
-                resultsView.removeAllViews()
-                resultsView.addView(TextView(this).apply {
-                    text = if (found.isEmpty()) "پایله ونه موندل شوه." else "د لټون پایلې: ${found.size}"
-                    textSize = 16f
-                    setTextColor(Color.WHITE)
-                    setPadding(6, dp(10), 6, dp(10))
-                })
-                found.forEach { result ->
-                    resultsView.addView(TextView(this).apply {
-                        text = result
-                        textSize = 14f
-                        setTextColor(Color.LTGRAY)
-                        setPadding(dp(8), dp(8), dp(8), dp(8))
-                        setBackgroundColor(Color.rgb(38, 38, 38))
-                    })
-                }
-            }
-        }.start()
     }
 
     private fun readPdfLibrary(): org.json.JSONArray {
