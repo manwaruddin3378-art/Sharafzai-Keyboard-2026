@@ -1,43 +1,45 @@
-# Sundus App 1.0 – سندس اپلیکیشن
+# SUNDUS – سندس (Version 1.2)
 
-**Creator:** Mufti Muhammad Anwaruddin Sharafzai (د مفتي محمد انوارالدين شرفزي لخوا)
+**جوړوونکی:** د مفتي محمد انوارالدین شرفزي لخوا
 
-The first public-ready milestone is intentionally small, offline-first, and focused on everyday use.
+SUNDUS یو څو-وسیلېز Android اپلیکیشن دی چې ورځني محلي وسایل، اسلامي محتوا، د PDF کتابتون او څلور ژبی کیبورډ په یوه ځای کې راټولوي.
 
-## Included in version 1.0
+## په اوسني پړاو کې شته برخې
 
-- **Sundus keyboard:** Pashto, Dari, Arabic, and English layouts; offline starter-word suggestions; personal dictionary; symbols, emoji, and diacritics. It can be enabled separately in Android keyboard settings and used in other apps.
-- **Calculator:** basic arithmetic, including parentheses.
-- **Calendar and notes:** month navigation and locally saved date notes.
-- **Alarms and reminders:** locally scheduled alarms and notifications. Exact-alarm and notification permissions may be requested by Android.
-- **Adhkar:** selected general, morning, and evening remembrances, with a home-screen widget.
-- **Useful phrases:** selected Islamic and everyday phrases.
-- **PDF library and reader:** add PDF files from the phone, keep a library list, and read pages inside Sundus App using Android's built-in PDF renderer.
-- **Monochrome interface:** black, white, and gray.
+- **کیبورډ:** پښتو، دري، عربي او انګلیسي؛ د ژبې بدلول، درې رنګیز موضوعات، د تڼیو اندازه، فونټ بڼې، ایموجي او نښې، حرکات، چټکې جملې، کلیپ‌بورډ، شخصي قاموس او ساده کلمیزې وړاندیزونه.
+- **غږیز لیکل:** د Android د غږ پېژندنې خدمت کاروي؛ آفلاین کار یې د موبایل د اړوندې ژبې پر نصب شوې غږیزې بستې پورې تړلی دی.
+- **قاموس او ژباړه:** د کاروونکي په غوښتنه آنلاین قاموسي پلټنه او د متن ژباړه؛ د انټرنېټ اړتیا لري. د AI پوښتنه د ChatGPT پاڼې ته لېږدول کېږي.
+- **کلکولیټر:** بنسټیز حسابونه او قوسونه.
+- **الارم:** محلي الارمونه او خبرتیاوې.
+- **کلنډر او یادښتونه:** نېټه ټاکل او محلي یادښتونه.
+- **اذکار:** عمومي، سهار او ماښام اذکار او د کور سکرین ویجټ.
+- **جملې:** اسلامي او ورځنۍ چمتو جملې.
+- **آډیو کتابتون:** د درسونو او ویناوو فایلونه په موبایل کې ساتل او اورېدل.
+- **PDF کتابتون او لوستونکی:** د موبایل PDF فایلونه ورزیاتول او لوستل.
+- **جلا شارټکټونه:** د ملاتړ لرونکو Android لانچرونو له لارې د هرې برخې لپاره د کور سکرین جلا نښه غوښتل.
 
-## Deliberately postponed to later updates
+## آفلاین او محرمیت
 
-Online dictionary and translation, AI integration, speech-to-text, text-to-speech, scholar audio library, scanned-PDF OCR, and advanced PDF search are not part of the 1.0 home-screen feature set. They can be introduced in later versions after the lightweight base app is released and used.
+د کیبورډ عادي لیکل، شخصي قاموس، د اپ تنظیمات، یادښتونه، الارمونه، خوندي شوي PDF فایلونه او آډیو فایلونه په محلي ډول کار کوي. د قاموس او ژباړې آنلاین برخې یوازې هغه وخت شبکې ته غوښتنه لېږي چې کاروونکی یې په خپله فعاله کړي. د کیبورډ په کوډ کې د لیکل شوي متن د لېږلو یا راټولولو شبکه‌ییزه کړنه نه ده جوړه شوې.
 
-## Offline behavior and privacy
+**د قاموس محدودیت:** اوسنی کیبورډ د هرې ژبې بشپړ لغت‌لیک او پرمختللی املا-سموونکی نه لري؛ د وړاندیزونو لپاره محدود پیلنی لغتونه او د کاروونکي شخصي کلمې کاروي. دا برخه باید د باوري، جواز لرونکو لغت‌لیکونو او د املا د انجن په ورزیاتولو لا پیاوړې شي.
 
-The core version is designed to work offline. It does not request Internet permission. Calendar notes, alarms, and app settings are stored locally. Imported PDFs are referenced from the selected document provider; removing a book from the in-app list does not delete the original file.
+**غږیز محدودیت:** `EXTRA_PREFER_OFFLINE` یوازې د آفلاین پېژندنې ترجیح ده؛ د آفلاین فعالیت تضمین نه دی. د Android د غږ پېژندنې اپ، مایکروفون اجازه او د اړوندې ژبې بسته اړینه کېدای شي.
 
-## Android compatibility
+## تخنیکي معلومات
 
-- Minimum Android version: **Android 5.0 (API 21)**.
-- Target SDK: Android 14 (API 34).
-- Application ID: `com.sharafzai.keyboard`.
-- The package ID is retained so future updates can use the same app identity. Physical-device verification is still required before claiming full compatibility across all devices.
+- Application ID: `com.sharafzai.keyboard`
+- Version: `1.2` (versionCode 7)
+- Minimum Android: API 21 (Android 5.0)
+- Target Android: API 34
+- د کیبورډ د فعالولو او انتخابولو اجازه باید کاروونکی د Android له تنظیماتو ورکړي.
+- GitHub Actions اوس د Debug/Test APK جوړوي؛ دا د لاسلیک شوي وروستي Release APK بدیل نه دی.
+- د کاروونکي په موبایل کې وروستۍ عملي ازموینه لا جلا اړتیا ده.
 
-## Build
+## د راتلونکو پړاوونو کارونه
 
-GitHub Actions creates an optimized release APK using Java 17 and Android SDK 34. Code and resource shrinking are enabled. The first-stage build must be measured after compilation; no APK size is promised until the actual output is reported.
-
-## Permanent release signing (important for updates)
-
-Release APKs must always use the same private signing key. GitHub Actions reads two repository Actions secrets:
-- `ANDROID_KEYSTORE_BASE64`: Base64 content of the private `sharafzai-release.jks` file.
-- `ANDROID_KEYSTORE_PASSWORD`: its password.
-
-Never commit the keystore or its password to this repository. If either secret is missing, the release build intentionally stops instead of producing an APK signed with a temporary key. Android requires the keyboard IME to be enabled by the user once in system settings; an app cannot silently enable its own keyboard.
+- د څلورو ژبو لپاره بشپړ او جواز لرونکي آفلاین قاموسونه او د املا انجن.
+- د وړاندوینې او جملو د لیکلو ښه کول.
+- د کور سکرین د شارټکټونو او بېلابېلو لانچرونو عملي ازموینه.
+- د غږ پېژندنې او د متن غږولو د ژبو د ملاتړ پراخول.
+- د APK د لاسلیک، اپډېټ او وروستۍ وسیله‌ییزې ازموینې بشپړول.
