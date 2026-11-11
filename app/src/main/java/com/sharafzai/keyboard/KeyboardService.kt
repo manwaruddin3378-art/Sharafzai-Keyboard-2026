@@ -412,6 +412,7 @@ class KeyboardService : InputMethodService() {
             language = (language + 1) % 4
             shifted = false
             caps = false
+            lastShiftTapAt = 0L
             emojiPanelVisible = false
             diacriticsPanelVisible = false
             symbolsPanelVisible = false
@@ -1293,6 +1294,7 @@ class KeyboardService : InputMethodService() {
 
                 if (shifted && !caps) {
                     shifted = false
+                    lastShiftTapAt = 0L
                     refreshKeyboard()
                 }
 
