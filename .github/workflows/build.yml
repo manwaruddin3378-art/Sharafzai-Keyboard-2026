@@ -1,4 +1,4 @@
-name: Build Sharafzai Keyboard
+name: Build Sharafzai App (optimized APK)
 
 on:
   push:
@@ -31,10 +31,10 @@ jobs:
           gradle-version: '8.2'
 
       - name: Build APK
-        run: gradle :app:assembleDebug
+        run: gradle :app:assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Sharafzai-Keyboard-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Sharafzai-App-APK
+          path: app/build/outputs/apk/release/app-release.apk
