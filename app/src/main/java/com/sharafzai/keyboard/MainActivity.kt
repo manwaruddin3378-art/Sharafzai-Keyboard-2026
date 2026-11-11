@@ -179,16 +179,16 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(45, 45, 45))
         }
         root.addView(homeDhikrView)
-        addButton(root, "کیبورډ شرفزی", 1f) { page = "keyboard"; render() }
-        addButton(root, "سمارټ کلکولیټر", 1f) { page = "calculator"; render() }
-        addButton(root, "الارم او یادوونکي", 1f) { page = "alarms"; render() }
-        addButton(root, "کلنډر او یادښتونه", 1f) { page = "calendar"; render() }
-        addButton(root, "ټول اذکار", 1f) { page = "adhkar"; render() }
-        addButton(root, "اذکار سهار", 1f) { page = "morning"; render() }
-        addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
-        addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
-        addButton(root, "زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
-        addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
+        addButton(root, "⌨️  کیبورډ شرفزی", 1f) { page = "keyboard"; render() }
+        addButton(root, "🧮  سمارټ کلکولیټر", 1f) { page = "calculator"; render() }
+        addButton(root, "⏰  الارم او یادوونکي", 1f) { page = "alarms"; render() }
+        addButton(root, "📅  کلنډر او یادښتونه", 1f) { page = "calendar"; render() }
+        addButton(root, "📿  ټول اذکار", 1f) { page = "adhkar"; render() }
+        addButton(root, "🌅  اذکار سهار", 1f) { page = "morning"; render() }
+        addButton(root, "🌙  اذکار ماښام", 1f) { page = "evening"; render() }
+        addButton(root, "💬  اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
+        addButton(root, "📚  زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
+        addButton(root, "⚙️  تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د سندس اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
     }
 
