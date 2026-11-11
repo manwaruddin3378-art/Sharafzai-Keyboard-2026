@@ -4,4 +4,5 @@
     <string name="subtype_pashto">Pashto</string>
     <string name="subtype_arabic">Arabic</string>
     <string name="subtype_english">English</string>
+    <string name="subtype_dari">Dari</string>
 </resources>
