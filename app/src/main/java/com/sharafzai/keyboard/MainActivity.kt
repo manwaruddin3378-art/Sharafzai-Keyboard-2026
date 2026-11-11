@@ -101,6 +101,15 @@ class MainActivity : Activity() {
         super.onPause()
     }
 
+    override fun onDestroy() {
+        homeDhikrHandler.removeCallbacks(homeDhikrRotation)
+        stopAudio()
+        runCatching { textToSpeech?.stop() }
+        runCatching { textToSpeech?.shutdown() }
+        textToSpeech = null
+        super.onDestroy()
+    }
+
     private fun render() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -139,6 +148,8 @@ class MainActivity : Activity() {
                 "calculator" -> showCalculator()
                 "adhkar", "morning", "evening" -> showAdhkar(page)
                 "phrases" -> showPhrases()
+                "voice" -> showVoiceTools()
+                "audio" -> showAudioLibrary()
                 "library" -> showLibrary()
                 "pdf_viewer" -> showPdfViewer()
                 "keyboard" -> showKeyboardSetup()
@@ -187,6 +198,8 @@ class MainActivity : Activity() {
         addButton(root, "🌅  اذکار سهار", 1f) { page = "morning"; render() }
         addButton(root, "🌙  اذکار ماښام", 1f) { page = "evening"; render() }
         addButton(root, "💬  اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
+        addButton(root, "🎙️  غږیز لیکل او متن په غږ اورېدل", 1f) { page = "voice"; render() }
+        addButton(root, "🎧  د درسونو او ویناوو آډیو کتابتون", 1f) { page = "audio"; render() }
         addButton(root, "📚  زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "⚙️  تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د سندس اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
