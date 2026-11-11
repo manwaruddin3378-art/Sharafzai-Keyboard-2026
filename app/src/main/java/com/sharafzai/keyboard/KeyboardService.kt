@@ -24,6 +24,7 @@ import android.widget.TextView
 import android.widget.EditText
 import android.app.AlertDialog
 import android.widget.Toast
+import android.widget.PopupWindow
 import android.os.Handler
 import android.os.Looper
 import android.provider.AlarmClock
@@ -383,10 +384,10 @@ class KeyboardService : InputMethodService() {
 
         val title = TextView(this).apply {
             text = when (language) {
-                0 -> "✦ SUNDUS  |  پښتو"
-                1 -> "✦ SUNDUS  |  العربية"
-                2 -> "✦ SUNDUS  |  ENGLISH"
-                else -> "✦ SUNDUS  |  دری"
+                0 -> "✦ سندس  |  پښتو"
+                1 -> "✦ سندس  |  العربية"
+                2 -> "✦ سندس  |  ENGLISH"
+                else -> "✦ سندس  |  دری"
             }
             textSize = 13f
             letterSpacing = 0.03f
@@ -1229,6 +1230,20 @@ class KeyboardService : InputMethodService() {
                 } else {
                     // Insert the alternate character immediately on long press.
                     currentInputConnection?.commitText(alternate, 1)
+                    val preview = TextView(this).apply {
+                        text = alternate
+                        textSize = 22f
+                        gravity = Gravity.CENTER
+                        setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(35, 42, 52))
+                        background = roundedBackground(theme.special, dp(12))
+                        elevation = dp(8).toFloat()
+                    }
+                    val popup = PopupWindow(preview, dp(42), dp(42), false).apply {
+                        isOutsideTouchable = false
+                        elevation = dp(8).toFloat()
+                    }
+                    popup.showAsDropDown(frame, 0, -frame.height - dp(44))
+                    frame.postDelayed({ if (popup.isShowing) popup.dismiss() }, 650)
                     updateSuggestions()
                     true
                 }
