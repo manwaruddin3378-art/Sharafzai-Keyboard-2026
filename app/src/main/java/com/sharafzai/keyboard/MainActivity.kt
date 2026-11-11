@@ -112,7 +112,7 @@ class MainActivity : Activity() {
         addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
         addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
         addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
-        line("اذکار د اپلیکیشن پرانیستې پاڼه او د کیبورډ پر مهال ښکاري؛ د تلپاتې خبرتیاوو تنظیمات به په راتلونکې مرحله کې ورزیات شي.")
+        line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د شرفزی اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
     }
 
     private fun showKeyboardSetup() {
