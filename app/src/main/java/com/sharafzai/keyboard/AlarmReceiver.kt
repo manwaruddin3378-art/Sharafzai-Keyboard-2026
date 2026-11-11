@@ -40,7 +40,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
                 val repeat = PendingIntent.getBroadcast(context, saved.id,
                     Intent(context, AlarmReceiver::class.java).putExtra("alarm_id", saved.id).putExtra("label", saved.label),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                    PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
                 if (Build.VERSION.SDK_INT >= 23) alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.timeInMillis, repeat)
                 else alarmManager.setExact(AlarmManager.RTC_WAKEUP, next.timeInMillis, repeat)
             }
@@ -51,7 +51,7 @@ class AlarmReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        val manager = context.getSystemService(AlarmManager::class.java)
+        val manager = (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
         AlarmStore.read(context).filter { it.enabled }.forEach { alarm ->
             if (Build.VERSION.SDK_INT >= 31 && !manager.canScheduleExactAlarms()) return@forEach
             val trigger = java.util.Calendar.getInstance().apply {
@@ -61,7 +61,7 @@ class BootReceiver : BroadcastReceiver() {
             }
             val pending = PendingIntent.getBroadcast(context, alarm.id,
                 Intent(context, AlarmReceiver::class.java).putExtra("alarm_id", alarm.id).putExtra("label", alarm.label),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
             if (Build.VERSION.SDK_INT >= 23) manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
             else manager.setExact(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
         }
