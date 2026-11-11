@@ -1,635 +1,792 @@
-from pathlib import Path
 
-code = r'''package com.sharafzai.keyboard
+package com.sharafzai.keyboard
 
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
-import java.util.Locale
+import android.os.Handler
+import android.os.Looper
 
 class KeyboardService : InputMethodService() {
-
-    private data class Theme(
-        val name: String,
-        val background: Int,
-        val key: Int,
-        val special: Int,
-        val text: Int,
-        val accent: Int
-    )
-
-    private data class KeySpec(
-        val label: String,
-        val output: String = label,
-        val alternates: String = "",
-        val action: String = ""
-    )
 
     private var language = 0
     private var shifted = false
     private var caps = false
     private var themeIndex = 0
-
-    private var keyboardRoot: LinearLayout? = null
     private var suggestionContainer: LinearLayout? = null
-    private val handler = Handler(Looper.getMainLooper())
-    private var deleteRepeating = false
 
-    private val themes = listOf(
-        Theme("سمندري", Color.rgb(17, 35, 61), Color.rgb(39, 66, 99),
-            Color.rgb(23, 119, 173), Color.WHITE, Color.rgb(91, 190, 245)),
-        Theme("ارغواني", Color.rgb(39, 27, 55), Color.rgb(72, 51, 91),
-            Color.rgb(139, 82, 174), Color.WHITE, Color.rgb(205, 151, 244)),
-        Theme("شنه", Color.rgb(21, 43, 37), Color.rgb(43, 76, 64),
-            Color.rgb(39, 133, 91), Color.WHITE, Color.rgb(113, 213, 158)),
-        Theme("خړ", Color.rgb(35, 38, 43), Color.rgb(65, 69, 76),
-            Color.rgb(95, 105, 117), Color.WHITE, Color.rgb(190, 201, 214))
+    private data class KeyboardTheme(
+        val background: Int,
+        val keyColors: List<Int>,
+        val special: Int,
+        val suggestion: Int,
+        val accent: Int,
+        val border: Int
     )
 
-    private val dictionaries = mapOf(
-        0 to listOf(
-            "زه", "ته", "هغه", "موږ", "تاسې", "دوی", "دا", "هغه", "چې", "څه",
-            "ولې", "څنګه", "کوم", "کومه", "کور", "کتاب", "ښوونځی", "پوهنتون",
-            "افغانستان", "پښتو", "ژبه", "ملګری", "ورور", "خور", "مور", "پلار",
-            "الله", "رحمت", "سلام", "وعلیکم", "مننه", "مهرباني", "ښه", "ډېر",
-            "کار", "وخت", "نن", "سبا", "پرون", "لیک", "لیکنه", "علم", "درس"
+    private val themes = listOf(
+        KeyboardTheme(
+            Color.rgb(27, 32, 43),
+            listOf(
+                Color.rgb(55, 92, 130),
+                Color.rgb(61, 105, 139),
+                Color.rgb(72, 87, 126),
+                Color.rgb(57, 112, 117)
+            ),
+            Color.rgb(28, 137, 157),
+            Color.rgb(38, 45, 58),
+            Color.rgb(255, 205, 80),
+            Color.rgb(90, 115, 145)
         ),
-        1 to listOf(
-            "أنا", "أنت", "هو", "هي", "نحن", "أنتم", "هذا", "هذه", "ذلك",
-            "الذي", "التي", "كيف", "ماذا", "لماذا", "كتاب", "مدرسة", "جامعة",
-            "العربية", "أفغانستان", "السلام", "عليكم", "شكرا", "مرحبا", "الله",
-            "رحمة", "علم", "درس", "عمل", "وقت", "اليوم", "غدا"
+        KeyboardTheme(
+            Color.rgb(30, 25, 40),
+            listOf(
+                Color.rgb(100, 65, 135),
+                Color.rgb(115, 75, 145),
+                Color.rgb(80, 65, 125)
+            ),
+            Color.rgb(155, 85, 170),
+            Color.rgb(48, 38, 60),
+            Color.rgb(255, 190, 230),
+            Color.rgb(135, 100, 155)
         ),
-        2 to listOf(
-            "the", "this", "that", "there", "their", "they", "you", "your",
-            "we", "what", "when", "where", "why", "which", "with", "from",
-            "have", "hello", "thanks", "please", "keyboard", "language",
-            "English", "Afghanistan", "good", "great", "work", "world",
-            "today", "tomorrow", "book", "school", "university"
+        KeyboardTheme(
+            Color.rgb(20, 38, 35),
+            listOf(
+                Color.rgb(45, 100, 80),
+                Color.rgb(55, 115, 90),
+                Color.rgb(65, 90, 75)
+            ),
+            Color.rgb(35, 145, 110),
+            Color.rgb(30, 55, 48),
+            Color.rgb(190, 245, 190),
+            Color.rgb(80, 135, 105)
+        ),
+        KeyboardTheme(
+            Color.rgb(35, 35, 35),
+            listOf(
+                Color.rgb(75, 75, 75),
+                Color.rgb(90, 90, 90),
+                Color.rgb(65, 65, 65)
+            ),
+            Color.rgb(100, 100, 100),
+            Color.rgb(48, 48, 48),
+            Color.rgb(255, 220, 120),
+            Color.rgb(120, 120, 120)
         )
     )
 
-    private val deleteRunnable = object : Runnable {
-        override fun run() {
-            if (!deleteRepeating) return
-            deleteOne()
-            handler.postDelayed(this, 55L)
-        }
-    }
+    private val theme: KeyboardTheme
+        get() = themes[themeIndex]
 
     override fun onCreate() {
         super.onCreate()
-        val prefs = getSharedPreferences("sharafzai_keyboard", MODE_PRIVATE)
+
+        val prefs = getSharedPreferences(
+            "SharafzaiSettings",
+            MODE_PRIVATE
+        )
+
         language = prefs.getInt("language", 0).coerceIn(0, 2)
-        themeIndex = prefs.getInt("theme", 0).coerceIn(0, themes.lastIndex)
+        themeIndex = prefs.getInt("themeIndex", 0)
+            .coerceIn(0, themes.size - 1)
     }
+
+    private data class KeySpec(
+        val normal: String,
+        val shifted: String = "",
+        val longPress: String = ""
+    )
+
+    private fun k(
+        a: String,
+        b: String = "",
+        c: String = ""
+    ) = KeySpec(a, b, c)
+
+    private val offlineWords = mapOf(
+        0 to listOf(
+            "الله", "محمد", "اسلام", "قرآن", "کتاب",
+            "ښوونځی", "پوهنتون", "پښتو", "ژبه",
+            "علم", "استاد", "زده کړه", "ملګری",
+            "ورور", "خور", "کور", "کار", "ژوند",
+            "ښه", "مننه", "سلام", "ورځ", "شپه"
+        ),
+        1 to listOf(
+            "الله", "محمد", "الإسلام", "القرآن",
+            "كتاب", "مدرسة", "جامعة", "لغة",
+            "العربية", "علم", "أستاذ", "طالب",
+            "صديق", "بيت", "عمل", "حياة",
+            "شكرا", "مرحبا", "السلام"
+        ),
+        2 to listOf(
+            "the", "this", "that", "there", "their",
+            "they", "these", "those", "hello",
+            "help", "have", "here", "how",
+            "good", "great", "go", "get",
+            "keyboard", "language", "computer",
+            "school", "student", "thank", "thanks"
+        )
+    )
+
+    private val pashtoRows = listOf(
+        listOf(
+            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
+            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
+            k("ع", "َ"), k("ه", "ّ", "هـ"),
+            k("خ", "ځ"), k("ح", "څ"),
+            k("ج", "]"), k("چ", "["),
+            k("\\", "|")
+        ),
+        listOf(
+            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي"),
+            k("ب", "پ"), k("ل", "أ"), k("ا", "آ"),
+            k("ت", "ټ"), k("ن", "ڼ"), k("م", "ة"),
+            k("ک", ":"), k("ګ", "؛")
+        ),
+        listOf(
+            k("ظ", "ئ"), k("ط", "ې"), k("ز", "ژ"),
+            k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
+            k("ړ", "ؤ"), k("و", "،"), k("ږ", "."),
+            k("/", "؟")
+        )
+    )
+
+    private val arabicRows = listOf(
+        listOf(
+            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
+            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
+            k("ع", "َ"), k("ه", "ّ"), k("خ", "أ"),
+            k("ح", "آ"), k("ج", "ئ"), k("د", "ء"),
+            k("ذ", "ؤ")
+        ),
+        listOf(
+            k("ش", "ْ"), k("س", "ٌ"), k("ي", "ٍ"),
+            k("ب", "ً"), k("ل", "ُ"), k("ا", "ِ"),
+            k("ت", "َ"), k("ن", "ّ"), k("م", "أ"),
+            k("ك", "آ"), k("ة", "ئ"), k("ؤ", "ء")
+        ),
+        listOf(
+            k("ز", "َ"), k("ر", "ِ"), k("ط", "ّ"),
+            k("ظ", "ْ"), k("و", "ٌ"), k("ء", "ٍ"),
+            k("ئ", "ً"), k("أ", "ُ"), k("آ", "ِ"),
+            k("ى", "َ")
+        )
+    )
+
+    private val englishRows = listOf(
+        listOf(
+            k("q", "Q", "1"), k("w", "W", "2"),
+            k("e", "E", "3"), k("r", "R", "4"),
+            k("t", "T", "5"), k("y", "Y", "6"),
+            k("u", "U", "7"), k("i", "I", "8"),
+            k("o", "O", "9"), k("p", "P", "0"),
+            k("[", "{"), k("]", "}")
+        ),
+        listOf(
+            k("a", "A"), k("s", "S"), k("d", "D"),
+            k("f", "F"), k("g", "G"), k("h", "H"),
+            k("j", "J"), k("k", "K"), k("l", "L"),
+            k(";", ":"), k("'", "\"")
+        ),
+        listOf(
+            k("z", "Z"), k("x", "X"), k("c", "C"),
+            k("v", "V"), k("b", "B"), k("n", "N"),
+            k("m", "M"), k(",", "<"), k(".", ">"),
+            k("/", "?")
+        )
+    )
+
+    private val pashtoNumbers = listOf(
+        k("۱", "!", "1"), k("۲", "٬", "2"),
+        k("۳", "٫", "3"), k("۴", "؋", "4"),
+        k("۵", "٪", "5"), k("۶", "×", "6"),
+        k("۷", "»", "7"), k("۸", "«", "8"),
+        k("۹", ")", "9"), k("۰", "(", "0"),
+        k("-", "ـ"), k("=", "+")
+    )
+
+    private val arabicNumbers = listOf(
+        k("١", "!", "1"), k("٢", "@", "2"),
+        k("٣", "#", "3"), k("٤", "$", "4"),
+        k("٥", "%", "5"), k("٦", "^", "6"),
+        k("٧", "&", "7"), k("٨", "*", "8"),
+        k("٩", "(", "9"), k("٠", ")", "0"),
+        k("-", "_"), k("=", "+")
+    )
+
+    private val englishNumbers = listOf(
+        k("1", "!"), k("2", "@"), k("3", "#"),
+        k("4", "$"), k("5", "%"), k("6", "^"),
+        k("7", "&"), k("8", "*"), k("9", "("),
+        k("0", ")"), k("-", "_"), k("=", "+")
+    )
 
     override fun onCreateInputView(): View {
         return buildKeyboard()
     }
 
-    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
+    override fun onStartInputView(
+        info: EditorInfo,
+        restarting: Boolean
+    ) {
         super.onStartInputView(info, restarting)
-        shifted = false
-        caps = false
+        updateSuggestions()
+    }
+
+    override fun onUpdateSelection(
+        oldSelStart: Int,
+        oldSelEnd: Int,
+        newSelStart: Int,
+        newSelEnd: Int,
+        candidatesStart: Int,
+        candidatesEnd: Int
+    ) {
+        super.onUpdateSelection(
+            oldSelStart,
+            oldSelEnd,
+            newSelStart,
+            newSelEnd,
+            candidatesStart,
+            candidatesEnd
+        )
         updateSuggestions()
     }
 
     private fun buildKeyboard(): View {
-        val theme = currentTheme()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), dp(5), dp(4), dp(5))
+            setPadding(dp(3), dp(4), dp(3), dp(4))
             setBackgroundColor(theme.background)
         }
-        keyboardRoot = root
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
+
         val title = TextView(this).apply {
-            text = "SHARAFZAI"
-            setTextColor(theme.accent)
+            text = when (language) {
+                0 -> "SHARAFZAI  •  پښتو"
+                1 -> "SHARAFZAI  •  العربية"
+                else -> "SHARAFZAI  •  ENGLISH"
+            }
             textSize = 14f
+            setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(8), 0, dp(8), 0)
+            gravity = Gravity.CENTER
         }
-        header.addView(title, LinearLayout.LayoutParams(0, dp(38), 1f))
-        header.addView(makeHeaderButton(languageName()) {
+
+        header.addView(
+            title,
+            LinearLayout.LayoutParams(0, dp(29), 1f)
+        )
+
+        addSpecial(header, "🌐", 0.8f, 29) {
             language = (language + 1) % 3
             shifted = false
+            caps = false
             saveSettings()
             refreshKeyboard()
-        }, LinearLayout.LayoutParams(dp(94), dp(36)))
-        header.addView(makeHeaderButton("🎨 ${theme.name}") {
+        }
+
+        addSpecial(header, "🎨", 0.8f, 29) {
             themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
             refreshKeyboard()
-        }, LinearLayout.LayoutParams(dp(108), dp(36)))
-        root.addView(header)
+        }
 
-        val suggestions = LinearLayout(this).apply {
+        root.addView(header, rowParams(31))
+
+        suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(2), dp(2), dp(2), dp(2))
-        }
-        suggestionContainer = suggestions
-        root.addView(suggestions, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(39)
-        ))
-
-        addKeyRow(root, listOf(
-            KeySpec("1"), KeySpec("2"), KeySpec("3"), KeySpec("4"), KeySpec("5"),
-            KeySpec("6"), KeySpec("7"), KeySpec("8"), KeySpec("9"), KeySpec("0")
-        ))
-
-        when (language) {
-            0 -> buildPashtoRows(root)
-            1 -> buildArabicRows(root)
-            else -> buildEnglishRows(root)
+            gravity = Gravity.CENTER
+            setBackgroundColor(theme.suggestion)
         }
 
-        addKeyRow(root, listOf(
-            KeySpec("←", action = "left"),
-            KeySpec("→", action = "right"),
-            KeySpec(",", alternates = "، ؛"),
-            KeySpec("؟", alternates = "? !"),
-            KeySpec(".", alternates = "… :"),
-            KeySpec("⌫", action = "delete")
-        ))
+        root.addView(suggestionContainer, rowParams(32))
+
+        val numberRow = when (language) {
+            0 -> pashtoNumbers
+            1 -> arabicNumbers
+            else -> englishNumbers
+        }
+
+        addKeyRow(root, numberRow, 37)
+
+        val rows = when (language) {
+            0 -> pashtoRows
+            1 -> arabicRows
+            else -> englishRows
+        }
+
+        rows.forEach { row ->
+            addKeyRow(root, row, 42)
+        }
+
+        val controlRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+
+        addSpecial(controlRow, "Tab", 0.9f, 39) {
+            currentInputConnection?.commitText("\t", 1)
+        }
+
+        addSpecial(controlRow, "Caps", 1.1f, 39) {
+            caps = !caps
+            refreshKeyboard()
+        }
+
+        addSpecial(controlRow, "⇧", 1f, 39) {
+            shifted = !shifted
+            refreshKeyboard()
+        }
+
+        addSpecial(controlRow, "⌫", 1.2f, 39) {
+            currentInputConnection?.deleteSurroundingText(1, 0)
+            updateSuggestions()
+        }
+
+        root.addView(controlRow, rowParams(41))
 
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
         }
-        bottom.addView(makeKey(KeySpec("⇧", action = "shift"), theme),
-            weightedParams(0.95f))
-        bottom.addView(makeKey(KeySpec("🌐", action = "language"), theme),
-            weightedParams(0.85f))
-        bottom.addView(makeKey(KeySpec("،", alternates = ", ;"), theme),
-            weightedParams(0.75f))
-        bottom.addView(makeKey(KeySpec("Space", action = "space"), theme),
-            weightedParams(3.6f))
-        bottom.addView(makeKey(KeySpec("↵", action = "enter"), theme),
-            weightedParams(0.95f))
-        root.addView(bottom, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(58)
-        ))
+
+        addSpecial(bottom, "←", 0.8f, 42) {
+            sendKey(KeyEvent.KEYCODE_DPAD_LEFT)
+        }
+
+        addSpecial(bottom, "→", 0.8f, 42) {
+            sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
+        }
+
+        addSpecial(bottom, "،", 0.7f, 42) {
+            val value = if (language == 2) "," else "،"
+            currentInputConnection?.commitText(value, 1)
+            updateSuggestions()
+        }
+
+        addSpecial(bottom, "Space", 3.5f, 42) {
+            currentInputConnection?.commitText(" ", 1)
+            updateSuggestions()
+        }
+
+        addSpecial(bottom, ".", 0.7f, 42) {
+            currentInputConnection?.commitText(".", 1)
+            updateSuggestions()
+        }
+
+        addSpecial(bottom, "↵", 1f, 42) {
+            sendKey(KeyEvent.KEYCODE_ENTER)
+        }
+
+        root.addView(bottom, rowParams(44))
 
         return root
     }
 
-    private fun buildPashtoRows(root: LinearLayout) {
-        addKeyRow(root, listOf(
-            KeySpec("ض", alternates = "ْ ّ"), KeySpec("ص", alternates = "ً ٌ"),
-            KeySpec("ث", alternates = "ٍ ْ"), KeySpec("ق", alternates = "ٰ"),
-            KeySpec("ف", alternates = "ڤ"), KeySpec("غ", alternates = "ـ"),
-            KeySpec("ع", alternates = "ء"), KeySpec("ه", alternates = "ۀ"),
-            KeySpec("خ"), KeySpec("ح"), KeySpec("ج"), KeySpec("چ")
-        ))
-        addKeyRow(root, listOf(
-            KeySpec("ش"), KeySpec("س"), KeySpec("ی", alternates = "ي ى"),
-            KeySpec("ب"), KeySpec("ل"), KeySpec("ا", alternates = "آ أ إ"),
-            KeySpec("ت"), KeySpec("ن"), KeySpec("م"), KeySpec("ک", alternates = "ك"),
-            KeySpec("ګ", alternates = "گ")
-        ))
-        addKeyRow(root, listOf(
-            KeySpec("ظ"), KeySpec("ط"), KeySpec("ز"), KeySpec("ر"),
-            KeySpec("ذ"), KeySpec("د"), KeySpec("ړ"), KeySpec("و"),
-            KeySpec("ۍ", alternates = "ي"), KeySpec("ؤ", alternates = "ئ")
-        ))
-        addKeyRow(root, listOf(
-            KeySpec("پ"), KeySpec("ژ"), KeySpec("ږ"), KeySpec("ښ"),
-            KeySpec("ډ"), KeySpec("ټ"), KeySpec("ڼ"), KeySpec("څ"),
-            KeySpec("ځ"), KeySpec("ئ", alternates = "ء")
-        ))
-    }
-
-    private fun buildArabicRows(root: LinearLayout) {
-        addKeyRow(root, listOf(
-            KeySpec("ض"), KeySpec("ص"), KeySpec("ث"), KeySpec("ق"),
-            KeySpec("ف"), KeySpec("غ"), KeySpec("ع"), KeySpec("ه"),
-            KeySpec("خ"), KeySpec("ح"), KeySpec("ج"), KeySpec("د")
-        ))
-        addKeyRow(root, listOf(
-            KeySpec("ش"), KeySpec("س"), KeySpec("ي"), KeySpec("ب"),
-            KeySpec("ل"), KeySpec("ا"), KeySpec("ت"), KeySpec("ن"),
-            KeySpec("م"), KeySpec("ك"), KeySpec("ط")
-        ))
-        addKeyRow(root, listOf(
-            KeySpec("ئ"), KeySpec("ء"), KeySpec("ؤ"), KeySpec("ر"),
-            KeySpec("لا"), KeySpec("ى"), KeySpec("ة"), KeySpec("و"),
-            KeySpec("ز"), KeySpec("ظ")
-        ))
-        addKeyRow(root, listOf(
-            KeySpec("ذ"), KeySpec("د"), KeySpec("أ"), KeySpec("إ"),
-            KeySpec("آ"), KeySpec("ة"), KeySpec("ٰ"), KeySpec("پ"),
-            KeySpec("چ"), KeySpec("ژ")
-        ))
-    }
-
-    private fun buildEnglishRows(root: LinearLayout) {
-        addKeyRow(root, "qwertyuiop".map { KeySpec(it.toString(),
-            alternates = when (it) {
-                'a' -> "á à â ä æ"
-                'e' -> "é è ê ë"
-                'i' -> "í ì î ï"
-                'o' -> "ó ò ô ö"
-                'u' -> "ú ù û ü"
-                'n' -> "ñ"
-                'c' -> "ç"
-                else -> ""
-            }) })
-        addKeyRow(root, "asdfghjkl".map { KeySpec(it.toString()) })
-        addKeyRow(root, listOf(KeySpec("⇧", action = "shift")) +
-            "zxcvbnm".map { KeySpec(it.toString(),
-                alternates = if (it == 'n') "ñ" else "") } +
-            listOf(KeySpec("⌫", action = "delete")))
-        addKeyRow(root, listOf(
-            KeySpec("'", alternates = "\" `"),
-            KeySpec("-", alternates = "_ –"),
-            KeySpec("@", alternates = "# $"),
-            KeySpec(":", alternates = ";"),
-            KeySpec("/", alternates = "\\"),
-            KeySpec("(", alternates = "[ {"),
-            KeySpec(")", alternates = "] }")
-        ))
-    }
-
-    private fun addKeyRow(root: LinearLayout, keys: List<KeySpec>) {
+    private fun addKeyRow(
+        parent: LinearLayout,
+        keys: List<KeySpec>,
+        height: Int
+    ) {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        val params = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(55)
-        ).apply {
-            topMargin = dp(2)
-            bottomMargin = dp(2)
-        }
-        keys.forEach { spec ->
-            val weight = when (spec.action) {
-                "shift", "delete" -> 1.35f
-                else -> 1f
-            }
-            row.addView(makeKey(spec, currentTheme()), weightedParams(weight))
-        }
-        root.addView(row, params)
-    }
 
-    private fun makeKey(spec: KeySpec, theme: Theme): View {
-        val special = spec.action.isNotEmpty()
-        val frame = FrameLayout(this)
-        val button = Button(this).apply {
-            text = displayLabel(spec)
-            textSize = when {
-                spec.label.length > 2 -> 13f
-                else -> 21f
+        keys.forEachIndexed { index, spec ->
+
+            val frame = FrameLayout(this)
+
+            val value = when {
+                shifted && spec.shifted.isNotEmpty() ->
+                    spec.shifted
+
+                language == 2 && (caps || shifted) ->
+                    spec.normal.uppercase()
+
+                else -> spec.normal
             }
-            setTextColor(theme.text)
-            typeface = Typeface.DEFAULT_BOLD
-            isAllCaps = false
-            gravity = Gravity.CENTER
-            minHeight = 0
-            minimumHeight = 0
-            minWidth = 0
-            minimumWidth = 0
-            stateListAnimator = null
-            setPadding(dp(1), 0, dp(1), 0)
-            background = roundedDrawable(
-                if (special) theme.special else theme.key,
+
+            val mainText = TextView(this).apply {
+                text = value
+                textSize = if (keys.size >= 12) 15f else 18f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+            }
+
+            frame.addView(
+                mainText,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+
+            if (spec.shifted.isNotEmpty() ||
+                spec.longPress.isNotEmpty()
+            ) {
+                val alternate = TextView(this).apply {
+                    text = if (spec.longPress.isNotEmpty()) {
+                        spec.longPress
+                    } else {
+                        spec.shifted
+                    }
+                    textSize = 9f
+                    setTextColor(theme.accent)
+                    gravity = Gravity.TOP or Gravity.END
+                    setPadding(0, dp(2), dp(3), 0)
+                }
+
+                frame.addView(
+                    alternate,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        Gravity.TOP or Gravity.END
+                    )
+                )
+            }
+
+            frame.background = roundedBackground(
+                theme.keyColors[index % theme.keyColors.size],
                 dp(8)
             )
-        }
-        frame.addView(button, FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        ))
 
-        if (spec.alternates.isNotBlank()) {
-            val hint = TextView(this).apply {
-                text = "اوږد"
-                textSize = 8f
-                setTextColor(theme.accent)
-                gravity = Gravity.END or Gravity.BOTTOM
-                setPadding(0, 0, dp(4), dp(2))
-                isClickable = false
-            }
-            frame.addView(hint, FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.END or Gravity.BOTTOM
-            ))
-        }
+            frame.setOnClickListener {
+                val before = currentInputConnection
+                    ?.getTextBeforeCursor(30, 0)
+                    ?.toString().orEmpty()
 
-        button.setOnClickListener { handleKey(spec) }
-        if (spec.alternates.isNotBlank()) {
-            button.setOnLongClickListener {
-                showAlternates(frame, spec.alternates)
-                true
-            }
-        }
-        if (spec.action == "delete") {
-            button.setOnLongClickListener {
-                startDeleteRepeat()
-                true
-            }
-            button.setOnTouchListener { _, event ->
-                if (event.action == MotionEvent.ACTION_UP ||
-                    event.action == MotionEvent.ACTION_CANCEL) {
-                    stopDeleteRepeat()
-                }
-                false
-            }
-        }
-        return frame
-    }
+                val previous = before.trimEnd().lastOrNull()
 
-    private fun handleKey(spec: KeySpec) {
-        when (spec.action) {
-            "shift" -> {
-                if (language == 2) {
-                    if (shifted) caps = !caps
-                    else shifted = true
-                } else {
-                    shifted = !shifted
+                val sentenceStart =
+                    before.isBlank() ||
+                    previous == null ||
+                    previous in listOf('.', '?', '!', '؟', '\n')
+
+                val output = when {
+                    shifted && spec.shifted.isNotEmpty() ->
+                        spec.shifted
+
+                    language == 2 &&
+                        (caps || shifted || sentenceStart) ->
+                        spec.normal.uppercase()
+
+                    else -> spec.normal
                 }
-                refreshKeyboard()
-            }
-            "delete" -> deleteOne()
-            "space" -> commitText(" ")
-            "enter" -> sendEnter()
-            "left" -> sendArrow(KeyEvent.KEYCODE_DPAD_LEFT)
-            "right" -> sendArrow(KeyEvent.KEYCODE_DPAD_RIGHT)
-            "language" -> {
-                language = (language + 1) % 3
-                shifted = false
-                saveSettings()
-                refreshKeyboard()
-            }
-            else -> {
-                var output = spec.output
-                if (language == 2 && (shifted || caps)) {
-                    output = output.uppercase(Locale.ROOT)
-                }
-                commitText(output)
+
+                currentInputConnection?.commitText(output, 1)
+
                 if (shifted && !caps) {
                     shifted = false
                     refreshKeyboard()
                 }
+
+                updateSuggestions()
             }
+
+            frame.setOnLongClickListener {
+                val alternate = when {
+                    spec.longPress.isNotEmpty() ->
+                        spec.longPress
+
+                    spec.shifted.isNotEmpty() ->
+                        spec.shifted
+
+                    language == 2 ->
+                        spec.normal.uppercase()
+
+                    else -> ""
+                }
+
+                if (alternate.isNotEmpty()) {
+                    val preview = TextView(this).apply {
+                        text = alternate
+                        textSize = 25f
+                        gravity = Gravity.CENTER
+                        setTextColor(Color.WHITE)
+                        background = roundedBackground(
+                            theme.special,
+                            dp(10)
+                        )
+                    }
+
+                    val popup = PopupWindow(
+                        preview,
+                        dp(60),
+                        dp(52),
+                        true
+                    )
+
+                    preview.setOnClickListener {
+                        currentInputConnection?.commitText(
+                            alternate,
+                            1
+                        )
+                        updateSuggestions()
+                        popup.dismiss()
+                    }
+
+                    popup.showAsDropDown(
+                        frame,
+                        0,
+                        -frame.height - dp(52)
+                    )
+
+                    preview.postDelayed({
+                        if (popup.isShowing) {
+                            popup.dismiss()
+                        }
+                    }, 3000)
+                }
+
+                true
+            }
+
+            val params = LinearLayout.LayoutParams(
+                0,
+                dp(height),
+                1f
+            )
+
+            params.setMargins(
+                dp(1),
+                dp(2),
+                dp(1),
+                dp(2)
+            )
+
+            row.addView(frame, params)
         }
+
+        parent.addView(row, rowParams(height + 3))
     }
 
-    private fun displayLabel(spec: KeySpec): String {
-        if (spec.action.isNotEmpty()) return spec.label
-        if (language == 2 && (shifted || caps)) {
-            return spec.label.uppercase(Locale.ROOT)
+    private fun addSpecial(
+        parent: LinearLayout,
+        label: String,
+        weight: Float,
+        height: Int,
+        action: () -> Unit
+    ) {
+        val button = Button(this).apply {
+            text = label
+            textSize = 12f
+            isAllCaps = false
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.WHITE)
+            minimumWidth = 0
+            minimumHeight = 0
+            setPadding(0, 0, 0, 0)
+            background = roundedBackground(
+                theme.special,
+                dp(8)
+            )
         }
-        return spec.label
-    }
 
-    private fun showAlternates(anchor: View, choices: String) {
-        val theme = currentTheme()
-        val popupContent = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(5), dp(5), dp(5), dp(5))
-            background = roundedDrawable(theme.background, dp(10))
-        }
-        choices.split(" ").filter { it.isNotBlank() }.forEach { value ->
-            val option = Button(this).apply {
-                text = value
-                textSize = 20f
-                setTextColor(theme.text)
-                isAllCaps = false
-                minWidth = dp(42)
-                minimumWidth = dp(42)
-                background = roundedDrawable(theme.special, dp(7))
-                setOnClickListener {
-                    commitText(value)
-                    (popupContent.parent as? PopupWindow)?.dismiss()
+        if (label == "⌫") {
+            val handler = Handler(Looper.getMainLooper())
+            var repeatTask: Runnable? = null
+
+            button.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        action()
+
+                        val task = object : Runnable {
+                            override fun run() {
+                                action()
+                                handler.postDelayed(this, 65)
+                            }
+                        }
+
+                        repeatTask = task
+                        handler.postDelayed(task, 400)
+                        true
+                    }
+
+                    MotionEvent.ACTION_UP,
+                    MotionEvent.ACTION_CANCEL -> {
+                        repeatTask?.let {
+                            handler.removeCallbacks(it)
+                        }
+
+                        repeatTask = null
+                        true
+                    }
+
+                    else -> true
                 }
             }
-            popupContent.addView(option, LinearLayout.LayoutParams(
-                dp(46), dp(48)
-            ).apply { setMargins(dp(2), 0, dp(2), 0) })
-        }
-        val popup = PopupWindow(
-            popupContent,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        )
-        popup.setBackgroundDrawable(roundedDrawable(theme.background, dp(10)))
-        popup.elevation = dp(8).toFloat()
-        popup.isOutsideTouchable = true
-        popup.showAsDropDown(anchor, 0, -dp(62))
-        // Keep a reference on the popup content so its options can close it.
-        popupContent.tag = popup
-        for (index in 0 until popupContent.childCount) {
-            val option = popupContent.getChildAt(index) as Button
-            option.setOnClickListener {
-                commitText(option.text.toString())
-                popup.dismiss()
-            }
-        }
-    }
-
-    private fun commitText(value: String) {
-        val connection = currentInputConnection ?: return
-        var text = value
-        if (language == 2 && value.length == 1 && value[0].isLetter()) {
-            val before = connection.getTextBeforeCursor(3, 0)?.toString().orEmpty()
-            if (before.isEmpty() || before.lastOrNull() in listOf('.', '!', '?', '\n')) {
-                text = value.uppercase(Locale.ROOT)
-            }
-        }
-        connection.commitText(text, 1)
-        updateSuggestions()
-    }
-
-    private fun deleteOne() {
-        currentInputConnection?.deleteSurroundingText(1, 0)
-        updateSuggestions()
-    }
-
-    private fun startDeleteRepeat() {
-        if (deleteRepeating) return
-        deleteRepeating = true
-        handler.removeCallbacks(deleteRunnable)
-        handler.postDelayed(deleteRunnable, 420L)
-    }
-
-    private fun stopDeleteRepeat() {
-        deleteRepeating = false
-        handler.removeCallbacks(deleteRunnable)
-    }
-
-    private fun sendEnter() {
-        val connection = currentInputConnection ?: return
-        val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
-            ?: EditorInfo.IME_ACTION_NONE
-        if (action != EditorInfo.IME_ACTION_NONE &&
-            action != EditorInfo.IME_ACTION_UNSPECIFIED &&
-            action != EditorInfo.IME_ACTION，上) {
-            connection.performEditorAction(action)
         } else {
-            connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-            connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+            button.setOnClickListener {
+                action()
+            }
         }
+
+        val params = LinearLayout.LayoutParams(
+            0,
+            dp(height),
+            weight
+        )
+
+        params.setMargins(
+            dp(2),
+            dp(2),
+            dp(2),
+            dp(2)
+        )
+
+        parent.addView(button, params)
     }
 
-    private fun sendArrow(keyCode: Int) {
-        currentInputConnection?.sendKeyEvent(
-            KeyEvent(KeyEvent.ACTION_DOWN, keyCode)
-        )
-        currentInputConnection?.sendKeyEvent(
-            KeyEvent(KeyEvent.ACTION_UP, keyCode)
-        )
+    private fun getOfflineSuggestions(): List<String> {
+        val before = currentInputConnection
+            ?.getTextBeforeCursor(60, 0)
+            ?.toString().orEmpty()
+
+        val currentWord = before.takeLastWhile {
+            it.isLetter()
+        }
+
+        if (currentWord.isEmpty()) {
+            return emptyList()
+        }
+
+        return offlineWords[language]
+            .orEmpty()
+            .filter {
+                it.startsWith(
+                    currentWord,
+                    ignoreCase = true
+                ) &&
+                !it.equals(
+                    currentWord,
+                    ignoreCase = true
+                )
+            }
+            .take(3)
     }
 
     private fun updateSuggestions() {
         val container = suggestionContainer ?: return
-        val theme = currentTheme()
+
         container.removeAllViews()
-        val before = currentInputConnection?.getTextBeforeCursor(48, 0)
-            ?.toString().orEmpty()
-        val currentWord = Regex("[\\p{L}]+$").find(before)?.value.orEmpty()
-        if (currentWord.isBlank()) {
-            val hint = TextView(this).apply {
-                text = "Sharafzai • ${languageName()}"
-                textSize = 12f
-                setTextColor(theme.accent)
-                gravity = Gravity.CENTER
-            }
-            container.addView(hint, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ))
-            return
-        }
 
-        val matches = dictionaries[language].orEmpty()
-            .filter { it.startsWith(currentWord, ignoreCase = true) }
-            .distinct()
-            .take(4)
+        val suggestions = getOfflineSuggestions()
 
-        if (matches.isEmpty()) {
-            val current = TextView(this).apply {
-                text = currentWord
-                textSize = 13f
-                setTextColor(theme.text)
+        suggestions.forEach { word ->
+
+            val suggestion = TextView(this).apply {
+                text = word
+                textSize = 15f
                 gravity = Gravity.CENTER
-            }
-            container.addView(current, LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.MATCH_PARENT, 1f
-            ))
-        } else {
-            matches.forEach { word ->
-                val suggestion = TextView(this).apply {
-                    text = word
-                    textSize = 14f
-                    setTextColor(theme.text)
-                    gravity = Gravity.CENTER
-                    setPadding(dp(7), 0, dp(7), 0)
-                    isClickable = true
-                    setOnClickListener {
-                        val length = currentWord.length
-                        currentInputConnection?.deleteSurroundingText(length, 0)
-                        currentInputConnection?.commitText("$word ", 1)
-                        updateSuggestions()
+                setTextColor(Color.WHITE)
+                setPadding(
+                    dp(10),
+                    dp(3),
+                    dp(10),
+                    dp(3)
+                )
+
+                setOnClickListener {
+                    val before = currentInputConnection
+                        ?.getTextBeforeCursor(60, 0)
+                        ?.toString().orEmpty()
+
+                    val currentWord = before.takeLastWhile {
+                        it.isLetter()
                     }
+
+                    if (currentWord.isNotEmpty()) {
+                        currentInputConnection
+                            ?.deleteSurroundingText(
+                                currentWord.length,
+                                0
+                            )
+                    }
+
+                    currentInputConnection?.commitText(
+                        word,
+                        1
+                    )
+
+                    updateSuggestions()
                 }
-                container.addView(suggestion, LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.MATCH_PARENT, 1f
-                ))
             }
+
+            val params = LinearLayout.LayoutParams(
+                0,
+                dp(30),
+                1f
+            )
+
+            container.addView(suggestion, params)
         }
     }
 
-    private fun makeHeaderButton(label: String, action: () -> Unit): TextView {
-        val theme = currentTheme()
-        return TextView(this).apply {
-            text = label
-            textSize = 11f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(theme.text)
-            gravity = Gravity.CENTER
-            background = roundedDrawable(theme.special, dp(8))
-            setOnClickListener { action() }
-        }
-    }
-
-    private fun weightedParams(weight: Float): LinearLayout.LayoutParams {
-        return LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, weight)
-            .apply { setMargins(dp(2), dp(2), dp(2), dp(2)) }
-    }
-
-    private fun roundedDrawable(color: Int, radius: Int): GradientDrawable {
+    private fun roundedBackground(
+        color: Int,
+        radius: Int
+    ): GradientDrawable {
         return GradientDrawable().apply {
             setColor(color)
             cornerRadius = radius.toFloat()
+            setStroke(dp(1), theme.border)
         }
     }
 
-    private fun currentTheme(): Theme = themes[themeIndex]
+    private fun sendKey(code: Int) {
+        currentInputConnection?.sendKeyEvent(
+            KeyEvent(KeyEvent.ACTION_DOWN, code)
+        )
 
-    private fun languageName(): String {
-        return when (language) {
-            0 -> "پښتو"
-            1 -> "عربي"
-            else -> "English"
-        }
-    }
-
-    private fun saveSettings() {
-        getSharedPreferences("sharafzai_keyboard", MODE_PRIVATE)
-            .edit()
-            .putInt("language", language)
-            .putInt("theme", themeIndex)
-            .apply()
+        currentInputConnection?.sendKeyEvent(
+            KeyEvent(KeyEvent.ACTION_UP, code)
+        )
     }
 
     private fun refreshKeyboard() {
-        val newView = buildKeyboard()
-        setInputView(newView)
-        updateSuggestions()
+        setInputView(buildKeyboard())
+    }
+
+    private fun rowParams(
+        height: Int
+    ): LinearLayout.LayoutParams {
+        return LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(height)
+        )
     }
 
     private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density + 0.5f).toInt()
+        return (
+            value * resources.displayMetrics.density
+        ).toInt()
     }
 
-    override fun onFinishInputView(finishingInput: Boolean) {
-        stopDeleteRepeat()
-        super.onFinishInputView(finishingInput)
-    }
-
-    override fun onDestroy() {
-        stopDeleteRepeat()
-        handler.removeCallbacksAndMessages(null)
-        super.onDestroy()
+    private fun saveSettings() {
+        getSharedPreferences(
+            "SharafzaiSettings",
+            MODE_PRIVATE
+        ).edit()
+            .putInt("language", language)
+            .putInt("themeIndex", themeIndex)
+            .apply()
     }
 }
-'''
-# Correct a deliberately guarded typo before writing the final source.
-code = code.replace('EditorInfo.IME_ACTION,上', 'EditorInfo.IME_ACTION_GO')
-path = Path("/mnt/data/KeyboardService.kt")
-path.write_text(code, encoding="utf-8")
-print(f"Created {path} ({len(code.splitlines())} lines).")
