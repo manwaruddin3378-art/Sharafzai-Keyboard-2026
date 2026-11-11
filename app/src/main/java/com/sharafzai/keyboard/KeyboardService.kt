@@ -15,6 +15,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
+import android.widget.Toast
 import android.os.Handler
 import android.os.Looper
 
@@ -340,6 +341,10 @@ class KeyboardService : InputMethodService() {
             symbolsPanelVisible = false
             saveSettings()
             refreshKeyboard()
+        }
+
+        addSpecial(header, "＋", 0.8f, 29) {
+            addCurrentWordToDictionary()
         }
 
         addSpecial(header, "🎨", 0.8f, 29) {
@@ -776,8 +781,13 @@ class KeyboardService : InputMethodService() {
             return emptyList()
         }
 
-        return offlineWords[language]
-            .orEmpty()
+        val personalWords = getSharedPreferences(
+            "SharafzaiSettings",
+            MODE_PRIVATE
+        ).getStringSet("personalWords", emptySet()).orEmpty()
+
+        return (offlineWords[language].orEmpty() + personalWords)
+            .distinct()
             .filter {
                 it.startsWith(
                     currentWord,
@@ -789,6 +799,26 @@ class KeyboardService : InputMethodService() {
                 )
             }
             .take(3)
+    }
+
+    private fun addCurrentWordToDictionary() {
+        val before = currentInputConnection
+            ?.getTextBeforeCursor(80, 0)
+            ?.toString().orEmpty()
+        val word = getCurrentWord(before).trim()
+
+        if (word.length < 2) {
+            Toast.makeText(this, "لومړی یوه کلمه ولیکئ", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val saved = prefs.getStringSet("personalWords", emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
+        saved.add(word)
+        prefs.edit().putStringSet("personalWords", saved).apply()
+        Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه", Toast.LENGTH_SHORT).show()
+        updateSuggestions()
     }
 
     private fun updateSuggestions() {
