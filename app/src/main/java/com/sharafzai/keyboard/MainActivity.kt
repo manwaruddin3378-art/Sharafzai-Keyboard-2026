@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.graphics.Color
 import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer as AndroidPdfRenderer
 import android.view.Gravity
 import android.widget.*
 import java.text.SimpleDateFormat
@@ -27,6 +28,8 @@ import java.io.File
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("SharafzaiTools", MODE_PRIVATE) }
     private var page = "home"
+    private var openedPdfUri: Uri? = null
+    private var pdfPageIndex = 0
     private var chosen = Calendar.getInstance()
     private lateinit var root: LinearLayout
     private var homeDhikrView: TextView? = null
@@ -44,6 +47,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         page = intent.getStringExtra("open_page") ?: "home"
+        handlePdfIntent(intent)
         if (Build.VERSION.SDK_INT >= 26) {
             getSystemService(NotificationManager::class.java).createNotificationChannel(
                 NotificationChannel("sharafzai_alarms", "Sharafzai Alarms", NotificationManager.IMPORTANCE_HIGH)
@@ -54,6 +58,27 @@ class MainActivity : Activity() {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 701)
         }
         render()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePdfIntent(intent)
+        render()
+    }
+
+    private fun handlePdfIntent(source: Intent?) {
+        if (source == null) return
+        val uri = when (source.action) {
+            Intent.ACTION_VIEW -> source.data
+            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) source.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) else @Suppress("DEPRECATION") source.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+            else -> null
+        }
+        if (uri != null) {
+            openedPdfUri = uri
+            pdfPageIndex = 0
+            page = "pdf_viewer"
+        }
     }
 
     override fun onResume() {
@@ -93,6 +118,7 @@ class MainActivity : Activity() {
             "adhkar", "morning", "evening" -> showAdhkar(page)
             "phrases" -> showPhrases()
             "library" -> showLibrary()
+            "pdf_viewer" -> showPdfViewer()
             "keyboard" -> showKeyboardSetup()
             "settings" -> showAppSettings()
             else -> showHome()
@@ -355,17 +381,58 @@ class MainActivity : Activity() {
     }
 
     private fun openPdf(uriText: String) {
+        openedPdfUri = Uri.parse(uriText)
+        pdfPageIndex = 0
+        page = "pdf_viewer"
+        render()
+    }
+
+    private fun showPdfViewer() {
+        val uri = openedPdfUri
+        if (uri == null) {
+            line("PDF فایل ونه موندل شو.")
+            return
+        }
+        line("PDF لوستونکی")
+        val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addButton(controls, "مخکینۍ پاڼه", 1f) {
+            if (pdfPageIndex > 0) { pdfPageIndex--; render() }
+        }
+        addButton(controls, "بله پاڼه", 1f) {
+            pdfPageIndex++
+            render()
+        }
+        root.addView(controls)
         try {
-            val uri = Uri.parse(uriText)
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/pdf")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            startActivity(intent)
-        } catch (_: android.content.ActivityNotFoundException) {
-            Toast.makeText(this, "د PDF لوستلو اپلیکیشن نشته؛ لومړی یو PDF Reader نصب کړئ", Toast.LENGTH_LONG).show()
-        } catch (_: Exception) {
-            Toast.makeText(this, "دا PDF فایل نه پرانیستل کېږي؛ کېدای شي فایل له خپل ځایه لرې شوی وي", Toast.LENGTH_LONG).show()
+            contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                AndroidPdfRenderer(descriptor).use { renderer ->
+                    if (renderer.pageCount == 0) {
+                        line("دا PDF تش دی.")
+                        return
+                    }
+                    if (pdfPageIndex >= renderer.pageCount) pdfPageIndex = renderer.pageCount - 1
+                    line("پاڼه ${pdfPageIndex + 1} له ${renderer.pageCount} څخه")
+                    val pageToRender = renderer.openPage(pdfPageIndex)
+                    try {
+                        val maxWidth = (resources.displayMetrics.widthPixels - dp(32)).coerceAtMost(1600)
+                        val width = maxWidth.coerceAtLeast(400)
+                        val height = (width.toFloat() * pageToRender.height / pageToRender.width).toInt().coerceAtLeast(1)
+                        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                        bitmap.eraseColor(Color.WHITE)
+                        pageToRender.render(bitmap, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        root.addView(ImageView(this).apply {
+                            setImageBitmap(bitmap)
+                            adjustViewBounds = true
+                            scaleType = ImageView.ScaleType.FIT_CENTER
+                            setBackgroundColor(Color.WHITE)
+                        }, LinearLayout.LayoutParams(-1, -2))
+                    } finally {
+                        pageToRender.close()
+                    }
+                }
+            } ?: line("دې PDF فایل ته لاسرسی ونه شو.")
+        } catch (e: Exception) {
+            line("PDF پرانیستل نه شو: ${e.message ?: "د فایل ستونزه"}")
         }
     }
 
