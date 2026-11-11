@@ -12,11 +12,18 @@ class AlarmReceiver : BroadcastReceiver() {
         if (Build.VERSION.SDK_INT >= 26) {
             manager.createNotificationChannel(NotificationChannel("sharafzai_alarms", "Sharafzai Alarms", NotificationManager.IMPORTANCE_HIGH))
         }
-        val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java).putExtra("open_page", "alarms"),
+        val targetPage = when {
+            label.contains("سهار") -> "morning"
+            label.contains("ماښام") -> "evening"
+            label.contains("اذکار") -> "adhkar"
+            else -> "alarms"
+        }
+        val title = if (targetPage == "alarms") "د شرفزی الارم" else "د اذکارو یادونه"
+        val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java).putExtra("open_page", targetPage),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, "sharafzai_alarms") else Notification.Builder(context)
         manager.notify(id, builder.setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("د شرفزی الارم").setContentText(label).setCategory(Notification.CATEGORY_ALARM)
+            .setContentTitle(title).setContentText(label).setCategory(Notification.CATEGORY_ALARM)
             .setPriority(Notification.PRIORITY_MAX).setAutoCancel(true).setContentIntent(open).build())
 
         // Repeat this alarm at the same local time on the following day.
