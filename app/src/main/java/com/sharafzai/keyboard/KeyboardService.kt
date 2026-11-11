@@ -866,6 +866,7 @@ class KeyboardService : InputMethodService() {
             } else {
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("Sundus", selected))
+                rememberClipboardText(selected)
                 Toast.makeText(this, "متن کاپي شو", Toast.LENGTH_SHORT).show()
             }
         }
@@ -877,6 +878,7 @@ class KeyboardService : InputMethodService() {
             } else {
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("Sundus", selected))
+                rememberClipboardText(selected)
                 connection?.commitText("", 1)
             }
         }
@@ -897,12 +899,72 @@ class KeyboardService : InputMethodService() {
             saveCurrentTextAsPhrase()
         }
         parent.addView(row, rowParams(42))
+
+        val historyTitle = TextView(this).apply {
+            text = "وروستي کاپي شوي متنونه"
+            textSize = 12f
+            gravity = Gravity.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
+        }
+        parent.addView(historyTitle, rowParams(27))
+
+        val history = (0 until 8).mapNotNull { index ->
+            getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                .getString("clipboardHistory_$index", null)
+                ?.takeIf { it.isNotBlank() }
+        }
+        history.chunked(2).forEach { group ->
+            val historyRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            group.forEach { item ->
+                val label = item.replace("\n", " ").take(18)
+                addSpecial(historyRow, label, 1f, 36) {
+                    currentInputConnection?.commitText(item, 1)
+                    updateSuggestions()
+                }
+            }
+            repeat(2 - group.size) { addSpecial(historyRow, " ", 1f, 36) { } }
+            parent.addView(historyRow, rowParams(39))
+        }
+        if (history.isEmpty()) {
+            val emptyHistory = TextView(this).apply {
+                text = "د کاپي تاریخچه لا تشه ده."
+                textSize = 11f
+                gravity = Gravity.CENTER
+                setTextColor(if (themeIndex == 1) Color.WHITE else Color.GRAY)
+            }
+            parent.addView(emptyHistory, rowParams(28))
+        }
+
         val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(close, "بندول", 1f, 32) {
+        addSpecial(close, "تاریخچه پاکول", 1.2f, 32) {
+            val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+            prefs.edit().apply {
+                (0 until 8).forEach { remove("clipboardHistory_$it") }
+            }.apply()
+            refreshKeyboard()
+        }
+        addSpecial(close, "بندول", 0.8f, 32) {
             clipboardPanelVisible = false
             refreshKeyboard()
         }
         parent.addView(close, rowParams(35))
+    }
+
+    private fun rememberClipboardText(value: String) {
+        val clean = value.trim()
+        if (clean.isEmpty()) return
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val previous = (0 until 8).mapNotNull { index ->
+            prefs.getString("clipboardHistory_$index", null)
+        }
+        val updated = (listOf(clean) + previous.filterNot { it == clean }).take(8)
+        prefs.edit().apply {
+            (0 until 8).forEach { index ->
+                if (index < updated.size) putString("clipboardHistory_$index", updated[index])
+                else remove("clipboardHistory_$index")
+            }
+        }.apply()
     }
 
     private fun saveCurrentTextAsPhrase() {
