@@ -40,7 +40,7 @@ class DhikrWidgetProvider : AppWidgetProvider() {
         ) {
             val views = RemoteViews(context.packageName, R.layout.widget_adhkar)
             val slot = (System.currentTimeMillis() / 1_800_000L).toInt()
-            val text = adhkar[Math.floorMod(slot, adhkar.size)]
+            val text = adhkar[((slot % adhkar.size) + adhkar.size) % adhkar.size]
             views.setTextViewText(R.id.adhkar_widget_text, text)
 
             val openApp = Intent(context, MainActivity::class.java)
@@ -49,7 +49,7 @@ class DhikrWidgetProvider : AppWidgetProvider() {
                 context,
                 widgetId,
                 openApp,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or (if (android.os.Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
             )
             views.setOnClickPendingIntent(R.id.adhkar_widget_root, pending)
             manager.updateAppWidget(widgetId, views)
