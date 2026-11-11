@@ -421,15 +421,23 @@ class MainActivity : Activity() {
             }
             val from = languages[source.selectedItemPosition].second
             val to = languages[target.selectedItemPosition].second
-            if (from == to) {
+            if (!dictionary && from == to) {
                 Toast.makeText(this, "د ژباړې لپاره بېله موخه ژبه وټاکئ", Toast.LENGTH_SHORT).show()
                 return
             }
             output.text = "مهرباني وکړئ، لږ انتظار..."
             Thread {
-                val result = runCatching { translateWithMyMemory(textValue, from, to) }
-                    .getOrElse { "اوسمهال آنلاین خدمت ته لاسرسی ونه شو. انټرنېټ وګورئ او بیا هڅه وکړئ.\n\nتفصیل: ${it.message ?: "نامعلومه ستونزه"}" }
-                runOnUiThread { output.text = if (dictionary) "قاموسي ژباړه:\n$result" else result }
+                val result = runCatching {
+                    if (dictionary) {
+                        val entry = lookupOnlineDictionary(textValue, from, to)
+                        if (entry.isNotBlank()) entry
+                        else if (from != to) {
+                            "په آنلاین قاموس کې بشپړ تعریف ونه موندل شو؛ لاندې یې اتومات ژباړه ده:\n" +
+                                translateWithMyMemory(textValue, from, to)
+                        } else "د دې کلمې قاموسي تعریف ونه موندل شو."
+                    } else translateWithMyMemory(textValue, from, to)
+                }.getOrElse { "اوسمهال آنلاین خدمت ته لاسرسی ونه شو. انټرنېټ وګورئ او بیا هڅه وکړئ.\n\nتفصیل: ${it.message ?: "نامعلومه ستونزه"}" }
+                runOnUiThread { output.text = if (dictionary) "قاموسي پایله:\n$result" else result }
             }.start()
         }
         addButton(root, "د کلمې قاموسي مانا", 1f) { runOnline(true) }
@@ -448,6 +456,70 @@ class MainActivity : Activity() {
             }
         }
         line("یادونه: قاموسي ژباړه او اتومات ژباړه د آنلاین ژباړن له خدمت څخه ترلاسه کېږي؛ د مهمو علمي او شرعي متنونو ژباړه باید له اصلي متن سره وکتل شي. د AI پوښتنه په ChatGPT کې پرانیستل کېږي.")
+    }
+
+    private fun lookupOnlineDictionary(word: String, source: String, target: String): String {
+        val encoded = URLEncoder.encode(word, "UTF-8")
+        val url = URL("https://freedictionaryapi.com/api/v1/entries/$source/$encoded?translations=true")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 15000
+            readTimeout = 20000
+            setRequestProperty("User-Agent", "SharafzaiApp/1.0")
+        }
+        try {
+            val responseCode = connection.responseCode
+            if (responseCode == 404) return ""
+            val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
+            val body = stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            if (responseCode !in 200..299) throw IllegalStateException("HTTP $responseCode")
+            val json = org.json.JSONObject(body)
+            val entries = json.optJSONArray("entries") ?: return ""
+            val results = mutableListOf<String>()
+            for (i in 0 until entries.length()) {
+                val entry = entries.optJSONObject(i) ?: continue
+                val languageCode = entry.optJSONObject("language")?.optString("code", "") ?: ""
+                if (languageCode != source) continue
+                val partOfSpeech = entry.optString("partOfSpeech", "")
+                val senses = entry.optJSONArray("senses") ?: continue
+                for (j in 0 until senses.length()) {
+                    val sense = senses.optJSONObject(j) ?: continue
+                    val definition = sense.optString("definition", "").trim()
+                    if (definition.isBlank()) continue
+                    val section = StringBuilder()
+                    if (partOfSpeech.isNotBlank()) section.append("[$partOfSpeech] ")
+                    section.append(definition)
+                    val examples = sense.optJSONArray("examples")
+                    if (examples != null && examples.length() > 0) {
+                        val example = examples.optString(0, "")
+                        if (example.isNotBlank()) section.append("\nبېلګه: ").append(example)
+                    }
+                    val translations = sense.optJSONArray("translations")
+                    val translatedWords = mutableListOf<String>()
+                    if (translations != null) {
+                        for (k in 0 until translations.length()) {
+                            val translation = translations.optJSONObject(k) ?: continue
+                            val code = translation.optJSONObject("language")?.optString("code", "") ?: ""
+                            val translated = translation.optString("word", "")
+                            if (code == target && translated.isNotBlank()) translatedWords.add(translated)
+                        }
+                    }
+                    if (translatedWords.isNotEmpty()) {
+                        section.append("\nژباړه: ").append(translatedWords.distinct().take(5).joinToString("، "))
+                    }
+                    results.add(section.toString())
+                    if (results.size >= 8) break
+                }
+                if (results.size >= 8) break
+            }
+            if (results.isEmpty()) return ""
+            val sourceUrl = json.optJSONObject("source")?.optString("url", "") ?: ""
+            val attribution = "\n\nسرچینه: FreeDictionaryAPI؛ د Wiktionary پر بنسټ (CC BY-SA 4.0)."
+            return results.joinToString("\n\n") + attribution +
+                if (sourceUrl.isNotBlank()) "\nاصلي سرچینه: $sourceUrl" else ""
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun translateWithMyMemory(text: String, source: String, target: String): String {
