@@ -58,21 +58,123 @@ class MainActivity : Activity() {
     }
 
     private fun showCalendar() {
+        val month = (chosen.clone() as Calendar).apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+        }
+        val monthTitle = SimpleDateFormat("MMMM yyyy", Locale("ps", "AF")).format(month.time)
+
+        val monthNavigation = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        addButton(monthNavigation, "‹", 0.8f) { moveMonth(-1) }
+        monthNavigation.addView(TextView(this).apply {
+            text = monthTitle
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+        }, LinearLayout.LayoutParams(0, 50, 3f))
+        addButton(monthNavigation, "›", 0.8f) { moveMonth(1) }
+        root.addView(monthNavigation)
+
+        val calendarGrid = GridLayout(this).apply {
+            columnCount = 7
+            rowCount = 7
+            useDefaultMargins = false
+        }
+
+        val weekdays = listOf("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه")
+        weekdays.forEachIndexed { column, dayName ->
+            val cell = TextView(this).apply {
+                text = dayName
+                textSize = 10f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(190, 215, 225))
+            }
+            val params = GridLayout.LayoutParams(
+                GridLayout.spec(0),
+                GridLayout.spec(column, 1f)
+            ).apply {
+                width = 0
+                height = dp(36)
+                setMargins(dp(1), dp(1), dp(1), dp(1))
+            }
+            calendarGrid.addView(cell, params)
+        }
+
+        val firstWeekday = month.get(Calendar.DAY_OF_WEEK) % 7
+        val daysInMonth = month.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val today = Calendar.getInstance()
+        for (day in 1..daysInMonth) {
+            val position = firstWeekday + day - 1
+            val row = 1 + position / 7
+            val column = position % 7
+            val isSelected = chosen.get(Calendar.YEAR) == month.get(Calendar.YEAR) &&
+                chosen.get(Calendar.MONTH) == month.get(Calendar.MONTH) &&
+                chosen.get(Calendar.DAY_OF_MONTH) == day
+            val isToday = today.get(Calendar.YEAR) == month.get(Calendar.YEAR) &&
+                today.get(Calendar.MONTH) == month.get(Calendar.MONTH) &&
+                today.get(Calendar.DAY_OF_MONTH) == day
+
+            val cell = TextView(this).apply {
+                text = day.toString()
+                textSize = 15f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                setBackgroundColor(
+                    when {
+                        isSelected -> Color.rgb(28, 137, 157)
+                        isToday -> Color.rgb(75, 83, 96)
+                        else -> Color.TRANSPARENT
+                    }
+                )
+                setOnClickListener {
+                    chosen.set(Calendar.YEAR, month.get(Calendar.YEAR))
+                    chosen.set(Calendar.MONTH, month.get(Calendar.MONTH))
+                    chosen.set(Calendar.DAY_OF_MONTH, day)
+                    render()
+                }
+            }
+            val params = GridLayout.LayoutParams(
+                GridLayout.spec(row),
+                GridLayout.spec(column, 1f)
+            ).apply {
+                width = 0
+                height = dp(42)
+                setMargins(dp(1), dp(1), dp(1), dp(1))
+            }
+            calendarGrid.addView(cell, params)
+        }
+        root.addView(calendarGrid)
+
         val dateText = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(chosen.time)
         line("ټاکل شوې نېټه: " + dateText)
         addButton(root, "نېټه وټاکئ", 1f) {
             DatePickerDialog(this, { _, y, m, d ->
-                chosen.set(y, m, d); render()
+                chosen.set(y, m, d)
+                render()
             }, chosen.get(Calendar.YEAR), chosen.get(Calendar.MONTH), chosen.get(Calendar.DAY_OF_MONTH)).show()
         }
         addButton(root, "＋ د دې ورځې یادښت ثبت کړئ", 1f) { addNote() }
         addButton(root, "د ټولو یادښتونو لړلیک", 1f) { showNotes() }
-        addButton(root, "نننۍ نېټه", 1f) { chosen = Calendar.getInstance(); render() }
+        addButton(root, "نننۍ نېټه", 1f) {
+            chosen = Calendar.getInstance()
+            render()
+        }
+
         val key = "notes_" + dateText
         val notes = prefs.getStringSet(key, emptySet()).orEmpty()
         line("د دې ورځې یادښتونه:")
         if (notes.isEmpty()) line("تر اوسه یادښت نشته.") else notes.forEach { line("• " + it) }
         line("یادښتونه یوازې د شرفزی په دې موبایل کې ساتل کېږي.")
+    }
+
+    private fun moveMonth(amount: Int) {
+        val day = chosen.get(Calendar.DAY_OF_MONTH)
+        chosen.set(Calendar.DAY_OF_MONTH, 1)
+        chosen.add(Calendar.MONTH, amount)
+        chosen.set(Calendar.DAY_OF_MONTH, minOf(day, chosen.getActualMaximum(Calendar.DAY_OF_MONTH)))
+        render()
     }
 
     private fun addNote() {
@@ -174,6 +276,8 @@ class MainActivity : Activity() {
         AlarmStore.write(this, AlarmStore.read(this).filterNot { it.id == alarm.id })
         render()
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun line(value: String) {
         root.addView(TextView(this).apply {
