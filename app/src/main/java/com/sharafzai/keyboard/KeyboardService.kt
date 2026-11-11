@@ -622,13 +622,11 @@ class KeyboardService : InputMethodService() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        addSpecial(row, "📅 Calendar", 1.5f, 40) {
-            val intent = Intent(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_APP_CALENDAR)
-            openSystemFeature(intent, "Calendar")
+        addSpecial(row, "📅 زما کلنډر", 1.5f, 40) {
+            openSharafzaiTools("calendar")
         }
-        addSpecial(row, "⏰ Alarms", 1.5f, 40) {
-            openSystemFeature(Intent(AlarmClock.ACTION_SHOW_ALARMS), "Clock")
+        addSpecial(row, "⏰ زما الارم", 1.5f, 40) {
+            openSharafzaiTools("alarms")
         }
         addSpecial(row, "Close", 1f, 40) {
             toolsPanelVisible = false
@@ -637,17 +635,10 @@ class KeyboardService : InputMethodService() {
         parent.addView(row, rowParams(43))
     }
 
-    private fun openSystemFeature(intent: Intent, featureName: String) {
-        try {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        } catch (_: android.content.ActivityNotFoundException) {
-            Toast.makeText(
-                this,
-                "$featureName اپلیکیشن په وسیله کې ونه موندل شو",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+    private fun openSharafzaiTools(page: String) {
+        startActivity(Intent(this, MainActivity::class.java)
+            .putExtra("open_page", page)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun addCalculatorPanel(parent: LinearLayout) {
