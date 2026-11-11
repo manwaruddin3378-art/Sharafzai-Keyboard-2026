@@ -71,7 +71,7 @@ class MainActivity : Activity() {
         if (source == null) return
         val uri = when (source.action) {
             Intent.ACTION_VIEW -> source.data
-            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) source.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) else @Suppress("DEPRECATION") source.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) source.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) else source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
             else -> null
         }
         if (uri != null) {
