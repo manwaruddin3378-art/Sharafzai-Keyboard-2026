@@ -11,10 +11,23 @@ android {
 
     defaultConfig {
         applicationId = "com.sharafzai.keyboard"
-        minSdk = 23
+        minSdk = 21
         targetSdk = 34
         versionCode = 4
         versionName = "1.3"
+    }
+
+    buildTypes {
+        release {
+            // Optimized, directly installable APK for distribution.
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     compileOptions {
