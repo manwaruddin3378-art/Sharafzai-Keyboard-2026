@@ -768,6 +768,9 @@ class KeyboardService : InputMethodService() {
         addSpecial(row, "ټول انتخاب", 1.2f, 38) {
             currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
         }
+        addSpecial(row, "جمله ساتل", 1.4f, 38) {
+            saveCurrentTextAsPhrase()
+        }
         parent.addView(row, rowParams(42))
         val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(close, "بندول", 1f, 32) {
@@ -777,8 +780,26 @@ class KeyboardService : InputMethodService() {
         parent.addView(close, rowParams(35))
     }
 
+    private fun saveCurrentTextAsPhrase() {
+        val selected = currentInputConnection?.getSelectedText(0)?.toString().orEmpty()
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboardText = if (clipboard.hasPrimaryClip() && clipboard.primaryClip!!.itemCount > 0) {
+            clipboard.primaryClip!!.getItemAt(0).coerceToText(this).toString()
+        } else ""
+        val phrase = selected.ifBlank { clipboardText }.trim()
+        if (phrase.isBlank()) {
+            Toast.makeText(this, "لومړی متن انتخاب یا کاپي کړئ", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
+        saved.add(phrase)
+        prefs.edit().putStringSet("savedPhrases", saved).apply()
+        Toast.makeText(this, "جمله په شخصي جملو کې وساتل شوه", Toast.LENGTH_SHORT).show()
+    }
+
     private fun addPhrasePanel(parent: LinearLayout) {
-        val categories = listOf("اسلامي", "پښتو", "English", "دري", "ډیزاین", "۞")
+        val categories = listOf("اسلامي", "پښتو", "English", "دري", "ډیزاین", "۞", "زما")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         categories.forEachIndexed { index, label ->
             addSpecial(categoryRow, label, 1f, 36) { phraseCategory = index; refreshKeyboard() }
@@ -790,7 +811,18 @@ class KeyboardService : InputMethodService() {
             2 -> listOf("Hello!","How are you?","I hope you are well.","Thank you very much.","You're welcome.","Please let me know.","Have a nice day!","Good morning!","Good evening!","See you soon.","May Allah bless you.","Best wishes.")
             3 -> listOf("سلام، حال شما چطور است؟","تشکر بسیار","خواهش می‌کنم","روز خوش داشته باشید","خداوند نگهدارتان باشد","از همکاری شما سپاسگزارم","به امید دیدار","صبح بخیر","شب بخیر","موفق باشید","ببخشید","لطفاً")
             4 -> listOf("❖ مننه ❖","✦ ښه راغلاست ✦","『 السلام علیکم 』","《 الحمد لله 》","༺ مننه ༻","✧ په خیر اوسئ ✧","◈ بریالی اوسئ ◈","❀ خوښ او خوشحاله اوسئ ❀","★ الله مو مل شه ★")
-            else -> listOf("۞ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۞","۞ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۞","﷽","ﷺ","۞ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ۞","۞ جَزَاكَ اللَّهُ خَيْرًا ۞","﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾","﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾")
+            5 -> listOf("۞ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۞","۞ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۞","﷽","ﷺ","۞ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ۞","۞ جَزَاكَ اللَّهُ خَيْرًا ۞","﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾","﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾")
+            else -> getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                .getStringSet("savedPhrases", emptySet()).orEmpty().toList()
+        }
+        if (phrases.isEmpty()) {
+            val empty = TextView(this).apply {
+                text = "تر اوسه شخصي جمله نه ده ساتل شوې. د کلیپ‌بورډ له برخې څخه جمله وساتئ."
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(45, 52, 62))
+            }
+            parent.addView(empty, rowParams(38))
         }
         phrases.chunked(3).forEach { group ->
             val phraseRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
