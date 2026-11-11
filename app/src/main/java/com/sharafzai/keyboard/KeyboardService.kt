@@ -324,7 +324,7 @@ class KeyboardService : InputMethodService() {
                 else -> "SHARAFZAI  •  دری"
             }
             textSize = 14f
-            setTextColor(Color.WHITE)
+            setTextColor(Color.rgb(38, 45, 55))
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
         }
@@ -583,10 +583,10 @@ class KeyboardService : InputMethodService() {
 
     private fun addSettingsPanel(parent: LinearLayout) {
         val title = TextView(this).apply {
-            text = "د شرفزی کیبورډ تنظیمات"
+            text = "د سندس کیبورډ تنظیمات"
             textSize = 14f
             gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
+            setTextColor(Color.rgb(38, 45, 55))
             typeface = Typeface.DEFAULT_BOLD
         }
         parent.addView(title, rowParams(30))
@@ -670,7 +670,7 @@ class KeyboardService : InputMethodService() {
             text = calculatorExpression.ifEmpty { "0" }
             textSize = 23f
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
-            setTextColor(Color.WHITE)
+            setTextColor(Color.rgb(38, 45, 55))
             setPadding(dp(10), 0, dp(10), 0)
             background = roundedBackground(theme.suggestion, dp(8))
         }
@@ -833,7 +833,7 @@ class KeyboardService : InputMethodService() {
                 text = value
                 textSize = if (keys.size >= 12) 15f else 18f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.WHITE)
+                setTextColor(Color.rgb(35, 42, 52))
                 gravity = Gravity.CENTER
             }
 
@@ -953,7 +953,7 @@ class KeyboardService : InputMethodService() {
             textSize = 12f
             isAllCaps = false
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.WHITE)
+            setTextColor(Color.rgb(45, 52, 62))
             minimumWidth = 0
             minimumHeight = 0
             setPadding(0, 0, 0, 0)
@@ -1099,7 +1099,7 @@ class KeyboardService : InputMethodService() {
                 text = word
                 textSize = 15f
                 gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
+                setTextColor(Color.rgb(38, 45, 55))
                 setPadding(
                     dp(10),
                     dp(3),
