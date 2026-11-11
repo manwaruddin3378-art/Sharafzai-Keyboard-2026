@@ -155,14 +155,15 @@ class KeyboardService : InputMethodService() {
         )
     )
 
+    // Microsoft Windows Pashto (Afghanistan), KLID 00000463.
+    // Rows follow the physical QWERTY positions; shifted characters match Windows.
     private val pashtoRows = listOf(
         listOf(
             k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
             k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
-            k("ع", "َ"), k("ه", "ّ", "هـ"),
+            k("ع", "َ"), k("ه", "ّ"),
             k("خ", "ځ"), k("ح", "څ"),
-            k("ج", "]"), k("چ", "["),
-            k("\\", "|")
+            k("ج", "]"), k("چ", "[")
         ),
         listOf(
             k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي"),
@@ -244,12 +245,12 @@ class KeyboardService : InputMethodService() {
     )
 
     private val pashtoNumbers = listOf(
-        k("۱", "!", "1"), k("۲", "٬", "2"),
-        k("۳", "٫", "3"), k("۴", "؋", "4"),
-        k("۵", "٪", "5"), k("۶", "×", "6"),
-        k("۷", "»", "7"), k("۸", "«", "8"),
-        k("۹", ")", "9"), k("۰", "(", "0"),
-        k("-", "ـ"), k("=", "+")
+        k("۱", "!", "~"), k("۲", "٬", "@"),
+        k("۳", "٫", "#"), k("۴", "؋", "$"),
+        k("۵", "٪", "%"), k("۶", "×", "^"),
+        k("۷", "»", "&"), k("۸", "«", "٭"),
+        k("۹", ")", "•"), k("۰", "(", "°"),
+        k("-", "ـ", "_"), k("=", "+", "÷")
     )
 
     private val arabicNumbers = listOf(
