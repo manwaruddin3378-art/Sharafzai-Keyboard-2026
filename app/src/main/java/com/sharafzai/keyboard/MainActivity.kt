@@ -150,6 +150,7 @@ class MainActivity : Activity() {
                 "phrases" -> showPhrases()
                 "voice" -> showVoiceTools()
                 "audio" -> showAudioLibrary()
+                "language_tools" -> showLanguageTools()
                 "library" -> showLibrary()
                 "pdf_viewer" -> showPdfViewer()
                 "keyboard" -> showKeyboardSetup()
@@ -200,6 +201,7 @@ class MainActivity : Activity() {
         addButton(root, "💬  اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
         addButton(root, "🎙️  غږیز لیکل او متن په غږ اورېدل", 1f) { page = "voice"; render() }
         addButton(root, "🎧  د درسونو او ویناوو آډیو کتابتون", 1f) { page = "audio"; render() }
+        addButton(root, "🌐  پښتو، دري، عربي او انګلیسي قاموس او ژباړه", 1f) { page = "language_tools"; render() }
         addButton(root, "📚  زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "⚙️  تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د سندس اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
@@ -423,8 +425,8 @@ class MainActivity : Activity() {
     }
 
     private fun showLanguageTools() {
-        line("آنلاین قاموس او ژباړه: د دې برخې د کارولو لپاره انټرنېټ ته اړتیا ده. نور د اپ وسایل آفلاین کار کوي.")
-        val languages = listOf("پښتو" to "ps", "انګلیسي" to "en", "عربي" to "ar")
+        line("دا قاموس او ژباړه یوازې هغه وخت انټرنېټ کاروي چې تاسې د اړوندې تڼۍ له لارې غوښتنه وکړئ. د کیبورډ عادي لیکل، شخصي قاموس، یادښتونه، PDF کتابتون، الارم او نور محلي وسایل په خپله انټرنېټ ته متن نه لېږي.")
+        val languages = listOf("پښتو" to "ps", "دري" to "fa", "انګلیسي" to "en", "عربي" to "ar")
         line("د متن ژبه")
         val source = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, languages.map { it.first })
