@@ -34,6 +34,7 @@ class KeyboardService : InputMethodService() {
     private var language = 0
     private var shifted = false
     private var caps = false
+    private var lastShiftTapAt = 0L
     private var themeIndex = 0
     private var keySizeLevel = 1
     private var suggestionContainer: LinearLayout? = null
@@ -582,8 +583,22 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        addSpecial(controlRow, "⇧", 1f, 39) {
-            shifted = !shifted
+        addSpecial(controlRow, if (caps) "⇪" else "⇧", 1f, 39) {
+            val now = System.currentTimeMillis()
+            if (language == 2 && shifted && !caps && now - lastShiftTapAt <= 450L) {
+                // Double-tap Shift enables English Caps Lock.
+                caps = true
+                shifted = false
+                lastShiftTapAt = 0L
+            } else if (caps) {
+                // A further tap releases Caps Lock.
+                caps = false
+                shifted = false
+                lastShiftTapAt = 0L
+            } else {
+                shifted = !shifted
+                lastShiftTapAt = if (shifted) now else 0L
+            }
             refreshKeyboard()
         }
 
