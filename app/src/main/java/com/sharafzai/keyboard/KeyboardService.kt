@@ -178,8 +178,8 @@ class KeyboardService : InputMethodService() {
         listOf(
             k("ظ", "ئ", "?"), k("ط", "ې", ";"), k("ز", "ژ", "ء"),
             k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
-            k("ړ"), k("و", "،", ","), k("ږ", ".", "ۇ"),
-            k("/", "؟", "ۉ")
+            k("ړ"), k("و", "،", ","), k("ږ", "."),
+            k("/", "؟")
         )
     )
 
@@ -830,7 +830,7 @@ class KeyboardService : InputMethodService() {
             if (longPressOutput.isNotEmpty()) {
                 val hint = TextView(this).apply {
                     text = longPressOutput
-                    textSize = 9f
+                    textSize = 10f
                     setTextColor(theme.accent)
                     gravity = Gravity.TOP or Gravity.END
                     setPadding(0, dp(1), dp(3), 0)
