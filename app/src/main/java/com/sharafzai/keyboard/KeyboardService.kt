@@ -1,6 +1,7 @@
 
 package com.sharafzai.keyboard
 
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -18,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import android.os.Handler
 import android.os.Looper
+import android.provider.AlarmClock
 
 class KeyboardService : InputMethodService() {
 
@@ -31,6 +33,7 @@ class KeyboardService : InputMethodService() {
     private var diacriticsPanelVisible = false
     private var symbolsPanelVisible = false
     private var calculatorPanelVisible = false
+    private var toolsPanelVisible = false
     private var calculatorExpression = ""
 
     private data class KeyboardTheme(
@@ -345,6 +348,7 @@ class KeyboardService : InputMethodService() {
             diacriticsPanelVisible = false
             symbolsPanelVisible = false
             calculatorPanelVisible = false
+            toolsPanelVisible = false
             saveSettings()
             refreshKeyboard()
         }
@@ -411,6 +415,7 @@ class KeyboardService : InputMethodService() {
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
                 calculatorPanelVisible = false
+                toolsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -422,6 +427,7 @@ class KeyboardService : InputMethodService() {
                     emojiPanelVisible = false
                     symbolsPanelVisible = false
                     calculatorPanelVisible = false
+                    toolsPanelVisible = false
                 }
                 refreshKeyboard()
             }
@@ -433,6 +439,7 @@ class KeyboardService : InputMethodService() {
                 emojiPanelVisible = false
                 diacriticsPanelVisible = false
                 calculatorPanelVisible = false
+                toolsPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -443,6 +450,18 @@ class KeyboardService : InputMethodService() {
                 emojiPanelVisible = false
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
+                toolsPanelVisible = false
+            }
+            refreshKeyboard()
+        }
+
+        addSpecial(controlRow, "Tools", 1.0f, 39) {
+            toolsPanelVisible = !toolsPanelVisible
+            if (toolsPanelVisible) {
+                emojiPanelVisible = false
+                diacriticsPanelVisible = false
+                symbolsPanelVisible = false
+                calculatorPanelVisible = false
             }
             refreshKeyboard()
         }
@@ -495,6 +514,10 @@ class KeyboardService : InputMethodService() {
             addCalculatorPanel(root)
         }
 
+        if (toolsPanelVisible) {
+            addToolsPanel(root)
+        }
+
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
@@ -530,6 +553,38 @@ class KeyboardService : InputMethodService() {
         root.addView(bottom, rowParams(44))
 
         return root
+    }
+
+    private fun addToolsPanel(parent: LinearLayout) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        addSpecial(row, "📅 Calendar", 1.5f, 40) {
+            val intent = Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_APP_CALENDAR)
+            openSystemFeature(intent, "Calendar")
+        }
+        addSpecial(row, "⏰ Alarms", 1.5f, 40) {
+            openSystemFeature(Intent(AlarmClock.ACTION_SHOW_ALARMS), "Clock")
+        }
+        addSpecial(row, "Close", 1f, 40) {
+            toolsPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(row, rowParams(43))
+    }
+
+    private fun openSystemFeature(intent: Intent, featureName: String) {
+        try {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "$featureName اپلیکیشن په وسیله کې ونه موندل شو",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun addCalculatorPanel(parent: LinearLayout) {
