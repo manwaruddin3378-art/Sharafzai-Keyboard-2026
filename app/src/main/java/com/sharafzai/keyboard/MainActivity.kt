@@ -24,6 +24,9 @@ import com.tom_roush.pdfbox.rendering.PDFRenderer
 import com.tom_roush.pdfbox.rendering.ImageType
 import com.googlecode.tesseract.android.TessBaseAPI
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("SharafzaiTools", MODE_PRIVATE) }
@@ -117,6 +120,7 @@ class MainActivity : Activity() {
             "calculator" -> showCalculator()
             "adhkar", "morning", "evening" -> showAdhkar(page)
             "phrases" -> showPhrases()
+            "language_tools" -> showLanguageTools()
             "library" -> showLibrary()
             "pdf_viewer" -> showPdfViewer()
             "keyboard" -> showKeyboardSetup()
@@ -149,9 +153,115 @@ class MainActivity : Activity() {
         addButton(root, "اذکار سهار", 1f) { page = "morning"; render() }
         addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
         addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
+        addButton(root, "پښتو ـ انګلیسي ـ عربي قاموس او ژباړه", 1f) { page = "language_tools"; render() }
         addButton(root, "زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د شرفزی اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
+    }
+
+
+    private fun showLanguageTools() {
+        line("آنلاین قاموس او ژباړه: د دې برخې د کارولو لپاره انټرنېټ ته اړتیا ده. نور د اپ وسایل آفلاین کار کوي.")
+        val languages = listOf("پښتو" to "ps", "انګلیسي" to "en", "عربي" to "ar")
+        line("د متن ژبه")
+        val source = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, languages.map { it.first })
+            setSelection(0)
+        }
+        root.addView(source, LinearLayout.LayoutParams(-1, dp(48)))
+        line("ژباړه دې کومې ژبې ته وشي؟")
+        val target = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, languages.map { it.first })
+            setSelection(1)
+        }
+        root.addView(target, LinearLayout.LayoutParams(-1, dp(48)))
+        val input = EditText(this).apply {
+            hint = "کلمه یا متن دلته ولیکئ"
+            setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY)
+            minLines = 3; gravity = Gravity.TOP
+        }
+        root.addView(input, LinearLayout.LayoutParams(-1, dp(120)))
+        val output = TextView(this).apply {
+            text = "ژباړه یا د قاموس پایله به دلته ښکاره شي"
+            textSize = 17f; setTextColor(Color.WHITE); setPadding(8, 16, 8, 16)
+        }
+        root.addView(output)
+        fun runOnline(dictionary: Boolean) {
+            val textValue = input.text.toString().trim()
+            if (textValue.isEmpty()) {
+                Toast.makeText(this, "لومړی کلمه یا متن ولیکئ", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val from = languages[source.selectedItemPosition].second
+            val to = languages[target.selectedItemPosition].second
+            if (from == to) {
+                Toast.makeText(this, "د ژباړې لپاره بېله موخه ژبه وټاکئ", Toast.LENGTH_SHORT).show()
+                return
+            }
+            output.text = "مهرباني وکړئ، لږ انتظار..."
+            Thread {
+                val result = runCatching { translateWithMyMemory(textValue, from, to) }
+                    .getOrElse { "اوسمهال آنلاین خدمت ته لاسرسی ونه شو. انټرنېټ وګورئ او بیا هڅه وکړئ.\n\nتفصیل: ${it.message ?: "نامعلومه ستونزه"}" }
+                runOnUiThread { output.text = if (dictionary) "قاموسي ژباړه:\n$result" else result }
+            }.start()
+        }
+        addButton(root, "د کلمې قاموسي مانا", 1f) { runOnline(true) }
+        addButton(root, "د متن ژباړه", 1f) { runOnline(false) }
+        addButton(root, "له AI څخه پوښتنه", 1f) {
+            val question = input.text.toString().trim()
+            if (question.isEmpty()) {
+                Toast.makeText(this, "لومړی خپله پوښتنه ولیکئ", Toast.LENGTH_SHORT).show()
+            } else {
+                val prompt = URLEncoder.encode(question, "UTF-8")
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://chatgpt.com/?q=$prompt")))
+                } catch (_: Exception) {
+                    Toast.makeText(this, "د انټرنېټ براوزر ونه موندل شو", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        line("یادونه: قاموسي ژباړه او اتومات ژباړه د آنلاین ژباړن له خدمت څخه ترلاسه کېږي؛ د مهمو علمي او شرعي متنونو ژباړه باید له اصلي متن سره وکتل شي. د AI پوښتنه په ChatGPT کې پرانیستل کېږي.")
+    }
+
+    private fun translateWithMyMemory(text: String, source: String, target: String): String {
+        val chunks = mutableListOf<String>()
+        val words = text.split(Regex("\\s+"))
+        var current = StringBuilder()
+        for (word in words) {
+            val candidate = if (current.isEmpty()) word else current.toString() + " " + word
+            if (candidate.toByteArray(Charsets.UTF_8).size > 420 && current.isNotEmpty()) {
+                chunks.add(current.toString())
+                current = StringBuilder(word)
+            } else {
+                if (current.isNotEmpty()) current.append(' ')
+                current.append(word)
+            }
+        }
+        if (current.isNotEmpty()) chunks.add(current.toString())
+        return chunks.joinToString(" ") { chunk ->
+            val encoded = URLEncoder.encode(chunk, "UTF-8")
+            val url = URL("https://api.mymemory.translated.net/get?q=$encoded&langpair=$source|$target")
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 15000
+                readTimeout = 20000
+                setRequestProperty("User-Agent", "SharafzaiApp/1.0")
+            }
+            try {
+                val responseCode = connection.responseCode
+                val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
+                val body = stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                if (responseCode !in 200..299) throw IllegalStateException("HTTP $responseCode")
+                val json = org.json.JSONObject(body)
+                val status = json.optInt("responseStatus", 200)
+                if (status != 200) throw IllegalStateException(json.optString("responseDetails", "ژباړه ترلاسه نه شوه"))
+                json.optJSONObject("responseData")?.optString("translatedText")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("د ژباړې پایله تشه ده")
+            } finally {
+                connection.disconnect()
+            }
+        }
     }
 
     private fun showLibrary() {
