@@ -33,6 +33,14 @@ jobs:
       - name: Build APK
         run: gradle :app:assembleRelease
 
+      - name: Report APK size
+        run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          SIZE=$(du -h "$APK" | cut -f1)
+          BYTES=$(stat -c%s "$APK")
+          echo "APK size: $SIZE ($BYTES bytes)" >> "$GITHUB_STEP_SUMMARY"
+          ls -lh "$APK"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
