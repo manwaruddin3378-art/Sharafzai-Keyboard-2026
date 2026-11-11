@@ -67,7 +67,12 @@ class MainActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handlePdfIntent(intent)
+        val requestedPage = intent.getStringExtra("open_page")
+        if (!requestedPage.isNullOrBlank()) {
+            page = requestedPage
+        } else {
+            handlePdfIntent(intent)
+        }
         render()
     }
 
