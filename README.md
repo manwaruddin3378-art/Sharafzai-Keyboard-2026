@@ -1,16 +1,18 @@
-# Sharafzai App 1.0 – شرفزی اپلیکیشن
+# Sundus App 1.0 – سندس اپلیکیشن
+
+**Creator:** Mufti Muhammad Anwaruddin Sharafzai (د مفتي محمد انوارالدين شرفزي لخوا)
 
 The first public-ready milestone is intentionally small, offline-first, and focused on everyday use.
 
 ## Included in version 1.0
 
-- **Sharafzai keyboard:** Pashto, Dari, Arabic, and English layouts; offline starter-word suggestions; personal dictionary; symbols, emoji, and diacritics. It can be enabled separately in Android keyboard settings and used in other apps.
+- **Sundus keyboard:** Pashto, Dari, Arabic, and English layouts; offline starter-word suggestions; personal dictionary; symbols, emoji, and diacritics. It can be enabled separately in Android keyboard settings and used in other apps.
 - **Calculator:** basic arithmetic, including parentheses.
 - **Calendar and notes:** month navigation and locally saved date notes.
 - **Alarms and reminders:** locally scheduled alarms and notifications. Exact-alarm and notification permissions may be requested by Android.
 - **Adhkar:** selected general, morning, and evening remembrances, with a home-screen widget.
 - **Useful phrases:** selected Islamic and everyday phrases.
-- **PDF library and reader:** add PDF files from the phone, keep a library list, and read pages inside Sharafzai App using Android's built-in PDF renderer.
+- **PDF library and reader:** add PDF files from the phone, keep a library list, and read pages inside Sundus App using Android's built-in PDF renderer.
 - **Monochrome interface:** black, white, and gray.
 
 ## Deliberately postponed to later updates
