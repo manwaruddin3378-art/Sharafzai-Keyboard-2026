@@ -13,13 +13,13 @@ import java.util.*
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("SharafzaiTools", MODE_PRIVATE) }
-    private var page = "calendar"
+    private var page = "home"
     private var chosen = Calendar.getInstance()
     private lateinit var root: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        page = intent.getStringExtra("open_page") ?: "calendar"
+        page = intent.getStringExtra("open_page") ?: "home"
         if (Build.VERSION.SDK_INT >= 26) {
             getSystemService(NotificationManager::class.java).createNotificationChannel(
                 NotificationChannel("sharafzai_alarms", "Sharafzai Alarms", NotificationManager.IMPORTANCE_HIGH)
@@ -46,15 +46,154 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(15, 15, 15))
         }
         root.addView(TextView(this).apply {
-            text = if (page == "alarms") "SHARAFZAI • خپلواک الارم" else "SHARAFZAI • خپلواک کلنډر"
-            textSize = 21f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); setPadding(4, 16, 4, 16)
+            text = "SHARAFZAI  •  شرفزی اپلیکیشن"
+            textSize = 22f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); setPadding(4, 18, 4, 18)
         })
-        val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addButton(nav, "کلنډر", 1f) { page = "calendar"; render() }
-        addButton(nav, "الارم", 1f) { page = "alarms"; render() }
-        root.addView(nav)
-        if (page == "alarms") showAlarms() else showCalendar()
+        if (page != "home") {
+            addButton(root, "⌂  اصلي پاڼې ته ستنېدل", 1f) { page = "home"; render() }
+        }
+        when (page) {
+            "home" -> showHome()
+            "alarms" -> { line("خپلواک الارم"); showAlarms() }
+            "calendar" -> { line("کلنډر او ورځني یادښتونه"); showCalendar() }
+            "calculator" -> showCalculator()
+            "adhkar", "morning", "evening" -> showAdhkar(page)
+            "phrases" -> showPhrases()
+            "keyboard" -> showKeyboardSetup()
+            "settings" -> showAppSettings()
+            else -> showHome()
+        }
         setContentView(ScrollView(this).apply { addView(root) })
+    }
+
+    private fun showHome() {
+        line("ستاسو ورځني وسایل او اسلامي اسانتیاوې په یوه ځای کې")
+        val featured = listOf("سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ")
+        val dayIndex = (System.currentTimeMillis() / 45000L % featured.size).toInt()
+        root.addView(TextView(this).apply {
+            text = "ذکر:  " + featured[dayIndex]
+            textSize = 19f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); setPadding(8, 20, 8, 20)
+            setBackgroundColor(Color.rgb(45, 45, 45))
+        })
+        addButton(root, "کیبورډ شرفزی", 1f) { page = "keyboard"; render() }
+        addButton(root, "سمارټ کلکولیټر", 1f) { page = "calculator"; render() }
+        addButton(root, "الارم او یادوونکي", 1f) { page = "alarms"; render() }
+        addButton(root, "کلنډر او یادښتونه", 1f) { page = "calendar"; render() }
+        addButton(root, "ټول اذکار", 1f) { page = "adhkar"; render() }
+        addButton(root, "اذکار سهار", 1f) { page = "morning"; render() }
+        addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
+        addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
+        addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
+        line("اذکار د اپلیکیشن پرانیستې پاڼه او د کیبورډ پر مهال ښکاري؛ د تلپاتې خبرتیاوو تنظیمات به په راتلونکې مرحله کې ورزیات شي.")
+    }
+
+    private fun showKeyboardSetup() {
+        line("کیبورډ د موبایل په نورو اپلیکیشنونو کې هم کار کوي. لومړی یې فعال او بیا یې د لیکلو پر مهال انتخاب کړئ.")
+        addButton(root, "د کیبورډونو تنظیمات پرانیستل", 1f) { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
+        addButton(root, "شرفزی کیبورډ انتخابول", 1f) {
+            val manager = getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+            manager.showInputMethodPicker()
+        }
+    }
+
+    private fun showAppSettings() {
+        line("د شرفزی اپلیکیشن عمومي تنظیمات")
+        addButton(root, "د خبرتیاوو اجازه", 1f) {
+            if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 701)
+            else Toast.makeText(this, "په دې Android نسخه کې جلا اجازه نه غواړي", Toast.LENGTH_SHORT).show()
+        }
+        addButton(root, "د دقیق الارم اجازه", 1f) {
+            if (Build.VERSION.SDK_INT >= 31) startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+            else Toast.makeText(this, "دقیق الارم اجازه نه غواړي", Toast.LENGTH_SHORT).show()
+        }
+        line("ډیزاین: تور، سپین او خړ. معلومات او یادښتونه په همدې وسیله کې ساتل کېږي.")
+    }
+
+    private fun showPhrases() {
+        line("د کاپي کولو لپاره پر هره جمله کلیک وکړئ.")
+        val groups = listOf(
+            "اسلامي" to listOf("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ", "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ", "مَا شَاءَ اللَّهُ لَا قُوَّةَ إِلَّا بِاللَّهِ", "جَزَاكَ اللَّهُ خَيْرًا", "بَارَكَ اللَّهُ فِيكَ"),
+            "ورځنۍ محاوره" to listOf("السلام علیکم ورحمة الله وبرکاته", "وعلیکم السلام ورحمة الله وبرکاته", "څنګه یاست؟", "ډېره مننه", "الله دې مل شه", "په خیر اوسئ"),
+            "دعایي جملې" to listOf("اللَّهُمَّ اغْفِرْ لِي", "رَبِّ زِدْنِي عِلْمًا", "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ", "اللَّهُمَّ يَسِّرْ وَلَا تُعَسِّرْ")
+        )
+        groups.forEach { group ->
+            line(group.first)
+            group.second.forEach { phrase -> addButton(root, phrase, 1f) {
+                val clip = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clip.setPrimaryClip(android.content.ClipData.newPlainText("Sharafzai", phrase))
+                Toast.makeText(this, "جمله کاپي شوه", Toast.LENGTH_SHORT).show()
+            } }
+        }
+    }
+
+    private fun showAdhkar(kind: String) {
+        val morning = kind == "morning"
+        val evening = kind == "evening"
+        line(when { morning -> "د سهار اذکار"; evening -> "د ماښام اذکار"; else -> "ورځني عمومي اذکار" })
+        val items = when {
+            morning -> listOf(
+                Triple("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ", "سهار مو کړ او پاچاهي الله لره ده.", "مسلم؛ د سهار ذکر"),
+                Triple("اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ", "اې الله! ستا په مرسته سهار او ماښام کوو، ستا په مرسته ژوند او مرګ کوو او ستا لوري ته بیا راپاڅېدل دي.", "ابوداود او ترمذي؛ د سهار او ماښام ذکر"),
+                Triple("رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "پر الله د رب، پر اسلام د دین او پر محمد ﷺ د نبي په توګه راضي شوم.", "ابوداود او ترمذي")
+            )
+            evening -> listOf(
+                Triple("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ", "ماښام مو کړ او پاچاهي الله لره ده.", "مسلم؛ د ماښام ذکر"),
+                Triple("اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ الْمَصِيرُ", "اې الله! ستا په مرسته ماښام او سهار کوو، ستا په مرسته ژوند او مرګ کوو او ستا لوري ته ورتګ دی.", "ابوداود او ترمذي"),
+                Triple("رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "پر الله د رب، پر اسلام د دین او پر محمد ﷺ د نبي په توګه راضي شوم.", "ابوداود او ترمذي")
+            )
+            else -> listOf(
+                Triple("سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", "الله له هر عیب څخه پاک دی او ستاینه یې کوم.", "صحیح البخاري او صحیح مسلم"),
+                Triple("أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", "له الله څخه بښنه غواړم او هغه ته توبه کوم.", "صحیح البخاري"),
+                Triple("لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ", "له الله پرته د ګناه د پرېښودو او د نېکۍ د کولو ځواک نشته.", "صحیح البخاري او صحیح مسلم"),
+                Triple("سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ", "الله پاک دی، ټولې ستاینې الله لره دي، له الله پرته بل معبود نشته او الله تر ټولو لوی دی.", "صحیح مسلم؛ د ذکر فضیلت")
+            )
+        }
+        items.forEachIndexed { index, item ->
+            line((index + 1).toString() + ". " + item.first)
+            line(item.second)
+            line("ماخذ: " + item.third)
+            addButton(root, "ذکر کاپي کړئ", 1f) {
+                val clip = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clip.setPrimaryClip(android.content.ClipData.newPlainText("ذکر", item.first))
+                Toast.makeText(this, "ذکر کاپي شو", Toast.LENGTH_SHORT).show()
+            }
+        }
+        line("یادونه: دا لومړنی انتخاب دی؛ د بشپړو اذکارو، شمېرونو او روایتونو دقیق تخریج به د وروستۍ نسخې تر خپرېدو مخکې جلا وکتل شي.")
+    }
+
+    private fun showCalculator() {
+        line("ساده محاسبه: جمع، تفریق، ضرب او تقسیم")
+        val display = EditText(this).apply {
+            hint = "0"; textSize = 26f; setTextColor(Color.WHITE); setHintTextColor(Color.GRAY)
+            setSingleLine(true); gravity = Gravity.END; setBackgroundColor(Color.rgb(40, 40, 40))
+        }
+        root.addView(display, LinearLayout.LayoutParams(-1, dp(58)))
+        val keys = listOf("7","8","9","÷","4","5","6","×","1","2","3","−","0",".","C","+","=")
+        keys.chunked(4).forEach { rowKeys ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowKeys.forEach { key -> addButton(row, key, 1f) {
+                when (key) {
+                    "C" -> display.setText("")
+                    "=" -> runCatching { display.setText(calculate(display.text.toString()).toString()) }
+                        .onFailure { Toast.makeText(this, "ناسم محاسبه", Toast.LENGTH_SHORT).show() }
+                    else -> display.append(when (key) { "×" -> "*"; "÷" -> "/"; "−" -> "-"; else -> key })
+                }
+            } }
+            root.addView(row)
+        }
+    }
+
+    private fun calculate(expression: String): Double {
+        class Parser(private val source: String) {
+            var pos = 0
+            fun spaces() { while (pos < source.length && source[pos].isWhitespace()) pos++ }
+            fun eat(c: Char): Boolean { spaces(); if (pos < source.length && source[pos] == c) { pos++; return true }; return false }
+            fun number(): Double { spaces(); val start = pos; while (pos < source.length && (source[pos].isDigit() || source[pos] == '.')) pos++; require(pos > start); return source.substring(start,pos).toDouble() }
+            fun factor(): Double { if (eat('+')) return factor(); if (eat('-')) return -factor(); if (eat('(')) { val v=expr(); require(eat(')')); return v }; return number() }
+            fun term(): Double { var v=factor(); while (true) { if (eat('*')) v*=factor() else if (eat('/')) { val d=factor(); require(d != 0.0); v/=d } else return v } }
+            fun expr(): Double { var v=term(); while (true) { if (eat('+')) v+=term() else if (eat('-')) v-=term() else return v } }
+        }
+        val parser = Parser(expression); val result = parser.expr(); parser.spaces(); require(parser.pos == expression.length); return result
     }
 
     private fun showCalendar() {
