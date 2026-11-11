@@ -21,6 +21,8 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.EditText
+import android.app.AlertDialog
 import android.widget.Toast
 import android.os.Handler
 import android.os.Looper
@@ -45,6 +47,8 @@ class KeyboardService : InputMethodService() {
     private var clipboardPanelVisible = false
     private var emojiCategory = 0
     private var fontStyleIndex = 0
+    private var numberRowEnabled = true
+    private var hapticEnabled = true
     private var pendingVoiceText = ""
     private val voiceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -111,7 +115,9 @@ class KeyboardService : InputMethodService() {
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
-        fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
+        fontStyleIndex = prefs.getInt("fontStyleIndex", 0)
+        numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
+        hapticEnabled = prefs.getBoolean("hapticEnabled", true).coerceIn(0, 2)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -448,7 +454,8 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; refreshKeyboard() }
+        addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; shifted = false; refreshKeyboard() }
+        addSpecial(topTools, "AutoText", 1.0f, 35) { showAutoTextEditor() }
         addSpecial(topTools, "جملې", 1.0f, 35) {
             phrasePanelVisible = !phrasePanelVisible
             toolsPanelVisible = false
@@ -485,7 +492,7 @@ class KeyboardService : InputMethodService() {
                 else -> dariNumbers
             }
 
-            addKeyRow(root, numberRow, 37)
+            if (numberRowEnabled) addKeyRow(root, numberRow, 37)
 
             val rows = when (language) {
                 0 -> pashtoRows
@@ -630,10 +637,7 @@ class KeyboardService : InputMethodService() {
             updateSuggestions()
         }
 
-        addSpecial(bottom, "Space", 3.5f, 42) {
-            currentInputConnection?.commitText(" ", 1)
-            updateSuggestions()
-        }
+        addSpecial(bottom, "Space", 3.5f, 42) { expandAutoTextAndSpace() }
 
         addSpecial(bottom, ".", 0.7f, 42) {
             currentInputConnection?.commitText(".", 1)
@@ -705,6 +709,76 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         parent.addView(themeRow, rowParams(41))
+
+        val typingRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(typingRow, if (numberRowEnabled) "شمېرې: ښکاره" else "شمېرې: پټې", 1.2f, 38) {
+            numberRowEnabled = !numberRowEnabled
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(typingRow, if (hapticEnabled) "رپ: فعال" else "رپ: بند", 1.0f, 38) {
+            hapticEnabled = !hapticEnabled
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(typingRow, "AutoText تنظیم", 1.2f, 38) { showAutoTextEditor() }
+        parent.addView(typingRow, rowParams(41))
+    }
+
+    private fun showAutoTextEditor() {
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val key = "autoText_$language"
+        val rows = prefs.getStringSet(key, emptySet()).orEmpty().mapNotNull {
+            val parts = it.split("|||", limit = 2)
+            if (parts.size == 2) parts[0] to parts[1] else null
+        }.sortedBy { it.first }
+        val display = if (rows.isEmpty()) "تر اوسه شخصي لنډیز نشته." else rows.joinToString("\n") { "${it.first} → ${it.second}" }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(4)) }
+        content.addView(TextView(this).apply { text = display; textSize = 14f })
+        val shortcut = EditText(this).apply { hint = "لنډ کوډ، لکه سلام" }
+        val expansion = EditText(this).apply { hint = "بشپړه جمله یا متن" }
+        content.addView(shortcut); content.addView(expansion)
+        AlertDialog.Builder(this)
+            .setTitle("شخصي AutoText لنډیزونه")
+            .setMessage("لنډ کوډ ولیکئ؛ د Space په وهلو سره به په بشپړ متن بدل شي. دا معلومات یوازې په موبایل کې ساتل کېږي.")
+            .setView(content)
+            .setPositiveButton("ساتل") { _, _ ->
+                val code = shortcut.text.toString().trim()
+                val value = expansion.text.toString().trim()
+                if (code.isNotEmpty() && value.isNotEmpty()) {
+                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                    updated.removeAll { it.substringBefore("|||") == code }
+                    updated.add("$code|||$value")
+                    prefs.edit().putStringSet(key, updated).apply()
+                    Toast.makeText(this, "لنډیز خوندي شو", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton("پاکول") { _, _ ->
+                val code = shortcut.text.toString().trim()
+                if (code.isNotEmpty()) {
+                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                    updated.removeAll { it.substringBefore("|||") == code }
+                    prefs.edit().putStringSet(key, updated).apply()
+                }
+            }
+            .setNegativeButton("بند", null)
+            .show()
+    }
+
+    private fun expandAutoTextAndSpace() {
+        val connection = currentInputConnection ?: return
+        val before = connection.getTextBeforeCursor(100, 0)?.toString().orEmpty()
+        val word = getCurrentWord(before)
+        val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getStringSet("autoText_$language", emptySet()).orEmpty()
+        val expansion = entries.mapNotNull { entry ->
+            val parts = entry.split("|||", limit = 2)
+            if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
+        }.firstOrNull()
+        if (expansion != null && word.isNotEmpty()) {
+            connection.deleteSurroundingText(word.length, 0)
+            connection.commitText("$expansion ", 1)
+        } else connection.commitText(" ", 1)
+        updateSuggestions()
     }
 
     private fun addToolsPanel(parent: LinearLayout) {
@@ -1500,6 +1574,8 @@ class KeyboardService : InputMethodService() {
             .putInt("themeIndex", themeIndex)
             .putInt("keySizeLevel", keySizeLevel)
             .putInt("fontStyleIndex", fontStyleIndex)
+            .putBoolean("numberRowEnabled", numberRowEnabled)
+            .putBoolean("hapticEnabled", hapticEnabled)
             .apply()
     }
 }
