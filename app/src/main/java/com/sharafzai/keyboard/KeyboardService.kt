@@ -654,7 +654,7 @@ class KeyboardService : InputMethodService() {
             text = "د سندس کیبورډ تنظیمات"
             textSize = 14f
             gravity = Gravity.CENTER
-            setTextColor(Color.rgb(38, 45, 55))
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
             typeface = Typeface.DEFAULT_BOLD
         }
         parent.addView(title, rowParams(30))
@@ -840,7 +840,7 @@ class KeyboardService : InputMethodService() {
                 text = "تر اوسه شخصي جمله نه ده ساتل شوې. د کلیپ‌بورډ له برخې څخه جمله وساتئ."
                 textSize = 12f
                 gravity = Gravity.CENTER
-                setTextColor(Color.rgb(45, 52, 62))
+                setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
             }
             parent.addView(empty, rowParams(38))
         }
@@ -871,7 +871,7 @@ class KeyboardService : InputMethodService() {
             text = calculatorExpression.ifEmpty { "0" }
             textSize = 23f
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
-            setTextColor(Color.rgb(38, 45, 55))
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
             setPadding(dp(10), 0, dp(10), 0)
             background = roundedBackground(theme.suggestion, dp(8))
         }
