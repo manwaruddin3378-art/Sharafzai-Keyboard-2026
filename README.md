@@ -9,6 +9,7 @@ A lightweight Android on-screen keyboard with Pashto, Dari, Arabic, and English 
 - An explicit personal dictionary: tap **＋** to save the word currently being typed. Entries are stored locally and separately for each language.
 - Emoji, symbols, and Arabic/Dari diacritics panels.
 - Multiple color themes, remembered language and theme selection.
+- Three adjustable key sizes, remembered locally.
 - Shift, English Caps, Tab, cursor arrows, Space, Enter, and repeating Backspace.
 - Unicode-aware Backspace handling for supplementary characters and joined emoji.
 - English sentence-start capitalization.
