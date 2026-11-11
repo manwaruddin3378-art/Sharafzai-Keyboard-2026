@@ -1,3 +1,5 @@
+import java.net.URL
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -38,7 +40,7 @@ tasks.register("downloadOcrTrainedData") {
         listOf("ara", "fas", "pus", "eng").forEach { language ->
             val target = File(outputDir, "$language.traineddata")
             if (!target.exists() || target.length() < 100_000) {
-                val url = java.net.URL("https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/$language.traineddata")
+                val url = URL("https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/$language.traineddata")
                 url.openStream().use { input -> target.outputStream().use { output -> input.copyTo(output) } }
             }
         }
