@@ -98,7 +98,7 @@ class KeyboardService : InputMethodService() {
             MODE_PRIVATE
         )
 
-        language = prefs.getInt("language", 0).coerceIn(0, 2)
+        language = prefs.getInt("language", 0).coerceIn(0, 3)
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
     }
@@ -137,6 +137,13 @@ class KeyboardService : InputMethodService() {
             "good", "great", "go", "get",
             "keyboard", "language", "computer",
             "school", "student", "thank", "thanks"
+        ),
+        3 to listOf(
+            "الله", "محمد", "اسلام", "قرآن", "کتاب",
+            "مکتب", "پوهنتون", "دري", "زبان",
+            "علم", "استاد", "شاگرد", "دوست",
+            "برادر", "خواهر", "خانه", "کار", "زندگی",
+            "خوب", "تشکر", "سلام", "روز", "شب"
         )
     )
 
@@ -185,6 +192,26 @@ class KeyboardService : InputMethodService() {
         )
     )
 
+    private val dariRows = listOf(
+        listOf(
+            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
+            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
+            k("ع", "َ"), k("ه", "ّ"), k("خ", "أ"),
+            k("ح", "آ"), k("ج", "ئ"), k("چ", "ء")
+        ),
+        listOf(
+            k("ش", "ښ"), k("س", "ث"), k("ی", "ي"),
+            k("ب", "پ"), k("ل", "ل"), k("ا", "آ"),
+            k("ت", "ټ"), k("ن", "ڼ"), k("م", "ة"),
+            k("ک", "ك"), k("گ", "ګ")
+        ),
+        listOf(
+            k("ظ", "ژ"), k("ط", "ئ"), k("ز", "ذ"),
+            k("ر", "ړ"), k("د", "ډ"), k("و", "ؤ"),
+            k("پ", "ث"), k("،", "؛"), k("/", "؟")
+        )
+    )
+
     private val englishRows = listOf(
         listOf(
             k("q", "Q", "1"), k("w", "W", "2"),
@@ -224,6 +251,13 @@ class KeyboardService : InputMethodService() {
         k("٧", "&", "7"), k("٨", "*", "8"),
         k("٩", "(", "9"), k("٠", ")", "0"),
         k("-", "_"), k("=", "+")
+    )
+
+    private val dariNumbers = listOf(
+        k("۱", "!"), k("۲", "@"), k("۳", "#"),
+        k("۴", "$"), k("۵", "%"), k("۶", "^"),
+        k("۷", "&"), k("۸", "*"), k("۹", "("),
+        k("۰", ")"), k("-", "_"), k("=", "+")
     )
 
     private val englishNumbers = listOf(
@@ -280,7 +314,8 @@ class KeyboardService : InputMethodService() {
             text = when (language) {
                 0 -> "SHARAFZAI  •  پښتو"
                 1 -> "SHARAFZAI  •  العربية"
-                else -> "SHARAFZAI  •  ENGLISH"
+                2 -> "SHARAFZAI  •  ENGLISH"
+                else -> "SHARAFZAI  •  دری"
             }
             textSize = 14f
             setTextColor(Color.WHITE)
@@ -294,7 +329,7 @@ class KeyboardService : InputMethodService() {
         )
 
         addSpecial(header, "🌐", 0.8f, 29) {
-            language = (language + 1) % 3
+            language = (language + 1) % 4
             shifted = false
             caps = false
             saveSettings()
@@ -320,7 +355,8 @@ class KeyboardService : InputMethodService() {
         val numberRow = when (language) {
             0 -> pashtoNumbers
             1 -> arabicNumbers
-            else -> englishNumbers
+            2 -> englishNumbers
+            else -> dariNumbers
         }
 
         addKeyRow(root, numberRow, 37)
@@ -328,7 +364,8 @@ class KeyboardService : InputMethodService() {
         val rows = when (language) {
             0 -> pashtoRows
             1 -> arabicRows
-            else -> englishRows
+            2 -> englishRows
+            else -> dariRows
         }
 
         rows.forEach { row ->
