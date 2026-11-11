@@ -12,6 +12,9 @@ import android.os.Bundle
 import android.provider.Settings
 import android.graphics.Color
 import android.graphics.Bitmap
+import android.media.MediaPlayer
+import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
 import android.graphics.pdf.PdfRenderer as AndroidPdfRenderer
 import android.view.Gravity
 import android.widget.*
@@ -33,6 +36,9 @@ class MainActivity : Activity() {
     private var page = "home"
     private var openedPdfUri: Uri? = null
     private var pdfPageIndex = 0
+    private var textToSpeech: TextToSpeech? = null
+    private var audioPlayer: MediaPlayer? = null
+    private var currentAudioPath: String? = null
     private var chosen = Calendar.getInstance()
     private lateinit var root: LinearLayout
     private var homeDhikrView: TextView? = null
@@ -121,6 +127,8 @@ class MainActivity : Activity() {
             "adhkar", "morning", "evening" -> showAdhkar(page)
             "phrases" -> showPhrases()
             "language_tools" -> showLanguageTools()
+            "voice_tools" -> showVoiceTools()
+            "audio_library" -> showAudioLibrary()
             "library" -> showLibrary()
             "pdf_viewer" -> showPdfViewer()
             "keyboard" -> showKeyboardSetup()
@@ -154,11 +162,228 @@ class MainActivity : Activity() {
         addButton(root, "اذکار ماښام", 1f) { page = "evening"; render() }
         addButton(root, "اسلامي او ورځنۍ جملې", 1f) { page = "phrases"; render() }
         addButton(root, "پښتو ـ انګلیسي ـ عربي قاموس او ژباړه", 1f) { page = "language_tools"; render() }
+        addButton(root, "غږ په لیکنه او لیکنه په غږ", 1f) { page = "voice_tools"; render() }
+        addButton(root, "د علماوو آډیو بیانونه", 1f) { page = "audio_library"; render() }
         addButton(root, "زما کتابتون (PDF کتابونه او لیکنې)", 1f) { page = "library"; render() }
         addButton(root, "تنظیمات", 1f) { page = "settings"; render() }
         line("د موبایل پر اصلي سکرین د تلپاتې اذکارو لپاره: د موبایل پر تش ځای ګوته لږه شېبه کېږدئ، Widgets/ویجټونه خلاص کړئ، «د شرفزی اذکار» ومومئ او سکرین ته یې راکش کړئ. پر ویجټ ټک وکړئ، د اذکارو پاڼه به پرانیستل شي.")
     }
 
+
+
+    private fun showVoiceTools() {
+        line("غږ په لیکنه بدلول او لیکل شوی متن په غږ اورېدل. د غږ پېژندنې شتون او انټرنېټي اړتیا د موبایل له خدمت سره تړلې ده.")
+        val languageOptions = listOf("پښتو" to "ps-AF", "دري" to "fa-AF", "عربي" to "ar", "انګلیسي" to "en-US")
+        val language = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, languageOptions.map { it.first })
+        }
+        root.addView(language, LinearLayout.LayoutParams(-1, dp(48)))
+        val textBox = EditText(this).apply {
+            hint = "دلته متن ولیکئ یا د غږ له لارې یې واورئ"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            minLines = 5
+            gravity = Gravity.TOP
+        }
+        root.addView(textBox, LinearLayout.LayoutParams(-1, dp(150)))
+        addButton(root, "🎙 غږ په لیکنه بدلول", 1f) {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageOptions[language.selectedItemPosition].second)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageOptions[language.selectedItemPosition].second)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "اوس خبرې وکړئ")
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            }
+            try {
+                startActivityForResult(intent, VOICE_REQUEST)
+            } catch (_: Exception) {
+                Toast.makeText(this, "په موبایل کې د غږ پېژندنې خدمت ونه موندل شو؛ اړوند خدمت نصب یا فعال کړئ.", Toast.LENGTH_LONG).show()
+            }
+        }
+        addButton(root, "🔊 لیکل شوی متن په غږ واورئ", 1f) {
+            val spokenText = textBox.text.toString().trim()
+            if (spokenText.isEmpty()) {
+                Toast.makeText(this, "لومړی متن ولیکئ یا ثبت کړئ", Toast.LENGTH_SHORT).show()
+            } else {
+                val selectedLocale = when (languageOptions[language.selectedItemPosition].second) {
+                    "ps-AF" -> Locale("ps", "AF")
+                    "fa-AF" -> Locale("fa", "AF")
+                    "ar" -> Locale("ar")
+                    else -> Locale.US
+                }
+                val speakNow = {
+                    val result = textToSpeech?.setLanguage(selectedLocale)
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        Toast.makeText(this, "دا ژبه د موبایل په غږیز انجن کې نه شته؛ د TTS ژبني معلومات نصب کړئ.", Toast.LENGTH_LONG).show()
+                    } else {
+                        textToSpeech?.speak(spokenText, TextToSpeech.QUEUE_FLUSH, null, "sharafzai-tts")
+                    }
+                }
+                if (textToSpeech == null) {
+                    textToSpeech = TextToSpeech(this) { status ->
+                        if (status == TextToSpeech.SUCCESS) runOnUiThread { speakNow() }
+                        else Toast.makeText(this, "د متن غږیز انجن فعال نه شو.", Toast.LENGTH_LONG).show()
+                    }
+                } else speakNow()
+            }
+        }
+        addButton(root, "متن پاکول", 1f) { textBox.setText("") }
+        line("یادونه: غږ په لیکنه بدلول د Android د غږ پېژندنې اپ/خدمت کاروي او کېدای شي انټرنېټ وغواړي. د لیکنې په غږ بدلول د موبایل د Text-to-Speech انجن او د هغې د ژبو له ملاتړ سره تړلي دي؛ پښتو غږ په هر موبایل کې تضمین نه دی.")
+    }
+
+    private fun showAudioLibrary() {
+        line("د علماوو بیانونه، درسونه او ویناوې دلته ورزیاتې کړئ. آډیو فایلونه د شرفزی اپلیکیشن په خپل حافظه کې ساتل کېږي.")
+        addButton(root, "＋ نوی آډیو بیان ورزیات کړئ", 1f) {
+            val pick = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "audio/*"
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            try {
+                startActivityForResult(pick, AUDIO_PICK_REQUEST)
+            } catch (_: Exception) {
+                Toast.makeText(this, "د فایلونو ټاکلو اپلیکیشن ونه موندل شو", Toast.LENGTH_LONG).show()
+            }
+        }
+        val library = readAudioLibrary()
+        line("ثبت شوي بیانونه: ${library.length()}")
+        if (library.length() == 0) line("تر اوسه آډیو نه ده ورزیاته شوې.")
+        for (i in 0 until library.length()) {
+            val item = library.optJSONObject(i) ?: continue
+            val title = item.optString("title", "بې نومه بیان")
+            val scholar = item.optString("scholar", "ناټاکلی عالم")
+            val path = item.optString("path", "")
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(10), dp(8), dp(10), dp(8))
+                setBackgroundColor(Color.rgb(38, 38, 38))
+            }
+            card.addView(TextView(this).apply {
+                text = title
+                textSize = 17f
+                setTextColor(Color.WHITE)
+            })
+            card.addView(TextView(this).apply {
+                text = "ویناوال: $scholar"
+                textSize = 13f
+                setTextColor(Color.LTGRAY)
+            })
+            val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            addButton(actions, "▶ اورېدل", 1f) { playAudio(path) }
+            addButton(actions, "■ درول", 1f) { stopAudio() }
+            addButton(actions, "حذف", 0.8f) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("آډیو حذفول؟")
+                    .setMessage("«$title» به له شرفزی آډیو کتابتون او د اپلیکیشن له حافظې حذف شي.")
+                    .setPositiveButton("حذف") { _, _ ->
+                        stopAudio()
+                        runCatching { File(path).delete() }
+                        val updated = org.json.JSONArray()
+                        for (j in 0 until library.length()) {
+                            val old = library.optJSONObject(j) ?: continue
+                            if (old.optString("path") != path) updated.put(old)
+                        }
+                        prefs.edit().putString("audio_library", updated.toString()).apply()
+                        render()
+                    }
+                    .setNegativeButton("نه", null).show()
+            }
+            card.addView(actions)
+            root.addView(card)
+        }
+        line("آفلاین اورېدل: یو ځل چې آډیو فایل ورزیات شي، بیا یې د انټرنېټ پرته اورېدلای شئ.")
+    }
+
+    private fun readAudioLibrary(): org.json.JSONArray =
+        runCatching { org.json.JSONArray(prefs.getString("audio_library", "[]") ?: "[]") }
+            .getOrDefault(org.json.JSONArray())
+
+    private fun playAudio(path: String) {
+        try {
+            stopAudio()
+            audioPlayer = MediaPlayer().apply {
+                setDataSource(path)
+                setOnPreparedListener { player ->
+                    player.start()
+                    Toast.makeText(this@MainActivity, "آډیو پیل شو", Toast.LENGTH_SHORT).show()
+                }
+                setOnErrorListener { _, _, _ ->
+                    Toast.makeText(this@MainActivity, "دا آډیو فایل نه شي غږېدلی.", Toast.LENGTH_LONG).show()
+                    stopAudio()
+                    true
+                }
+                prepareAsync()
+            }
+            currentAudioPath = path
+        } catch (_: Exception) {
+            Toast.makeText(this, "آډیو پرانیستل نه شو.", Toast.LENGTH_LONG).show()
+            stopAudio()
+        }
+    }
+
+    private fun stopAudio() {
+        runCatching { audioPlayer?.stop() }
+        runCatching { audioPlayer?.release() }
+        audioPlayer = null
+        currentAudioPath = null
+    }
+
+    private fun saveAudioFile(uri: Uri) {
+        val folder = File(filesDir, "audio_library").apply { mkdirs() }
+        val destination = File(folder, "audio_${System.currentTimeMillis()}.media")
+        Thread {
+            val copied = runCatching {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    destination.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw IllegalStateException("فایل لوستل کېدای نه شول")
+            }
+            runOnUiThread {
+                if (copied.isFailure) {
+                    destination.delete()
+                    Toast.makeText(this, "آډیو فایل خوندي نه شو.", Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                val title = EditText(this).apply {
+                    hint = "د بیان سرلیک"
+                    setTextColor(Color.WHITE)
+                }
+                val scholar = EditText(this).apply {
+                    hint = "د عالم/ویناوال نوم"
+                    setTextColor(Color.WHITE)
+                }
+                val panel = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(20), dp(8), dp(20), 0)
+                    addView(title)
+                    addView(scholar)
+                }
+                AlertDialog.Builder(this)
+                    .setTitle("د آډیو معلومات")
+                    .setView(panel)
+                    .setPositiveButton("ساتل") { _, _ ->
+                        val library = readAudioLibrary()
+                        library.put(org.json.JSONObject()
+                            .put("path", destination.absolutePath)
+                            .put("title", title.text.toString().trim().ifBlank { "د عالم بیان" })
+                            .put("scholar", scholar.text.toString().trim().ifBlank { "ناټاکلی عالم" })
+                            .put("added", System.currentTimeMillis()))
+                        prefs.edit().putString("audio_library", library.toString()).apply()
+                        Toast.makeText(this, "آډیو بیان خوندي شو", Toast.LENGTH_SHORT).show()
+                        render()
+                    }
+                    .setNegativeButton("لغوه") { _, _ -> destination.delete() }
+                    .show()
+            }
+        }.start()
+    }
+
+    override fun onDestroy() {
+        stopAudio()
+        textToSpeech?.stop()
+        textToSpeech?.shutdown()
+        textToSpeech = null
+        super.onDestroy()
+    }
 
     private fun showLanguageTools() {
         line("آنلاین قاموس او ژباړه: د دې برخې د کارولو لپاره انټرنېټ ته اړتیا ده. نور د اپ وسایل آفلاین کار کوي.")
@@ -560,6 +785,19 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VOICE_REQUEST && resultCode == RESULT_OK) {
+            val recognized = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!recognized.isNullOrBlank()) {
+                val focused = currentFocus
+                if (focused is EditText) focused.append(if (focused.text.isNullOrBlank()) recognized else " $recognized")
+                else Toast.makeText(this, recognized, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+        if (requestCode == AUDIO_PICK_REQUEST && resultCode == RESULT_OK) {
+            data?.data?.let { saveAudioFile(it) }
+            return
+        }
         if (requestCode != PDF_PICK_REQUEST || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         try {
@@ -601,6 +839,8 @@ class MainActivity : Activity() {
 
     companion object {
         private const val PDF_PICK_REQUEST = 7401
+        private const val VOICE_REQUEST = 7402
+        private const val AUDIO_PICK_REQUEST = 7403
     }
 
     private fun showKeyboardSetup() {
