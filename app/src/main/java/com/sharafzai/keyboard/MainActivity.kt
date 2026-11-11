@@ -267,7 +267,7 @@ class MainActivity : Activity() {
                                         val bitmap = renderer.renderImageWithDPI(pageNumber - 1, 220f, ImageType.GRAY)
                                         try {
                                             tess?.setImage(bitmap)
-                                            val recognized = tess?.utF8Text ?: ""
+                                            val recognized = tess?.getUTF8Text() ?: ""
                                             if (recognized.isNotBlank()) pageText = recognized
                                         } finally {
                                             bitmap.recycle()
