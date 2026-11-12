@@ -658,7 +658,7 @@ class KeyboardService : InputMethodService() {
 
         root.addView(controlRow, rowParams(41))
 
-        if (diacriticsPanelVisible && (language == 1 || language == 3)) {
+        if (diacriticsPanelVisible && (language == 1 || language == 3 || language == 4)) {
             val diacriticKeys = listOf(
                 k("َ"), k("ً"), k("ُ"), k("ٌ"),
                 k("ِ"), k("ٍ"), k("ْ"), k("ّ"),
@@ -760,7 +760,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(row, "ژبه: ${listOf("پښتو", "عربي", "English", "دري", "اردو")[language]}", 1.5f, 40) {
-            language = (language + 1) % 4
+            language = (language + 1) % 5
             shifted = false
             caps = false
             lastShiftTapAt = 0L
@@ -834,6 +834,7 @@ class KeyboardService : InputMethodService() {
         addSpecial(dictionaryRow, "شخصي قاموس", 1.2f, 38) {
             showPersonalDictionaryEditor()
         }
+        addSpecial(dictionaryRow, "ایمیل تنظیم", 1.0f, 38) { showEmailSetup() }
         addSpecial(dictionaryRow, "کلمه اضافه", 1.0f, 38) {
             addCurrentWordToDictionary()
         }
@@ -845,7 +846,7 @@ class KeyboardService : InputMethodService() {
         val dictionaryKey = "personalWords_$language"
         val words = prefs.getStringSet(dictionaryKey, emptySet())
             ?.toMutableSet() ?: mutableSetOf()
-        val languageName = listOf("پښتو", "عربي", "English", "دري")[language]
+        val languageName = listOf("پښتو", "عربي", "English", "دري", "اردو")[language]
 
         fun showList() {
             val current = prefs.getStringSet(dictionaryKey, emptySet())
@@ -1826,7 +1827,31 @@ class KeyboardService : InputMethodService() {
         val container = suggestionContainer ?: return
 
         container.removeAllViews()
-
+        val editorType = currentInputEditorInfo?.inputType ?: 0
+        val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
+        val savedEmail = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", "").orEmpty()
+        if (variation == android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS && savedEmail.isNotBlank()) {
+            val emailChip = TextView(this).apply {
+                text = "✉ $savedEmail"; textSize = 14f; gravity = Gravity.CENTER
+                setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38,45,55))
+                setPadding(dp(10), dp(3), dp(10), dp(3)); background = roundedBackground(theme.keyColors[0], dp(8))
+                setOnClickListener { currentInputConnection?.commitText(savedEmail, 1); updateSuggestions() }
+            }
+            container.addView(emailChip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(30)))
+            return
+        }
+        val clip = (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip
+        val clipText = if (clip != null && clip.itemCount > 0) clip.getItemAt(0).coerceToText(this).toString() else ""
+        val otp = Regex("(?<!\\d)\\d{4,8}(?!\\d)").find(clipText)?.value
+        if (otp != null && (editorType and android.text.InputType.TYPE_MASK_CLASS) == android.text.InputType.TYPE_CLASS_NUMBER) {
+            val otpChip = TextView(this).apply {
+                text = "OTP: $otp"; textSize = 14f; gravity = Gravity.CENTER
+                setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38,45,55))
+                setOnClickListener { currentInputConnection?.commitText(otp, 1); updateSuggestions() }
+            }
+            container.addView(otpChip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(30)))
+            return
+        }
         val suggestions = getOfflineSuggestions()
 
         suggestions.forEach { word ->
@@ -2012,6 +2037,19 @@ class KeyboardService : InputMethodService() {
         return (
             value * resources.displayMetrics.density
         ).toInt()
+    }
+
+    private fun showEmailSetup() {
+        val input = EditText(this).apply {
+            hint = "name@example.com"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            setText(getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", ""))
+        }
+        AlertDialog.Builder(this).setTitle("ستاسو ایمیل").setMessage("ایمیل یوازې په دې موبایل کې ساتل کېږي او د ایمیل په خانه کې به په یوه ټک ښکاره شي.")
+            .setView(input).setPositiveButton("ساتل") { _, _ ->
+                getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).edit().putString("preferredEmail", input.text.toString().trim()).apply()
+                refreshKeyboard()
+            }.setNegativeButton("بند", null).show()
     }
 
     private fun saveSettings() {
