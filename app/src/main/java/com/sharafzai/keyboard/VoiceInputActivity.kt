@@ -15,7 +15,7 @@ class VoiceInputActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        languageIndex = intent.getIntExtra("language", 0).coerceIn(0, 3)
+        languageIndex = intent.getIntExtra("language", 0).coerceIn(0, 4)
         setContentView(TextView(this).apply {
             text = "د سندس غږیز لیکل\n\nد غږ پېژندنې کړکۍ پرانیستل کېږي. د آفلاین کار لپاره باید ستاسو په موبایل کې د اړوندې ژبې آفلاین غږیزه بسته نصب وي."
             textSize = 18f
@@ -32,7 +32,7 @@ class VoiceInputActivity : Activity() {
     }
 
     private fun launchRecognition() {
-        val locales = listOf("ps-AF", "ar", "en-US", "fa-AF")
+        val locales = listOf("ps-AF", "ar", "en-US", "fa-AF", "ur-PK")
         val locale = locales[languageIndex]
         val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
