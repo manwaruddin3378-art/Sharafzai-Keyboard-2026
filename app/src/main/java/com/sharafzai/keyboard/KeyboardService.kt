@@ -80,6 +80,9 @@ class KeyboardService : InputMethodService() {
     }
     private var calculatorExpression = ""
 
+    private data class GlideKey(val view: View, val value: String)
+    private val glideKeys = mutableListOf<GlideKey>()
+
     private data class KeyboardTheme(
         val background: Int,
         val keyColors: List<Int>,
@@ -381,6 +384,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun buildKeyboard(): View {
+        glideKeys.clear()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(3), dp(4), dp(3), dp(4))
@@ -1299,6 +1303,112 @@ class KeyboardService : InputMethodService() {
         }
     }
 
+    private val handler = Handler(Looper.getMainLooper())
+
+    private fun commitKeyTap(spec: KeySpec, frame: View) {
+        val before = currentInputConnection?.getTextBeforeCursor(30, 0)?.toString().orEmpty()
+        val previous = before.trimEnd().lastOrNull()
+        val sentenceStart = before.isBlank() || previous == null ||
+            previous in listOf('.', '?', '!', '؟', '\\n')
+        val output = when {
+            shifted && spec.shifted.isNotEmpty() -> spec.shifted
+            language == 2 && (caps || shifted || sentenceStart) -> spec.normal.uppercase()
+            else -> spec.normal
+        }
+        currentInputConnection?.commitText(output, 1)
+        if (hapticEnabled) frame.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        if (soundEnabled) {
+            (getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager)
+                .playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD)
+        }
+        if (shifted && !caps) {
+            shifted = false
+            lastShiftTapAt = 0L
+            refreshKeyboard()
+        }
+        updateSuggestions()
+    }
+
+    private fun showAlternatePopup(anchor: View, alternate: String) {
+        val preview = TextView(this).apply {
+            text = alternate
+            textSize = 22f
+            gravity = Gravity.CENTER
+            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(35, 42, 52))
+            background = roundedBackground(theme.special, dp(12))
+            elevation = dp(8).toFloat()
+        }
+        val popup = PopupWindow(preview, dp(42), dp(42), false).apply {
+            isOutsideTouchable = false
+            elevation = dp(8).toFloat()
+        }
+        popup.showAsDropDown(anchor, 0, -anchor.height - dp(44))
+        anchor.postDelayed({ if (popup.isShowing) popup.dismiss() }, 650)
+    }
+
+    private fun addGlidePath(path: MutableList<String>, value: String) {
+        if (path.lastOrNull() != value) path.add(value)
+    }
+
+    private fun findGlideKey(rawX: Float, rawY: Float): GlideKey? {
+        val location = IntArray(2)
+        var nearest: GlideKey? = null
+        var nearestDistance = Double.MAX_VALUE
+        glideKeys.forEach { key ->
+            if (key.view.width <= 0 || key.view.height <= 0) return@forEach
+            key.view.getLocationOnScreen(location)
+            val centerX = location[0] + key.view.width / 2f
+            val centerY = location[1] + key.view.height / 2f
+            val distance = kotlin.math.hypot(
+                (rawX - centerX).toDouble(),
+                (rawY - centerY).toDouble()
+            )
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearest = key
+            }
+        }
+        return nearest?.takeIf { nearestDistance <= dp(48) }
+    }
+
+    private fun predictGlideWord(path: List<String>): String? {
+        val typedPath = path.joinToString("").lowercase()
+        if (typedPath.length < 3) return null
+        val personalWords = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+            .getStringSet("personalWords_$language", emptySet()).orEmpty()
+        val candidates = (offlineWords[language].orEmpty() + personalWords)
+            .distinct()
+            .filter { it.length >= 3 }
+        val ranked = candidates.map { word ->
+            word to glideEditDistance(typedPath, word.lowercase())
+        }.sortedWith(compareBy<Pair<String, Int>> { it.second }.thenBy { kotlin.math.abs(it.first.length - typedPath.length) })
+        val best = ranked.firstOrNull() ?: return null
+        val maxDistance = maxOf(1, typedPath.length / 5)
+        if (best.second > maxDistance) return null
+        if (ranked.size > 1 && ranked[1].second == best.second &&
+            kotlin.math.abs(ranked[1].first.length - typedPath.length) ==
+            kotlin.math.abs(best.first.length - typedPath.length)) return null
+        return best.first
+    }
+
+    private fun glideEditDistance(a: String, b: String): Int {
+        var previous = IntArray(b.length + 1) { it }
+        for (i in a.indices) {
+            val current = IntArray(b.length + 1)
+            current[0] = i + 1
+            for (j in b.indices) {
+                val cost = if (a[i] == b[j]) 0 else 1
+                current[j + 1] = minOf(
+                    current[j] + 1,
+                    previous[j + 1] + 1,
+                    previous[j] + cost
+                )
+            }
+            previous = current
+        }
+        return previous[b.length]
+    }
+
     private fun addKeyRow(
         parent: LinearLayout,
         keys: List<KeySpec>,
@@ -1376,66 +1486,84 @@ class KeyboardService : InputMethodService() {
             )
             frame.elevation = dp(1).toFloat()
 
-            frame.setOnClickListener {
-                val before = currentInputConnection
-                    ?.getTextBeforeCursor(30, 0)
-                    ?.toString().orEmpty()
-
-                val previous = before.trimEnd().lastOrNull()
-
-                val sentenceStart =
-                    before.isBlank() ||
-                    previous == null ||
-                    previous in listOf('.', '?', '!', '؟', '\n')
-
-                val output = when {
-                    shifted && spec.shifted.isNotEmpty() ->
-                        spec.shifted
-
-                    language == 2 &&
-                        (caps || shifted || sentenceStart) ->
-                        spec.normal.uppercase()
-
-                    else -> spec.normal
+            if (spec.normal.length == 1 && spec.normal[0].isLetter()) {
+                glideKeys.add(GlideKey(frame, spec.normal))
+                var downRawX = 0f
+                var downRawY = 0f
+                var glideStarted = false
+                var longPressHandled = false
+                val path = mutableListOf<String>()
+                val longPressTask = Runnable {
+                    if (!glideStarted && longPressOutput.isNotEmpty()) {
+                        currentInputConnection?.commitText(longPressOutput, 1)
+                        showAlternatePopup(frame, longPressOutput)
+                        longPressHandled = true
+                        updateSuggestions()
+                    }
                 }
 
-                currentInputConnection?.commitText(output, 1)
-                if (hapticEnabled) frame.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-                if (soundEnabled) (getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager).playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD)
-
-                if (shifted && !caps) {
-                    shifted = false
-                    lastShiftTapAt = 0L
-                    refreshKeyboard()
+                frame.setOnTouchListener { _, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            downRawX = event.rawX
+                            downRawY = event.rawY
+                            glideStarted = false
+                            longPressHandled = false
+                            path.clear()
+                            path.add(spec.normal)
+                            handler.postDelayed(longPressTask, android.view.ViewConfiguration.getLongPressTimeout().toLong())
+                            true
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            val moved = kotlin.math.hypot(
+                                (event.rawX - downRawX).toDouble(),
+                                (event.rawY - downRawY).toDouble()
+                            )
+                            if (moved > dp(10)) handler.removeCallbacks(longPressTask)
+                            if (moved > dp(17)) glideStarted = true
+                            if (glideStarted && !longPressHandled) {
+                                findGlideKey(event.rawX, event.rawY)?.let { addGlidePath(path, it.value) }
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            handler.removeCallbacks(longPressTask)
+                            if (longPressHandled) {
+                                true
+                            } else if (glideStarted && path.size >= 3) {
+                                findGlideKey(event.rawX, event.rawY)?.let { addGlidePath(path, it.value) }
+                                val candidate = predictGlideWord(path)
+                                val output = candidate ?: path.joinToString("")
+                                currentInputConnection?.commitText(output, 1)
+                                updateSuggestions()
+                                true
+                            } else {
+                                commitKeyTap(spec, frame)
+                                true
+                            }
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            handler.removeCallbacks(longPressTask)
+                            true
+                        }
+                        else -> true
+                    }
+                }
+            } else {
+                frame.setOnClickListener {
+                    commitKeyTap(spec, frame)
                 }
 
-                updateSuggestions()
-            }
-
-            frame.setOnLongClickListener {
-                val alternate = longPressOutput
-
-                if (alternate.isEmpty()) {
-                    false
-                } else {
-                    // Insert the alternate character immediately on long press.
-                    currentInputConnection?.commitText(alternate, 1)
-                    val preview = TextView(this).apply {
-                        text = alternate
-                        textSize = 22f
-                        gravity = Gravity.CENTER
-                        setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(35, 42, 52))
-                        background = roundedBackground(theme.special, dp(12))
-                        elevation = dp(8).toFloat()
+                frame.setOnLongClickListener {
+                    val alternate = longPressOutput
+                    if (alternate.isEmpty()) {
+                        false
+                    } else {
+                        currentInputConnection?.commitText(alternate, 1)
+                        showAlternatePopup(frame, alternate)
+                        updateSuggestions()
+                        true
                     }
-                    val popup = PopupWindow(preview, dp(42), dp(42), false).apply {
-                        isOutsideTouchable = false
-                        elevation = dp(8).toFloat()
-                    }
-                    popup.showAsDropDown(frame, 0, -frame.height - dp(44))
-                    frame.postDelayed({ if (popup.isShowing) popup.dismiss() }, 650)
-                    updateSuggestions()
-                    true
                 }
             }
 
