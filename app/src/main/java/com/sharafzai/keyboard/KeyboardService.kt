@@ -220,6 +220,7 @@ class KeyboardService : InputMethodService() {
         )
     )
 
+    // Arabic 101-style QWERTY layout; diacritics remain available on Shift and in the tashkeel panel.
     private val arabicRows = listOf(
         listOf(
             k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
@@ -232,16 +233,17 @@ class KeyboardService : InputMethodService() {
             k("ش", "ْ"), k("س", "ٌ"), k("ي", "ٍ"),
             k("ب", "ً"), k("ل", "ُ"), k("ا", "ِ"),
             k("ت", "َ"), k("ن", "ّ"), k("م", "أ"),
-            k("ك", "آ"), k("ة", "ئ"), k("ؤ", "ء")
+            k("ك", "آ"), k("ط", "ئ")
         ),
         listOf(
-            k("ز", "َ"), k("ر", "ِ"), k("ط", "ّ"),
-            k("ظ", "ْ"), k("و", "ٌ"), k("ء", "ٍ"),
-            k("ئ", "ً"), k("أ", "ُ"), k("آ", "ِ"),
-            k("ى", "َ")
+            k("ئ", "ً"), k("ء", "ٍ"), k("ؤ", "ُ"),
+            k("ر", "ِ"), k("لا", "َ"), k("ى", "ّ"),
+            k("ة", "ْ"), k("و", "ٌ"), k("ز", "َ"),
+            k("ظ", "ّ")
         )
     )
 
+    // Dari/Persian QWERTY layout with Afghanistan-specific letters.
     private val dariRows = listOf(
         listOf(
             k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
@@ -251,14 +253,13 @@ class KeyboardService : InputMethodService() {
         ),
         listOf(
             k("ش", "ښ"), k("س", "ث"), k("ی", "ي"),
-            k("ب", "پ"), k("ل", "ل"), k("ا", "آ"),
+            k("ب", "پ"), k("ل"), k("ا", "آ"),
             k("ت", "ټ"), k("ن", "ڼ"), k("م", "ة"),
             k("ک", "ك"), k("گ", "ګ")
         ),
         listOf(
-            k("ظ", "ژ"), k("ط", "ئ"), k("ز", "ذ"),
-            k("ر", "ړ"), k("د", "ډ"), k("و", "ؤ"),
-            k("پ", "ث"), k("،", "؛"), k("/", "؟")
+            k("ظ"), k("ط"), k("ز"), k("ر"),
+            k("ذ"), k("د"), k("پ"), k("و"), k("ژ")
         )
     )
 
