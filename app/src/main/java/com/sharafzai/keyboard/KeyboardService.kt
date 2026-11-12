@@ -472,7 +472,7 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; shifted = false; refreshKeyboard() }
+        addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; shifted = false; lastShiftTapAt = 0L; refreshKeyboard() }
         addSpecial(topTools, "AutoText", 1.0f, 35) { showAutoTextEditor() }
         addSpecial(topTools, "جملې", 1.0f, 35) {
             phrasePanelVisible = !phrasePanelVisible
@@ -715,6 +715,7 @@ class KeyboardService : InputMethodService() {
             language = (language + 1) % 4
             shifted = false
             caps = false
+            lastShiftTapAt = 0L
             saveSettings()
             refreshKeyboard()
         }
