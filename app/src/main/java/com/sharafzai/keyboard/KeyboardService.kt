@@ -92,7 +92,7 @@ class KeyboardService : InputMethodService() {
         val border: Int
     )
 
-    // Six lightweight, fully offline color themes with high-contrast text.
+    // Forty lightweight, fully offline color themes with high-contrast text.
     private val themes = (listOf(
         KeyboardTheme(Color.rgb(241, 244, 248),
             listOf(Color.rgb(255, 255, 255), Color.rgb(250, 252, 255), Color.rgb(235, 240, 247)),
@@ -215,7 +215,7 @@ class KeyboardService : InputMethodService() {
             "امروز","فردا","دیروز","دوست","مهربانی","محبت","سلامت","درست","اشتباه","آسان","سخت","بسیار",
             "خوش","خوشحال","انشاءالله","الحمدلله"
         ),
-        4 to listOf("اللہ","محمد","اسلام","قرآن","کتاب","مدرسہ","اردو","زبان","علم","استاد","طالب","دوست","گھر","کام","زندگی","شکریہ","سلام","صبح","شام","دن","رات","ہفتہ","مہینہ","سال","وقت","پیغام","موبائل","خاندان","مسجد","قلم","خوبصورت","آج","کل","کیوں","کہاں","کیا","کون","کیسے","جی","نہیں","براہ","کرم","مہربانی","انشاءاللہ","الحمدللہ")
+        4 to listOf("اللہ","محمد","اسلام","قرآن","کتاب","مدرسہ","اردو","زبان","علم","استاد","طالب","دوست","گھر","کام","زندگی","شکریہ","سلام","صبح","شام","دن","رات","ہفتہ","مہینہ","سال","وقت","پیغام","موبائل","خاندان","مسجد","قلم","خوبصورت","آج","کل","کیوں","کہاں","کیا","کون","کیسے","جی","نہیں","براہ","کرم","مہربانی","انشاءاللہ","الحمدللہ","میں","آپ","تم","ہم","وہ","یہ","میرا","آپکا","اچھا","بہت","ضرور","براہِ","معاف","کیجیے","مدد","پانی","کھانا","کتابیں","تعلیم","طالبعلم","خوشی","محبت","پاکستان","افغانستان","پشاور","کابل","جلال آباد","اللہ تعالیٰ","رسول","صلی","وسلم")
     )
 
     // Microsoft Windows Pashto (Afghanistan), KLID 00000463.
@@ -752,8 +752,8 @@ class KeyboardService : InputMethodService() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        addSpecial(row, "اندازه: ${listOf("وړه", "منځنۍ", "لویه")[keySizeLevel]}", 1.4f, 40) {
-            keySizeLevel = (keySizeLevel + 1) % 3
+        addSpecial(row, "اندازه: ${listOf("ډېره وړه", "وړه", "منځنۍ", "لویه", "ډېره لویه")[keySizeLevel]}", 1.4f, 40) {
+            keySizeLevel = (keySizeLevel + 1) % 5
             saveSettings()
             refreshKeyboard()
         }
@@ -1624,7 +1624,7 @@ class KeyboardService : InputMethodService() {
                 theme.special,
                 dp(10)
             )
-            elevation = dp(1).toFloat()
+            elevation = dp(4).toFloat()
             letterSpacing = 0.01f
         }
 
