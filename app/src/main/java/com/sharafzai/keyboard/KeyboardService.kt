@@ -93,7 +93,7 @@ class KeyboardService : InputMethodService() {
     )
 
     // Six lightweight, fully offline color themes with high-contrast text.
-    private val themes = listOf(
+    private val themes = (listOf(
         KeyboardTheme(Color.rgb(241, 244, 248),
             listOf(Color.rgb(255, 255, 255), Color.rgb(250, 252, 255), Color.rgb(235, 240, 247)),
             Color.rgb(224, 232, 242), Color.rgb(251, 252, 254),
@@ -118,7 +118,18 @@ class KeyboardService : InputMethodService() {
             listOf(Color.rgb(255, 255, 255), Color.rgb(255, 249, 251), Color.rgb(246, 230, 236)),
             Color.rgb(241, 220, 228), Color.rgb(255, 249, 251),
             Color.rgb(173, 75, 105), Color.rgb(230, 199, 211))
-    )
+    ) + List(34) { index ->
+        val hue = (index * 29f + 18f) % 360f
+        val colors = FloatArray(3)
+        android.graphics.Color.colorToHSV(Color.HSVToColor(floatArrayOf(hue, 0.22f, 0.96f)), colors)
+        val base = Color.HSVToColor(floatArrayOf(hue, 0.22f, 0.96f))
+        val key = Color.HSVToColor(floatArrayOf(hue, 0.12f, 1.0f))
+        val special = Color.HSVToColor(floatArrayOf(hue, 0.25f, 0.88f))
+        val suggestion = Color.HSVToColor(floatArrayOf(hue, 0.10f, 0.99f))
+        val accent = Color.HSVToColor(floatArrayOf(hue, 0.72f, 0.58f))
+        val border = Color.HSVToColor(floatArrayOf(hue, 0.18f, 0.82f))
+        KeyboardTheme(base, listOf(key, Color.WHITE, special), special, suggestion, accent, border)
+    }
 
     private val theme: KeyboardTheme
         get() = themes[themeIndex]
@@ -131,14 +142,14 @@ class KeyboardService : InputMethodService() {
             MODE_PRIVATE
         )
 
-        language = prefs.getInt("language", 0).coerceIn(0, 3)
+        language = prefs.getInt("language", 0).coerceIn(0, 4)
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
         nativeDigitsEnabled = prefs.getBoolean("nativeDigitsEnabled", true)
-        autoCorrectEnabled = prefs.getBoolean("autoCorrectEnabled", true)
+        autoCorrectEnabled = false
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
@@ -203,7 +214,8 @@ class KeyboardService : InputMethodService() {
             "هفته","ماه","سال","وقت","پیام","موبایل","خانواده","دانشگاه","مسجد","قلم","زیبا","موفق",
             "امروز","فردا","دیروز","دوست","مهربانی","محبت","سلامت","درست","اشتباه","آسان","سخت","بسیار",
             "خوش","خوشحال","انشاءالله","الحمدلله"
-        )
+        ),
+        4 to listOf("اللہ","محمد","اسلام","قرآن","کتاب","مدرسہ","اردو","زبان","علم","استاد","طالب","دوست","گھر","کام","زندگی","شکریہ","سلام","صبح","شام","دن","رات","ہفتہ","مہینہ","سال","وقت","پیغام","موبائل","خاندان","مسجد","قلم","خوبصورت","آج","کل","کیوں","کہاں","کیا","کون","کیسے","جی","نہیں","براہ","کرم","مہربانی","انشاءاللہ","الحمدللہ")
     )
 
     // Microsoft Windows Pashto (Afghanistan), KLID 00000463.
@@ -272,6 +284,20 @@ class KeyboardService : InputMethodService() {
             k("ظ"), k("ط"), k("ز"), k("ر"),
             k("ذ"), k("د"), k("پ"), k("و"), k("ژ")
         )
+    )
+
+
+    // Urdu phonetic layout with distinct Urdu-specific letters.
+    private val urduRows = listOf(
+        listOf(k("ق","ؒ"), k("و","ؤ"), k("ع","ء"), k("ر","ڑ"), k("ت","ٹ"), k("ے","ۓ"), k("ء","ئ"), k("ی","ے"), k("ہ","ۃ"), k("پ","ﷲ"), k("و","ؤ"), k("چ","ژ")),
+        listOf(k("ا","آ"), k("س","ص"), k("د","ڈ"), k("ف","ِ"), k("گ","غ"), k("ھ","ہ"), k("ج","ض"), k("ک","خ"), k("ل","لٰ"), k("م","ں"), k("ن","ں")),
+        listOf(k("ز","ذ"), k("ش","ث"), k("خ","ح"), k("ب","بھ"), k("ن","ں"), k("م","مّ"), k("ط","ظ"), k("ڈ","ڑ"), k("چ","چھ"), k("گ","گھ"))
+    )
+
+    private val urduNumbers = listOf(
+        k("۱","!","1"), k("۲","@","2"), k("۳","#","3"), k("۴","$","4"),
+        k("۵","%","5"), k("۶","^","6"), k("۷","&","7"), k("۸","*","8"),
+        k("۹","(","9"), k("۰",")","0"), k("-","_"), k("=","+")
     )
 
     private val englishRows = listOf(
@@ -401,7 +427,8 @@ class KeyboardService : InputMethodService() {
                 0 -> "✦ سندس  |  پښتو"
                 1 -> "✦ سندس  |  العربية"
                 2 -> "✦ سندس  |  ENGLISH"
-                else -> "✦ سندس  |  دری"
+                3 -> "✦ سندس  |  دری"
+                else -> "✦ سندس  |  اردو"
             }
             textSize = 13f
             letterSpacing = 0.03f
@@ -422,7 +449,7 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(header, "🌐", 0.8f, 29) {
-            language = (language + 1) % 4
+            language = (language + 1) % 5
             shifted = false
             caps = false
             lastShiftTapAt = 0L
@@ -522,7 +549,8 @@ class KeyboardService : InputMethodService() {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
                 2 -> englishNumbers
-                else -> dariNumbers
+                3 -> dariNumbers
+                else -> urduNumbers
             }
             val westernDigits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
             val numberRow = if (nativeDigitsEnabled || language == 2) nativeNumberRow else {
@@ -537,7 +565,8 @@ class KeyboardService : InputMethodService() {
                 0 -> pashtoRows
                 1 -> arabicRows
                 2 -> englishRows
-                else -> dariRows
+                3 -> dariRows
+                else -> urduRows
             }
 
             rows.forEach { row ->
@@ -562,7 +591,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        if (language == 1 || language == 3) {
+        if (language == 1 || language == 3 || language == 4) {
             addSpecial(controlRow, "◌َ", 0.9f, 39) {
                 diacriticsPanelVisible = !diacriticsPanelVisible
                 if (diacriticsPanelVisible) {
@@ -730,7 +759,7 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(row, "ژبه: ${listOf("پښتو", "عربي", "English", "دري")[language]}", 1.5f, 40) {
+        addSpecial(row, "ژبه: ${listOf("پښتو", "عربي", "English", "دري", "اردو")[language]}", 1.5f, 40) {
             language = (language + 1) % 4
             shifted = false
             caps = false
@@ -758,7 +787,7 @@ class KeyboardService : InputMethodService() {
         parent.addView(fontRow, rowParams(41))
 
         val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val themeNames = listOf("مرغلرین", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي")
+        val themeNames = listOf("مرغلرین", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي", "طلایي", "یاقوتي", "فیروزه", "لاجوردي", "زمردي", "سپوږمۍ", "لمر", "آسماني", "باراني", "ځنګل", "ګلستان", "مرجاني", "ارغواني", "نقره", "برونزي", "شفق", "یخ", "اور", "شګه", "کاکاو", "نعنا", "لیمو", "انګور", "ګلاب", "مرجان", "دود", "شاهي", "مخمل", "کریستال", "سپین زر", "تور الماس", "زمرد شپه", "طلایي شفق", "سندس ځانګړی")
         addSpecial(themeRow, "رنګ: ${themeNames[themeIndex]}", 1.8f, 38) {
             themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
@@ -924,21 +953,6 @@ class KeyboardService : InputMethodService() {
         if (expansion != null && word.isNotEmpty()) {
             connection.deleteSurroundingText(word.length, 0)
             connection.commitText("$expansion ", 1)
-        } else if (autoCorrectEnabled && word.length >= 4) {
-            // Conservative offline correction: replace only a unique one-edit match
-            // from the bundled or personal dictionary; never guess between candidates.
-            val personalWords = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                .getStringSet("personalWords_$language", emptySet()).orEmpty()
-            val correction = (offlineWords[language].orEmpty() + personalWords)
-                .distinct()
-                .filter { candidate ->
-                    !candidate.equals(word, ignoreCase = true) &&
-                        editDistanceAtMostOne(word.lowercase(), candidate.lowercase()) == 1
-                }
-            if (correction.size == 1) {
-                connection.deleteSurroundingText(word.length, 0)
-                connection.commitText(correction.first() + " ", 1)
-            } else connection.commitText(" ", 1)
         } else connection.commitText(" ", 1)
         updateSuggestions()
     }
@@ -1130,6 +1144,7 @@ class KeyboardService : InputMethodService() {
             3 -> listOf("سلام، حال شما چطور است؟","تشکر بسیار","خواهش می‌کنم","روز خوش داشته باشید","خداوند نگهدارتان باشد","از همکاری شما سپاسگزارم","به امید دیدار","صبح بخیر","شب بخیر","موفق باشید","ببخشید","لطفاً")
             4 -> listOf("❖ مننه ❖","✦ ښه راغلاست ✦","『 السلام علیکم 』","《 الحمد لله 》","༺ مننه ༻","✧ په خیر اوسئ ✧","◈ بریالی اوسئ ◈","❀ خوښ او خوشحاله اوسئ ❀","★ الله مو مل شه ★")
             5 -> listOf("۞ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۞","۞ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۞","﷽","ﷺ","۞ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ۞","۞ جَزَاكَ اللَّهُ خَيْرًا ۞","﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾","﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾")
+            4 -> listOf("السلام علیکم","وعلیکم السلام","جزاک اللہ خیراً","اللہ آپ کو خوش رکھے","بہت شکریہ","براہِ کرم","خدا حافظ","ان شاء اللہ","الحمد للہ","سبحان اللہ","صلی اللہ علیہ وسلم")
             else -> getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                 .getStringSet("savedPhrases", emptySet()).orEmpty().toList()
         }
