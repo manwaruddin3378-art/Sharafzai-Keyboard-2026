@@ -1491,10 +1491,14 @@ class KeyboardService : InputMethodService() {
             var repeatTask: Runnable? = null
             var wordTask: Runnable? = null
             var wordDeleteMode = false
+            var swipeDeleteTriggered = false
+            var touchStartX = 0f
 
             button.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        touchStartX = event.x
+                        swipeDeleteTriggered = false
                         wordDeleteMode = false
                         action()
                         val characterRepeat = object : Runnable {
@@ -1526,12 +1530,26 @@ class KeyboardService : InputMethodService() {
                         handler.postDelayed(switchToWords, 650)
                         true
                     }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (!swipeDeleteTriggered && touchStartX - event.x > dp(32)) {
+                            swipeDeleteTriggered = true
+                            wordDeleteMode = true
+                            wordTask?.let { handler.removeCallbacks(it) }
+                            repeatTask?.let { handler.removeCallbacks(it) }
+                            wordTask = null
+                            repeatTask = null
+                            // SwiftKey-style left swipe on Backspace removes the rest of the current word.
+                            deletePreviousWord()
+                        }
+                        true
+                    }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         wordTask?.let { handler.removeCallbacks(it) }
                         repeatTask?.let { handler.removeCallbacks(it) }
                         wordTask = null
                         repeatTask = null
                         wordDeleteMode = false
+                        swipeDeleteTriggered = false
                         true
                     }
                     else -> true
