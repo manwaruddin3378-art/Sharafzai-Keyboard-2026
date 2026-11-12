@@ -48,3 +48,35 @@ jobs:
         with:
           name: Sundus-App-Test-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Prepare permanent release signing key
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/sundus-release.jks"
+          {
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/sundus-release.jks"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=${KEY_ALIAS:-sharafzai}"
+            echo "ANDROID_KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+        run: gradle :app:assembleRelease
+
+      - name: Upload signed release APK
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sundus-App-Release-APK
+          path: app/build/outputs/apk/release/app-release.apk
+
+      - name: Report release signing requirement
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' || secrets.ANDROID_KEYSTORE_PASSWORD == '' }}
+        run: echo "Release signing is waiting for the private keystore secrets." >> "$GITHUB_STEP_SUMMARY"
+
