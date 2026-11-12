@@ -19,7 +19,7 @@ android {
         create("release") {
             storeFile = file(System.getenv("ANDROID_KEYSTORE_FILE") ?: "${System.getProperty("user.home")}/.android/sharafzai-release.jks")
             storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "sharafzai"
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "sundusrelease"
             keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
         }
     }
