@@ -50,6 +50,7 @@ class KeyboardService : InputMethodService() {
     private var emojiCategory = 0
     private var fontStyleIndex = 0
     private var numberRowEnabled = true
+    private var nativeDigitsEnabled = true
     private var autoCorrectEnabled = true
     private var hapticEnabled = true
     private var soundEnabled = false
@@ -133,6 +134,7 @@ class KeyboardService : InputMethodService() {
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
+        nativeDigitsEnabled = prefs.getBoolean("nativeDigitsEnabled", true)
         autoCorrectEnabled = prefs.getBoolean("autoCorrectEnabled", true)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
@@ -512,11 +514,17 @@ class KeyboardService : InputMethodService() {
         root.addView(suggestionContainer, rowParams(32))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible) {
-            val numberRow = when (language) {
+            val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
                 2 -> englishNumbers
                 else -> dariNumbers
+            }
+            val westernDigits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+            val numberRow = if (nativeDigitsEnabled || language == 2) nativeNumberRow else {
+                nativeNumberRow.mapIndexed { index, spec ->
+                    if (index < 10) spec.copy(normal = westernDigits[index]) else spec
+                }
             }
 
             if (numberRowEnabled) addKeyRow(root, numberRow, 37)
@@ -766,6 +774,11 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(typingRow, if (autoCorrectEnabled) "اتومات سمون: فعال" else "اتومات سمون: بند", 1.25f, 38) {
             autoCorrectEnabled = !autoCorrectEnabled
+            saveSettings()
+            refreshKeyboard()
+        }
+        addSpecial(typingRow, if (nativeDigitsEnabled) "ملي شمېرې" else "انګلیسي شمېرې", 1.15f, 38) {
+            nativeDigitsEnabled = !nativeDigitsEnabled
             saveSettings()
             refreshKeyboard()
         }
@@ -1868,6 +1881,7 @@ class KeyboardService : InputMethodService() {
             .putInt("keySizeLevel", keySizeLevel)
             .putInt("fontStyleIndex", fontStyleIndex)
             .putBoolean("numberRowEnabled", numberRowEnabled)
+            .putBoolean("nativeDigitsEnabled", nativeDigitsEnabled)
             .putBoolean("autoCorrectEnabled", autoCorrectEnabled)
             .putBoolean("hapticEnabled", hapticEnabled)
             .putBoolean("soundEnabled", soundEnabled)
