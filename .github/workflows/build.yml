@@ -64,7 +64,7 @@ jobs:
           {
             echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/sundus-release.jks"
             echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
-            echo "ANDROID_KEY_ALIAS=${KEY_ALIAS:-sharafzai}"
+            echo "ANDROID_KEY_ALIAS=${KEY_ALIAS:-sundusrelease}"
             echo "ANDROID_KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
           } >> "$GITHUB_ENV"
 
