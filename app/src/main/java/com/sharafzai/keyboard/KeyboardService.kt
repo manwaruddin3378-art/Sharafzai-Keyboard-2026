@@ -222,24 +222,22 @@ class KeyboardService : InputMethodService() {
     // Rows follow the physical QWERTY positions; shifted characters match Windows.
     private val pashtoRows = listOf(
         listOf(
-            k("ض", "ْ", "€"), k("ص", "ٌ", "ٱ"), k("ث", "ٍ", "ى"),
-            k("ق", "ً", "\u200E"), k("ف", "ُ", "\u200F"), k("غ", "ِ", "ٓ"),
-            k("ع", "َ", "ٙ"), k("ه", "ّ", "ٰ"),
-            k("خ", "ځ", "'"), k("ح", "څ", "\""),
-            k("ج", "]", "}"), k("چ", "[", "{"),
-            k("\\", "*", "|")
+            k("ض", "ْ"), k("ص", "ٌ"), k("ث", "ٍ"),
+            k("ق", "ً"), k("ف", "ُ"), k("غ", "ِ"),
+            k("ع", "َ"), k("ه", "ّ"), k("خ", "ځ"),
+            k("ح", "څ"), k("ج", "]"), k("چ", "["),
+            k("\\", "*")
         ),
         listOf(
-            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي", "ې"),
+            k("ش", "ښ"), k("س", "ۍ"), k("ی", "ي"),
             k("ب", "پ"), k("ل"), k("ا", "آ"),
             k("ت", "ټ"), k("ن", "ڼ"), k("م"),
-            k("ک"), k("ګ")
+            k("ک", "أ"), k("ګ", "إ")
         ),
         listOf(
-            k("ظ", "ئ", "?"), k("ط", "ې", ";"), k("ز", "ژ", "ء"),
+            k("ظ", "ئ"), k("ط", "ې"), k("ز", "ژ"),
             k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
-            k("ړ"), k("و", "،", ","), k("ږ", "."),
-            k("/", "؟")
+            k("ړ"), k("و", "ږ"), k("/", "؟")
         )
     )
 
@@ -1004,12 +1002,13 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addClipboardPanel(parent: LinearLayout) {
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val favorites = prefs.getStringSet("clipboardFavorites", emptySet()).orEmpty()
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(row, "کاپي", 1f, 38) {
             val selected = currentInputConnection?.getSelectedText(0)?.toString().orEmpty()
-            if (selected.isEmpty()) {
-                Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
-            } else {
+            if (selected.isEmpty()) Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
+            else {
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("Sundus", selected))
                 rememberClipboardText(selected)
@@ -1019,9 +1018,8 @@ class KeyboardService : InputMethodService() {
         addSpecial(row, "کټ", 1f, 38) {
             val connection = currentInputConnection
             val selected = connection?.getSelectedText(0)?.toString().orEmpty()
-            if (selected.isEmpty()) {
-                Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
-            } else {
+            if (selected.isEmpty()) Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
+            else {
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("Sundus", selected))
                 rememberClipboardText(selected)
@@ -1029,71 +1027,77 @@ class KeyboardService : InputMethodService() {
             }
         }
         addSpecial(row, "پېسټ", 1f, 38) {
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = clipboard.primaryClip
-            if (clip != null && clip.itemCount > 0) {
-                val value = clip.getItemAt(0).coerceToText(this)
-                currentInputConnection?.commitText(value, 1)
-            } else {
-                Toast.makeText(this, "کلیپ‌بورډ تش دی", Toast.LENGTH_SHORT).show()
-            }
+            val clip = (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip
+            if (clip != null && clip.itemCount > 0) currentInputConnection?.commitText(clip.getItemAt(0).coerceToText(this), 1)
+            else Toast.makeText(this, "کلیپ‌بورډ تش دی", Toast.LENGTH_SHORT).show()
         }
-        addSpecial(row, "ټول انتخاب", 1.2f, 38) {
-            currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
-        }
-        addSpecial(row, "جمله ساتل", 1.4f, 38) {
-            saveCurrentTextAsPhrase()
-        }
+        addSpecial(row, "ټول انتخاب", 1.2f, 38) { currentInputConnection?.performContextMenuAction(android.R.id.selectAll) }
+        addSpecial(row, "جمله ساتل", 1.4f, 38) { saveCurrentTextAsPhrase() }
         parent.addView(row, rowParams(42))
 
+        val searchRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(searchRow, "🔍 د کلیپ‌بورډ لټون", 1.5f, 36) {
+            val searchBox = EditText(this).apply { hint = "د متن یوه برخه ولیکئ" }
+            AlertDialog.Builder(this).setTitle("کلیپ‌بورډ لټون").setView(searchBox)
+                .setPositiveButton("لټون") { _, _ ->
+                    val query = searchBox.text.toString().trim()
+                    val all = (favorites + (0 until 8).mapNotNull { prefs.getString("clipboardHistory_$it", null) }).distinct()
+                    val matches = if (query.isBlank()) all else all.filter { it.contains(query, ignoreCase = true) }
+                    if (matches.isEmpty()) Toast.makeText(this, "پایله ونه موندل شوه", Toast.LENGTH_SHORT).show()
+                    else AlertDialog.Builder(this).setTitle("پایلې")
+                        .setItems(matches.toTypedArray()) { _, which -> currentInputConnection?.commitText(matches[which], 1); updateSuggestions() }.show()
+                }.setNegativeButton("بند", null).show()
+        }
+        addSpecial(searchRow, "📌 خوښ شوي: ${favorites.size}", 1f, 36) {
+            if (favorites.isEmpty()) Toast.makeText(this, "تر اوسه خوښ شوی متن نشته؛ د متن پر تڼۍ اوږد ټچ وکړئ.", Toast.LENGTH_LONG).show()
+            else AlertDialog.Builder(this).setTitle("قفل شوي او خوښ شوي متنونه")
+                .setItems(favorites.toTypedArray()) { _, which -> currentInputConnection?.commitText(favorites.toList()[which], 1); updateSuggestions() }.show()
+        }
+        parent.addView(searchRow, rowParams(39))
+
         val historyTitle = TextView(this).apply {
-            text = "وروستي کاپي شوي متنونه"
-            textSize = 12f
-            gravity = Gravity.CENTER
-            typeface = Typeface.DEFAULT_BOLD
+            text = "وروستي کاپي شوي متنونه — پر متن اوږد ټچ = قفل/خلاص"
+            textSize = 11f; gravity = Gravity.CENTER; typeface = Typeface.DEFAULT_BOLD
             setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
         }
         parent.addView(historyTitle, rowParams(27))
-
-        val history = (0 until 8).mapNotNull { index ->
-            getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                .getString("clipboardHistory_$index", null)
-                ?.takeIf { it.isNotBlank() }
-        }
+        val history = (favorites.toList() + (0 until 8).mapNotNull { index ->
+            prefs.getString("clipboardHistory_$index", null)?.takeIf { it.isNotBlank() }
+        }).distinct()
         history.chunked(2).forEach { group ->
             val historyRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             group.forEach { item ->
-                val label = item.replace("\n", " ").take(18)
+                val pinned = item in favorites
+                val label = (if (pinned) "📌 " else "") + item.replace("\n", " ").take(16)
                 addSpecial(historyRow, label, 1f, 36) {
                     currentInputConnection?.commitText(item, 1)
                     updateSuggestions()
+                }
+                historyRow.getChildAt(historyRow.childCount - 1)?.setOnLongClickListener {
+                    val updated = favorites.toMutableSet()
+                    if (pinned) updated.remove(item) else updated.add(item)
+                    prefs.edit().putStringSet("clipboardFavorites", updated).apply()
+                    Toast.makeText(this, if (pinned) "له خوښ شويو خلاص شو" else "متن قفل او خوښ شو", Toast.LENGTH_SHORT).show()
+                    refreshKeyboard()
+                    true
                 }
             }
             repeat(2 - group.size) { addSpecial(historyRow, " ", 1f, 36) { } }
             parent.addView(historyRow, rowParams(39))
         }
         if (history.isEmpty()) {
-            val emptyHistory = TextView(this).apply {
-                text = "د کاپي تاریخچه لا تشه ده."
-                textSize = 11f
-                gravity = Gravity.CENTER
+            val empty = TextView(this).apply {
+                text = "د کاپي تاریخچه لا تشه ده."; textSize = 11f; gravity = Gravity.CENTER
                 setTextColor(if (themeIndex == 1) Color.WHITE else Color.GRAY)
             }
-            parent.addView(emptyHistory, rowParams(28))
+            parent.addView(empty, rowParams(28))
         }
-
         val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(close, "تاریخچه پاکول", 1.2f, 32) {
-            val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-            prefs.edit().apply {
-                (0 until 8).forEach { remove("clipboardHistory_$it") }
-            }.apply()
+            prefs.edit().apply { (0 until 8).forEach { remove("clipboardHistory_$it") } }.apply()
             refreshKeyboard()
         }
-        addSpecial(close, "بندول", 0.8f, 32) {
-            clipboardPanelVisible = false
-            refreshKeyboard()
-        }
+        addSpecial(close, "بندول", 0.8f, 32) { clipboardPanelVisible = false; refreshKeyboard() }
         parent.addView(close, rowParams(35))
     }
 
