@@ -150,14 +150,16 @@ class KeyboardService : InputMethodService() {
     private data class KeySpec(
         val normal: String,
         val shifted: String = "",
-        val longPress: String = ""
+        val longPress: String = "",
+        val display: String = ""
     )
 
     private fun k(
         a: String,
         b: String = "",
-        c: String = ""
-    ) = KeySpec(a, b, c)
+        c: String = "",
+        display: String = ""
+    ) = KeySpec(a, b, c, display)
 
     // Small bundled starter vocabulary. Personal words are stored locally per language.
     private val offlineWords = mapOf(
@@ -288,7 +290,7 @@ class KeyboardService : InputMethodService() {
 
     // Windows Pashto (Afghanistan) number row: base, Shift, and AltGr layers.
     private val pashtoNumbers = listOf(
-        k("\u200D", "ٔ", "€"),
+        k("\u200D", "ٔ", "€", "ـ"),
         k("۱", "!", "ٱ"), k("۲", "٬", "ى"),
         k("۳", "٫", "\u200E"), k("۴", "؋", "\u200F"),
         k("۵", "٪", "ٓ"), k("۶", "×", "ٙ"),
@@ -1216,7 +1218,7 @@ class KeyboardService : InputMethodService() {
             }
 
             val mainText = TextView(this).apply {
-                text = value
+                text = if (value == spec.normal && spec.display.isNotEmpty()) spec.display else value
                 textSize = if (keys.size >= 12) 15f else 18f
                 typeface = when (fontStyleIndex) {
                     1 -> Typeface.create("serif", Typeface.BOLD)
