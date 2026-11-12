@@ -783,6 +783,76 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         parent.addView(soundRow, rowParams(41))
+
+        val dictionaryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(dictionaryRow, "شخصي قاموس", 1.2f, 38) {
+            showPersonalDictionaryEditor()
+        }
+        addSpecial(dictionaryRow, "کلمه اضافه", 1.0f, 38) {
+            addCurrentWordToDictionary()
+        }
+        parent.addView(dictionaryRow, rowParams(41))
+    }
+
+    private fun showPersonalDictionaryEditor() {
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val dictionaryKey = "personalWords_$language"
+        val words = prefs.getStringSet(dictionaryKey, emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
+        val languageName = listOf("پښتو", "عربي", "English", "دري")[language]
+
+        fun showList() {
+            val current = prefs.getStringSet(dictionaryKey, emptySet())
+                ?.toMutableSet() ?: mutableSetOf()
+            val sorted = current.sorted()
+            val message = if (sorted.isEmpty()) {
+                "تر اوسه په شخصي قاموس کې کلمه نشته."
+            } else {
+                "د حذف لپاره پر یوې کلمې کلیک وکړئ."
+            }
+            AlertDialog.Builder(this)
+                .setTitle("شخصي قاموس – $languageName")
+                .setMessage(message)
+                .setItems(sorted.toTypedArray()) { _, which ->
+                    val selected = sorted[which]
+                    val updated = prefs.getStringSet(dictionaryKey, emptySet())
+                        ?.toMutableSet() ?: mutableSetOf()
+                    updated.remove(selected)
+                    prefs.edit().putStringSet(dictionaryKey, updated).apply()
+                    Toast.makeText(this, "«$selected» له قاموس څخه حذف شوه", Toast.LENGTH_SHORT).show()
+                    updateSuggestions()
+                    showList()
+                }
+                .setPositiveButton("نوې کلمه") { _, _ ->
+                    val input = EditText(this).apply {
+                        hint = "کلمه ولیکئ"
+                        setSingleLine(true)
+                        setTextColor(Color.BLACK)
+                    }
+                    AlertDialog.Builder(this)
+                        .setTitle("قاموس ته کلمه اضافه کړئ")
+                        .setView(input)
+                        .setNegativeButton("بېرته", null)
+                        .setPositiveButton("ذخیره") { _, _ ->
+                            val word = input.text.toString().trim()
+                            if (word.length >= 2) {
+                                val updated = prefs.getStringSet(dictionaryKey, emptySet())
+                                    ?.toMutableSet() ?: mutableSetOf()
+                                updated.add(word)
+                                prefs.edit().putStringSet(dictionaryKey, updated).apply()
+                                Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه", Toast.LENGTH_SHORT).show()
+                                updateSuggestions()
+                            } else {
+                                Toast.makeText(this, "لږ تر لږه دوه توري ولیکئ", Toast.LENGTH_SHORT).show()
+                            }
+                            showList()
+                        }
+                        .show()
+                }
+                .setNegativeButton("بند", null)
+                .show()
+        }
+        showList()
     }
 
     private fun showAutoTextEditor() {
