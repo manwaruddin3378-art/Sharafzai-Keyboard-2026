@@ -143,6 +143,8 @@ class KeyboardService : InputMethodService() {
     }
 
     override fun onDestroy() {
+        adhkarHandler.removeCallbacks(adhkarRotation)
+        adhkarTextView = null
         runCatching { unregisterReceiver(voiceReceiver) }
         super.onDestroy()
     }
