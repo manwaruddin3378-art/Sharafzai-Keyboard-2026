@@ -130,7 +130,7 @@ class KeyboardService : InputMethodService() {
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
-        fontStyleIndex = prefs.getInt("fontStyleIndex", 0)
+        fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
