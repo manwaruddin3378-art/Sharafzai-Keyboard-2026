@@ -589,7 +589,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        if (language == 1 || language == 3 || language == 4) {
+        if (true) {
             addSpecial(controlRow, "◌َ", 0.9f, 39) {
                 diacriticsPanelVisible = !diacriticsPanelVisible
                 if (diacriticsPanelVisible) {
@@ -656,7 +656,7 @@ class KeyboardService : InputMethodService() {
 
         root.addView(controlRow, rowParams(41))
 
-        if (diacriticsPanelVisible && (language == 1 || language == 3 || language == 4)) {
+        if (diacriticsPanelVisible) {
             val diacriticKeys = listOf(
                 k("َ"), k("ً"), k("ُ"), k("ٌ"),
                 k("ِ"), k("ٍ"), k("ْ"), k("ّ"),
