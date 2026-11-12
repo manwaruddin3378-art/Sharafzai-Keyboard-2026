@@ -92,7 +92,7 @@ class KeyboardService : InputMethodService() {
         val border: Int
     )
 
-    // Forty lightweight, fully offline color themes with high-contrast text.
+    // Forty-eight lightweight, fully offline color themes with high-contrast text.
     private val themes = (listOf(
         KeyboardTheme(Color.rgb(241, 244, 248),
             listOf(Color.rgb(255, 255, 255), Color.rgb(250, 252, 255), Color.rgb(235, 240, 247)),
@@ -118,7 +118,7 @@ class KeyboardService : InputMethodService() {
             listOf(Color.rgb(255, 255, 255), Color.rgb(255, 249, 251), Color.rgb(246, 230, 236)),
             Color.rgb(241, 220, 228), Color.rgb(255, 249, 251),
             Color.rgb(173, 75, 105), Color.rgb(230, 199, 211))
-    ) + List(34) { index ->
+    ) + List(42) { index ->
         val hue = (index * 29f + 18f) % 360f
         val colors = FloatArray(3)
         android.graphics.Color.colorToHSV(Color.HSVToColor(floatArrayOf(hue, 0.22f, 0.96f)), colors)
@@ -795,7 +795,7 @@ class KeyboardService : InputMethodService() {
         parent.addView(fontRow, rowParams(41))
 
         val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val themeNames = listOf("مرغلرین", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي", "طلایي", "یاقوتي", "فیروزه", "لاجوردي", "زمردي", "سپوږمۍ", "لمر", "آسماني", "باراني", "ځنګل", "ګلستان", "مرجاني", "ارغواني", "نقره", "برونزي", "شفق", "یخ", "اور", "شګه", "کاکاو", "نعنا", "لیمو", "انګور", "ګلاب", "مرجان", "دود", "شاهي", "مخمل", "کریستال", "سپین زر", "تور الماس", "زمرد شپه", "طلایي شفق", "سندس ځانګړی")
+        val themeNames = listOf("مرغلرین", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي", "طلایي", "یاقوتي", "فیروزه", "لاجوردي", "زمردي", "سپوږمۍ", "لمر", "آسماني", "باراني", "ځنګل", "ګلستان", "مرجاني", "ارغواني", "نقره", "برونزي", "شفق", "یخ", "اور", "شګه", "کاکاو", "نعنا", "لیمو", "انګور", "ګلاب", "مرجان", "دود", "شاهي", "مخمل", "کریستال", "سپین زر", "تور الماس", "زمرد شپه", "طلایي شفق", "سندس ځانګړی", "لاجوردي شپه", "شنه زمرد", "ګلابي سپوږمۍ", "شاهي ارغواني", "د صحرا لمر", "یخي آبي", "مروارید", "تور شفق")
         addSpecial(themeRow, "رنګ: ${themeNames[themeIndex]}", 1.8f, 38) {
             themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
