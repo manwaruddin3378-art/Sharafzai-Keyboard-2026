@@ -129,7 +129,7 @@ class KeyboardService : InputMethodService() {
         val accent = Color.HSVToColor(floatArrayOf(hue, 0.72f, 0.58f))
         val border = Color.HSVToColor(floatArrayOf(hue, 0.18f, 0.82f))
         KeyboardTheme(base, listOf(key, Color.WHITE, special), special, suggestion, accent, border)
-    }
+    })
 
     private val theme: KeyboardTheme
         get() = themes[themeIndex]
