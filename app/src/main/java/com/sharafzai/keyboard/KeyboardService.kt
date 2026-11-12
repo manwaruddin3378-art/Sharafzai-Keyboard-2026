@@ -1309,7 +1309,7 @@ class KeyboardService : InputMethodService() {
         val before = currentInputConnection?.getTextBeforeCursor(30, 0)?.toString().orEmpty()
         val previous = before.trimEnd().lastOrNull()
         val sentenceStart = before.isBlank() || previous == null ||
-            previous in listOf('.', '?', '!', '؟', '\\n')
+            previous in listOf('.', '?', '!', '؟', '\n')
         val output = when {
             shifted && spec.shifted.isNotEmpty() -> spec.shifted
             language == 2 && (caps || shifted || sentenceStart) -> spec.normal.uppercase()
