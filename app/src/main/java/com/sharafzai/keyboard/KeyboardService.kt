@@ -145,7 +145,7 @@ class KeyboardService : InputMethodService() {
         language = prefs.getInt("language", 0).coerceIn(0, 4)
         themeIndex = prefs.getInt("themeIndex", 0)
             .coerceIn(0, themes.size - 1)
-        keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
+        keySizeLevel = prefs.getInt("keySizeLevel", 2).coerceIn(0, 4)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
         nativeDigitsEnabled = prefs.getBoolean("nativeDigitsEnabled", true)
@@ -466,10 +466,10 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(header, "↕", 0.8f, 29) {
-            keySizeLevel = (keySizeLevel + 1) % 3
+            keySizeLevel = (keySizeLevel + 1) % 5
             saveSettings()
             refreshKeyboard()
-            val sizeLabel = listOf("وړه", "منځنۍ", "لویه")[keySizeLevel]
+            val sizeLabel = listOf("ډېره وړه", "وړه", "منځنۍ", "لویه", "ډېره لویه")[keySizeLevel]
             Toast.makeText(this, "د تڼیو اندازه: $sizeLabel", Toast.LENGTH_SHORT).show()
         }
 
@@ -530,7 +530,7 @@ class KeyboardService : InputMethodService() {
             setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(42, 55, 68))
             setPadding(dp(8), 0, dp(8), 0)
             background = roundedBackground(theme.special, dp(9))
-            elevation = dp(1).toFloat()
+            elevation = dp(3).toFloat()
         }
         root.addView(adhkarTextView, rowParams(25))
 
@@ -803,10 +803,8 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(typingRow, if (autoCorrectEnabled) "اتومات سمون: فعال" else "اتومات سمون: بند", 1.25f, 38) {
-            autoCorrectEnabled = !autoCorrectEnabled
-            saveSettings()
-            refreshKeyboard()
+        addSpecial(typingRow, "اتومات بدلون: بند", 1.25f, 38) {
+            Toast.makeText(this, "سندس ستاسو لیکل نه بدلوي؛ یوازې د لغتونو وړاندیز کوي.", Toast.LENGTH_LONG).show()
         }
         addSpecial(typingRow, if (nativeDigitsEnabled) "ملي شمېرې" else "انګلیسي شمېرې", 1.15f, 38) {
             nativeDigitsEnabled = !nativeDigitsEnabled
@@ -1434,7 +1432,7 @@ class KeyboardService : InputMethodService() {
         keys: List<KeySpec>,
         height: Int
     ) {
-        val actualHeight = (height * listOf(0.90f, 1.0f, 1.10f)[keySizeLevel]).toInt()
+        val actualHeight = (height * listOf(0.78f, 0.90f, 1.0f, 1.10f, 1.22f)[keySizeLevel]).toInt()
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -1504,7 +1502,7 @@ class KeyboardService : InputMethodService() {
                 theme.keyColors[index % theme.keyColors.size],
                 dp(10)
             )
-            frame.elevation = dp(1).toFloat()
+            frame.elevation = dp(3).toFloat()
 
             if (spec.normal.length == 1 && spec.normal[0].isLetter()) {
                 glideKeys.add(GlideKey(frame, spec.normal))
