@@ -50,6 +50,7 @@ class KeyboardService : InputMethodService() {
     private var emojiCategory = 0
     private var fontStyleIndex = 0
     private var numberRowEnabled = true
+    private var autoCorrectEnabled = true
     private var hapticEnabled = true
     private var soundEnabled = false
     private var pendingVoiceText = ""
@@ -132,6 +133,7 @@ class KeyboardService : InputMethodService() {
         keySizeLevel = prefs.getInt("keySizeLevel", 1).coerceIn(0, 2)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", true)
+        autoCorrectEnabled = prefs.getBoolean("autoCorrectEnabled", true)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
@@ -762,6 +764,11 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
+        addSpecial(typingRow, if (autoCorrectEnabled) "اتومات سمون: فعال" else "اتومات سمون: بند", 1.25f, 38) {
+            autoCorrectEnabled = !autoCorrectEnabled
+            saveSettings()
+            refreshKeyboard()
+        }
         addSpecial(typingRow, if (hapticEnabled) "رپ: فعال" else "رپ: بند", 1.0f, 38) {
             hapticEnabled = !hapticEnabled
             saveSettings()
@@ -830,6 +837,21 @@ class KeyboardService : InputMethodService() {
         if (expansion != null && word.isNotEmpty()) {
             connection.deleteSurroundingText(word.length, 0)
             connection.commitText("$expansion ", 1)
+        } else if (autoCorrectEnabled && word.length >= 4) {
+            // Conservative offline correction: replace only a unique one-edit match
+            // from the bundled or personal dictionary; never guess between candidates.
+            val personalWords = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                .getStringSet("personalWords_$language", emptySet()).orEmpty()
+            val correction = (offlineWords[language].orEmpty() + personalWords)
+                .distinct()
+                .filter { candidate ->
+                    !candidate.equals(word, ignoreCase = true) &&
+                        editDistanceAtMostOne(word.lowercase(), candidate.lowercase()) == 1
+                }
+            if (correction.size == 1) {
+                connection.deleteSurroundingText(word.length, 0)
+                connection.commitText(correction.first() + " ", 1)
+            } else connection.commitText(" ", 1)
         } else connection.commitText(" ", 1)
         updateSuggestions()
     }
@@ -1758,6 +1780,7 @@ class KeyboardService : InputMethodService() {
             .putInt("keySizeLevel", keySizeLevel)
             .putInt("fontStyleIndex", fontStyleIndex)
             .putBoolean("numberRowEnabled", numberRowEnabled)
+            .putBoolean("autoCorrectEnabled", autoCorrectEnabled)
             .putBoolean("hapticEnabled", hapticEnabled)
             .putBoolean("soundEnabled", soundEnabled)
             .apply()
