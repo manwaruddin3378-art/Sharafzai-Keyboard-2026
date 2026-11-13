@@ -573,17 +573,6 @@ class KeyboardService : InputMethodService() {
         root.addView(adhkarTextView, rowParams(43))
         root.addView(topTools, rowParams(37))
 
-        adhkarTextView = TextView(this).apply {
-            text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
-            textSize = 17f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            setPadding(dp(10), dp(3), dp(10), dp(3))
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 190, 190), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
-            elevation = dp(5).toFloat()
-        }
-
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
