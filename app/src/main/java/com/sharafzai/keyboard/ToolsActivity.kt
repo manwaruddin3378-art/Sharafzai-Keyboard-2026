@@ -57,6 +57,7 @@ class ToolsActivity : Activity() {
         root.addView(back, LinearLayout.LayoutParams(-1, dp(50)))
         setContentView(root)
         when (intent.getStringExtra("open_page")) {
+            "calculator" -> root.post { showCalculator() }
             "calendar" -> root.post { runExternal(Intent(Intent.ACTION_INSERT).setData(CalendarContract.Events.CONTENT_URI), "کلیندر په دې موبایل کې ونه موندل شو") }
             "alarms" -> root.post { runExternal(Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_SKIP_UI, false), "د الارم اپلیکیشن موجود نه دی") }
         }
