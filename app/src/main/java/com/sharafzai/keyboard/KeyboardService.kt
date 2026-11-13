@@ -10,6 +10,10 @@ import android.content.IntentFilter
 import android.os.Build
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
@@ -446,12 +450,17 @@ class KeyboardService : InputMethodService() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(3), dp(4), dp(3), dp(4))
-            setBackgroundColor(theme.background)
+            background = FloralPatternDrawable(theme.background)
         }
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(5), 0, dp(5), 0)
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.rgb(3, 74, 91), Color.rgb(8, 35, 75))
+            ).apply { cornerRadius = dp(11).toFloat() }
         }
 
         val title = TextView(this).apply {
@@ -462,9 +471,9 @@ class KeyboardService : InputMethodService() {
                 3 -> "✦ سندس  |  دری"
                 else -> "✦ سندس  |  اردو"
             }
-            textSize = 13f
+            textSize = 14f
             letterSpacing = 0.03f
-            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
+            setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
         }
@@ -521,7 +530,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        root.addView(header, rowParams(31))
+        root.addView(header, rowParams(36))
 
         val topTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(topTools, "📋", 0.8f, 35) {
@@ -551,7 +560,7 @@ class KeyboardService : InputMethodService() {
         }
         adhkarTextView = TextView(this).apply {
             text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
-            textSize = 17f
+            textSize = 19f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             isSingleLine = true
@@ -563,7 +572,7 @@ class KeyboardService : InputMethodService() {
             background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 190, 190), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
             elevation = dp(5).toFloat()
         }
-        root.addView(adhkarTextView, rowParams(43))
+        root.addView(adhkarTextView, rowParams(49))
         root.addView(topTools, rowParams(37))
 
         suggestionContainer = LinearLayout(this).apply {
@@ -2045,8 +2054,16 @@ class KeyboardService : InputMethodService() {
         color: Int,
         radius: Int
     ): GradientDrawable {
-        return GradientDrawable().apply {
-            setColor(color)
+        fun shade(factor: Float): Int {
+            val hsv = FloatArray(3)
+            Color.colorToHSV(color, hsv)
+            hsv[2] = (hsv[2] * factor).coerceIn(0f, 1f)
+            return Color.HSVToColor(Color.alpha(color), hsv)
+        }
+        return GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(shade(1.10f), color, shade(0.90f))
+        ).apply {
             cornerRadius = radius.toFloat()
             setStroke(dp(1), theme.border)
         }
@@ -2110,4 +2127,59 @@ class KeyboardService : InputMethodService() {
             .putBoolean("soundEnabled", soundEnabled)
             .apply()
     }
+}
+
+
+/** A lightweight, offline floral wallpaper drawn behind the keyboard keys. */
+private class FloralPatternDrawable(private val baseColor: Int) : Drawable() {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    override fun draw(canvas: Canvas) {
+        val save = canvas.save()
+        val b = bounds
+        canvas.drawColor(baseColor)
+        val w = b.width().toFloat()
+        val h = b.height().toFloat()
+
+        fun flower(cx: Float, cy: Float, radius: Float, tint: Int) {
+            paint.color = tint
+            paint.alpha = 72
+            for (i in 0 until 6) {
+                val angle = Math.PI * i / 3.0
+                val px = cx + kotlin.math.cos(angle).toFloat() * radius * 0.56f
+                val py = cy + kotlin.math.sin(angle).toFloat() * radius * 0.56f
+                canvas.drawCircle(px, py, radius * 0.38f, paint)
+            }
+            paint.color = Color.argb(105, 255, 220, 120)
+            canvas.drawCircle(cx, cy, radius * 0.24f, paint)
+        }
+
+        fun leaf(cx: Float, cy: Float, width: Float, height: Float, tint: Int, angle: Float) {
+            canvas.save()
+            canvas.rotate(angle, cx, cy)
+            paint.color = tint
+            paint.alpha = 52
+            canvas.drawOval(
+                cx - width / 2f, cy - height / 2f,
+                cx + width / 2f, cy + height / 2f, paint
+            )
+            canvas.restore()
+        }
+
+        flower(w * 0.07f, h * 0.10f, 25f, Color.rgb(255, 105, 160))
+        flower(w * 0.94f, h * 0.20f, 30f, Color.rgb(255, 180, 70))
+        flower(w * 0.10f, h * 0.86f, 27f, Color.rgb(150, 120, 245))
+        flower(w * 0.91f, h * 0.88f, 28f, Color.rgb(245, 110, 145))
+        flower(w * 0.50f, h * 0.52f, 18f, Color.rgb(90, 190, 160))
+        leaf(w * 0.17f, h * 0.18f, 24f, 10f, Color.rgb(65, 150, 105), -28f)
+        leaf(w * 0.84f, h * 0.30f, 27f, 11f, Color.rgb(65, 150, 105), 32f)
+        leaf(w * 0.18f, h * 0.78f, 25f, 10f, Color.rgb(65, 150, 105), 25f)
+        leaf(w * 0.83f, h * 0.79f, 25f, 10f, Color.rgb(65, 150, 105), -30f)
+        canvas.restoreToCount(save)
+    }
+
+    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
+    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) { paint.colorFilter = colorFilter }
+    @Deprecated("Deprecated by Android")
+    override fun getOpacity(): Int = PixelFormat.OPAQUE
 }
