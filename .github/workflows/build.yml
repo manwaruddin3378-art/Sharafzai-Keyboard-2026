@@ -60,7 +60,11 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/sundus-release.jks"
+          # Remove whitespace and any clipboard formatting characters before decoding.
+          CLEAN_BASE64="$(printf '%s' "$KEYSTORE_BASE64" | tr -cd 'A-Za-z0-9+/=')"
+          printf '%s' "$CLEAN_BASE64" | base64 --decode > "$RUNNER_TEMP/sundus-release.jks"
+          # Validate the private keystore and alias before attempting the release build.
+          keytool -list -keystore "$RUNNER_TEMP/sundus-release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "${KEY_ALIAS:-sundusrelease}" >/dev/null
           {
             echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/sundus-release.jks"
             echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
