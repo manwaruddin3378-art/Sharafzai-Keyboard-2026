@@ -729,9 +729,7 @@ class KeyboardService : InputMethodService() {
             addClipboardPanel(root)
         }
 
-        if (calculatorPanelVisible) {
-            addCalculatorPanel(root)
-        }
+        // Calculator and utility screens are provided by ToolsActivity, not inside the typing keyboard.
 
         if (phrasePanelVisible) {
             addPhrasePanel(root)
