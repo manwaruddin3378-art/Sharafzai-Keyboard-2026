@@ -561,6 +561,10 @@ class KeyboardService : InputMethodService() {
             textSize = 17f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.MARQUEE
+            marqueeRepeatLimit = -1
+            isSelected = true
             setTextColor(Color.WHITE)
             setPadding(dp(10), dp(3), dp(10), dp(3))
             background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 190, 190), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
