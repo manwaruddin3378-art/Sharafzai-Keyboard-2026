@@ -534,15 +534,8 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(topTools, "وسایل", 1.0f, 35) {
-            toolsPanelVisible = !toolsPanelVisible
-            phrasePanelVisible = false
-            if (toolsPanelVisible) {
-                emojiPanelVisible = false; diacriticsPanelVisible = false
-                symbolsPanelVisible = false; calculatorPanelVisible = false
-                settingsPanelVisible = false; clipboardPanelVisible = false
-            }
-            refreshKeyboard()
+        addSpecial(topTools, "🧰 وسایل", 1.15f, 35) {
+            openSharafzaiTools("home")
         }
         addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; shifted = false; lastShiftTapAt = 0L; refreshKeyboard() }
         addSpecial(topTools, "AutoText", 1.0f, 35) { showAutoTextEditor() }
@@ -657,16 +650,7 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(controlRow, "🧮", 0.9f, 39) {
-            calculatorPanelVisible = !calculatorPanelVisible
-            if (calculatorPanelVisible) {
-                emojiPanelVisible = false
-                diacriticsPanelVisible = false
-                symbolsPanelVisible = false
-                toolsPanelVisible = false
-                settingsPanelVisible = false
-                clipboardPanelVisible = false
-            }
-            refreshKeyboard()
+            openSharafzaiTools("calculator")
         }
 
         addSpecial(controlRow, if (caps) "⇪" else "⇧", 1f, 39) {
@@ -1178,8 +1162,8 @@ class KeyboardService : InputMethodService() {
         }
         parent.addView(categoryRow, rowParams(39))
         val phrases = when (phraseCategory) {
-            0 -> listOf("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ","الْحَمْدُ لِلَّهِ","مَا شَاءَ اللَّهُ","إِنْ شَاءَ اللَّهُ","سُبْحَانَ اللَّهِ","أَسْتَغْفِرُ اللَّهَ","جَزَاكَ اللَّهُ خَيْرًا","بَارَكَ اللَّهُ فِيكَ","السَّلَامُ عَلَيْكُمْ","وَعَلَيْكُمُ السَّلَامُ","صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ","رَضِيَ اللَّهُ عَنْهُ","سُبْحَانَ اللَّهِ وَبِحَمْدِهِ","لَا إِلٰهَ إِلَّا اللَّهُ","اللَّهُ أَكْبَرُ","لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ","حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ","رَبِّ اغْفِرْ لِي","اللَّهُمَّ ارْحَمْنِي","أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ","رَبَّنَا تَقَبَّلْ مِنَّا","اللَّهُمَّ بَارِكْ لَنَا","اللَّهُمَّ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ")
-            1 -> listOf("السلام علیکم، څنګه یاست؟","وعلیکم السلام، الحمدلله ښه یم","ډېره مننه","هیڅ خبره نه ده","مهرباني وکړئ","الله دې مل شه","په خیر راغلې","ستړی مه شې","بیا به سره ګورو","ستاسو له مرستې مننه","بښنه غواړم","ښه ورځ ولرئ","الله دې مل شه او بریالی اوسې","ستاسې له مهربانۍ مننه","هیله ده روغ او جوړ به یاست","زه به ژر درته ځواب درکړم","په امان الله","الله دې ساتنه وکړي","ستاسې ورځ دې نېکمرغه وي","د بریا په هیله","ډېر ښه، مننه","ان شاء الله، همداسې به وکړو")
+            0 -> listOf("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ","الْحَمْدُ لِلَّهِ","مَا شَاءَ اللَّهُ","إِنْ شَاءَ اللَّهُ","سُبْحَانَ اللَّهِ","أَسْتَغْفِرُ اللَّهَ","جَزَاكَ اللَّهُ خَيْرًا","بَارَكَ اللَّهُ فِيكَ","السَّلَامُ عَلَيْكُمْ","وَعَلَيْكُمُ السَّلَامُ","صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ","رَضِيَ اللَّهُ عَنْهُ","سُبْحَانَ اللَّهِ وَبِحَمْدِهِ","لَا إِلٰهَ إِلَّا اللَّهُ","اللَّهُ أَكْبَرُ","لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ","حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ","رَبِّ اغْفِرْ لِي","اللَّهُمَّ ارْحَمْنِي","أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ","رَبَّنَا تَقَبَّلْ مِنَّا","اللَّهُمَّ بَارِكْ لَنَا","اللَّهُمَّ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ","رَبِّ زِدْنِي عِلْمًا","اللَّهُمَّ اهْدِنِي وَسَدِّدْنِي","اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ","اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ","اللَّهُمَّ اغْفِرْ لِي وَلِوَالِدَيَّ","اللَّهُمَّ ثَبِّتْ قَلْبِي عَلَى دِينِكَ","رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا","اللَّهُمَّ صَلِّ عَلَى نَبِيِّنَا مُحَمَّدٍ")
+            1 -> listOf("السلام علیکم، څنګه یاست؟","وعلیکم السلام، الحمدلله ښه یم","ډېره مننه","هیڅ خبره نه ده","مهرباني وکړئ","الله دې مل شه","په خیر راغلې","ستړی مه شې","بیا به سره ګورو","ستاسو له مرستې مننه","بښنه غواړم","ښه ورځ ولرئ","الله دې مل شه او بریالی اوسې","ستاسې له مهربانۍ مننه","هیله ده روغ او جوړ به یاست","زه به ژر درته ځواب درکړم","په امان الله","الله دې ساتنه وکړي","ستاسې ورځ دې نېکمرغه وي","د بریا په هیله","ډېر ښه، مننه","ان شاء الله، همداسې به وکړو","ستاسې له وخت څخه مننه","ستاسې پیغام مې ترلاسه کړ","زه به موضوع وڅېړم او ځواب به درکړم","الله دې په چارو کې برکت واچوي","په درنښت او نېکو هیلو","ستاسې د همکارۍ قدر کوم","هیله ده ورځ مو په خیر تېره شي","ستاسې د بریا په هیله","مهرباني وکړئ خبر راکړئ","الله مو تل خوشحاله لره")
             2 -> listOf("Hello!","How are you?","I hope you are well.","Thank you very much.","You're welcome.","Please let me know.","Have a nice day!","Good morning!","Good evening!","See you soon.","May Allah bless you.","Best wishes.")
             3 -> listOf("سلام، حال شما چطور است؟","تشکر بسیار","خواهش می‌کنم","روز خوش داشته باشید","خداوند نگهدارتان باشد","از همکاری شما سپاسگزارم","به امید دیدار","صبح بخیر","شب بخیر","موفق باشید","ببخشید","لطفاً")
             4 -> listOf("السلام علیکم","وعلیکم السلام","جزاک اللہ خیراً","اللہ آپ کو خوش رکھے","بہت شکریہ","براہِ کرم","خدا حافظ","ان شاء اللہ","الحمد للہ","سبحان اللہ","صلی اللہ علیہ وسلم","آپ کیسے ہیں؟","میں خیریت سے ہوں","اللہ آپ کو کامیاب کرے","معاف کیجیے","آپ کا بہت شکریہ","خوش آمدید","اللہ حافظ","ماشاء اللہ","الحمدللہ رب العالمین")
@@ -1959,7 +1943,19 @@ class KeyboardService : InputMethodService() {
         // Backspace must remove the entire selected range before deleting a character.
         val selected = connection.getSelectedText(0)
         if (!selected.isNullOrEmpty()) {
-            connection.commitText("", 1)
+            // Replace the selected range first; send DEL as a compatibility fallback
+            // for editors whose InputConnection does not implement commitText reliably.
+            val replaced = runCatching { connection.commitText("", 1) }.getOrDefault(false)
+            if (!replaced) sendKey(KeyEvent.KEYCODE_DEL)
+            updateSuggestions()
+            return
+        }
+        val extracted = runCatching {
+            connection.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0)
+        }.getOrNull()
+        if (extracted != null && extracted.selectionStart >= 0 &&
+            extracted.selectionEnd >= 0 && extracted.selectionStart != extracted.selectionEnd) {
+            sendKey(KeyEvent.KEYCODE_DEL)
             updateSuggestions()
             return
         }
