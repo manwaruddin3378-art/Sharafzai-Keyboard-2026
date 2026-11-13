@@ -47,7 +47,8 @@ class ToolsActivity : Activity() {
         addTool(root, "⏰  الارم", "نوی الارم جوړول") {
             runExternal(Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_SKIP_UI, false), "د الارم اپلیکیشن موجود نه دی")
         }
-        addTool(root, "📝  یادښت", "لنډ یادښت لیکل") { showNote() }
+        addTool(root, "📝  یادښت", "نوی یادښت خوندي کول") { showNote() }
+        addTool(root, "📚  خوندي یادښتونه", "د پخوانیو یادښتونو لوستل") { showSavedNotes() }
         val back = Button(this).apply {
             text = "بېرته"
             isAllCaps = false
@@ -101,10 +102,45 @@ class ToolsActivity : Activity() {
             gravity = Gravity.TOP
         }
         AlertDialog.Builder(this).setTitle("نوی یادښت").setView(note)
-            .setPositiveButton("کاپي") { _, _ ->
+            .setPositiveButton("ساتل") { _, _ ->
+                val value = note.text.toString().trim()
+                if (value.isNotEmpty()) {
+                    val prefs = getSharedPreferences("SundusTools", MODE_PRIVATE)
+                    val saved = prefs.getStringSet("savedNotes", emptySet())?.toMutableSet() ?: mutableSetOf()
+                    saved.add(System.currentTimeMillis().toString() + "|||" + value)
+                    prefs.edit().putStringSet("savedNotes", saved).apply()
+                    Toast.makeText(this, "یادښت په موبایل کې خوندي شو", Toast.LENGTH_SHORT).show()
+                }
+            }.setNeutralButton("کاپي") { _, _ ->
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("SUNDUS", note.text))
                 Toast.makeText(this, "یادښت کاپي شو", Toast.LENGTH_SHORT).show()
+            }.setNegativeButton("بند", null).show()
+    }
+
+    private fun showSavedNotes() {
+        val prefs = getSharedPreferences("SundusTools", MODE_PRIVATE)
+        val notes = prefs.getStringSet("savedNotes", emptySet()).orEmpty()
+            .sortedByDescending { it.substringBefore("|||").toLongOrNull() ?: 0L }
+        if (notes.isEmpty()) {
+            AlertDialog.Builder(this).setTitle("خوندي یادښتونه")
+                .setMessage("تر اوسه کوم یادښت نه دی خوندي شوی.")
+                .setPositiveButton("سمه ده", null).show()
+            return
+        }
+        val labels = notes.map { it.substringAfter("|||", it) }
+        AlertDialog.Builder(this).setTitle("خوندي یادښتونه")
+            .setItems(labels.toTypedArray()) { _, which ->
+                AlertDialog.Builder(this).setTitle("یادښت")
+                    .setMessage(labels[which])
+                    .setPositiveButton("بند", null)
+                    .setNeutralButton("کاپي") { _, _ ->
+                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("SUNDUS", labels[which]))
+                    }.setNegativeButton("حذف") { _, _ ->
+                        val updated = notes.toMutableSet().apply { remove(notes[which]) }
+                        prefs.edit().putStringSet("savedNotes", updated).apply()
+                    }.show()
             }.setNegativeButton("بند", null).show()
     }
 
