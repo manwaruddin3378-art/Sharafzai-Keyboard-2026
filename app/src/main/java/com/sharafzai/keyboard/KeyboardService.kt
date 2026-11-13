@@ -69,13 +69,33 @@ class KeyboardService : InputMethodService() {
         "لَا إِلٰهَ إِلَّا اللَّهُ",
         "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ",
         "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ",
-        "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ"
+        "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+        "سُبْحَانَ اللَّهِ الْعَظِيمِ",
+        "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+        "اللَّهُ أَكْبَرُ كَبِيرًا",
+        "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+        "رَبِّ اغْفِرْ لِي وَارْحَمْنِي",
+        "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+        "لَا إِلٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+        "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً",
+        "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ",
+        "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
+        "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ",
+        "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ",
+        "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا",
+        "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا"
     )
     private val adhkarRotation = object : Runnable {
         override fun run() {
             adhkarIndex = (adhkarIndex + 1) % adhkarList.size
-            adhkarTextView?.text = "ذکر:  " + adhkarList[adhkarIndex]
-            adhkarHandler.postDelayed(this, 45_000)
+            adhkarTextView?.apply {
+                text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
+                val colors = listOf(Color.rgb(0, 190, 190), Color.rgb(190, 70, 180), Color.rgb(225, 155, 20), Color.rgb(55, 130, 225))
+                val color = colors[adhkarIndex % colors.size]
+                setTextColor(Color.WHITE)
+                background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(color, Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
+            }
+            adhkarHandler.postDelayed(this, 7_000)
         }
     }
     private var calculatorExpression = ""
@@ -394,8 +414,12 @@ class KeyboardService : InputMethodService() {
     private fun startAdhkarRotation() {
         adhkarHandler.removeCallbacks(adhkarRotation)
         adhkarIndex = 0
-        adhkarTextView?.text = "ذکر:  " + adhkarList[adhkarIndex]
-        adhkarHandler.postDelayed(adhkarRotation, 45_000)
+        adhkarTextView?.apply {
+            text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
+            setTextColor(Color.WHITE)
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 155, 180), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
+        }
+        adhkarHandler.postDelayed(adhkarRotation, 7_000)
     }
 
     override fun onUpdateSelection(
@@ -532,17 +556,19 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
+        root.addView(adhkarTextView, rowParams(43))
         root.addView(topTools, rowParams(37))
 
         adhkarTextView = TextView(this).apply {
-            text = "ذکر  ✦  " + adhkarList[adhkarIndex]
-            textSize = 12f; gravity = Gravity.CENTER
-            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(42, 55, 68))
-            setPadding(dp(8), 0, dp(8), 0)
-            background = roundedBackground(theme.special, dp(9))
-            elevation = dp(3).toFloat()
+            text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
+            textSize = 17f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            setPadding(dp(10), dp(3), dp(10), dp(3))
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 190, 190), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
+            elevation = dp(5).toFloat()
         }
-        root.addView(adhkarTextView, rowParams(25))
 
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -1929,6 +1955,13 @@ class KeyboardService : InputMethodService() {
 
     private fun deletePreviousCharacter() {
         val connection = currentInputConnection ?: return
+        // Backspace must remove the entire selected range before deleting a character.
+        val selected = connection.getSelectedText(0)
+        if (!selected.isNullOrEmpty()) {
+            connection.commitText("", 1)
+            updateSuggestions()
+            return
+        }
         val before = connection.getTextBeforeCursor(16, 0)?.toString().orEmpty()
         if (before.isEmpty()) return
 
