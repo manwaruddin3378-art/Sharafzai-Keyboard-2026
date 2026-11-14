@@ -25,6 +25,7 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ImageView
 import android.widget.EditText
 import android.app.AlertDialog
 import android.widget.Toast
@@ -407,6 +408,13 @@ class KeyboardService : InputMethodService() {
             ).apply { cornerRadius = dp(11).toFloat() }
         }
 
+        val brandLogo = ImageView(this).apply {
+            setImageResource(R.drawable.sundus_brand)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = "SUNDUS سندس"
+        }
+        header.addView(brandLogo, LinearLayout.LayoutParams(dp(76), dp(38)))
+
         val title = TextView(this).apply {
             text = when (language) {
                 0 -> "🌙 SUNDUS  |  پښتو"
@@ -480,7 +488,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        root.addView(header, rowParams(36))
+        root.addView(header, rowParams(44))
 
         val topTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(topTools, "📋", 0.8f, 35) {
