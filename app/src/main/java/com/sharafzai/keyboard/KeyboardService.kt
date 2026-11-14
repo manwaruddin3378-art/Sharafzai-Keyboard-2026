@@ -136,6 +136,12 @@ class KeyboardService : InputMethodService() {
             .coerceIn(0, themes.size - 1)
         keySizeLevel = prefs.getInt("keySizeLevel", 2).coerceIn(0, 4)
         fontStyleIndex = prefs.getInt("fontStyleIndex", 0).coerceIn(0, 2)
+        if (!prefs.getBoolean("compactLayoutApplied", false)) {
+            prefs.edit()
+                .putBoolean("numberRowEnabled", false)
+                .putBoolean("compactLayoutApplied", true)
+                .apply()
+        }
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", false)
         nativeDigitsEnabled = prefs.getBoolean("nativeDigitsEnabled", true)
         autoCorrectEnabled = false
