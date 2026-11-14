@@ -409,7 +409,12 @@ class KeyboardService : InputMethodService() {
                 GradientDrawable.Orientation.LEFT_RIGHT,
                 intArrayOf(Color.rgb(7, 75, 82), Color.rgb(20, 48, 92))
             ).apply { cornerRadius = dp(9).toFloat() }
-        }\n        dhikrView = dhikrStrip\n        root.addView(dhikrStrip, rowParams(27))\n        handler.removeCallbacks(dhikrTicker)\n        handler.postDelayed(dhikrTicker, 3500)\n\n        val header = LinearLayout(this).apply {
+        }
+        dhikrView = dhikrStrip
+        root.addView(dhikrStrip, rowParams(27))
+        handler.removeCallbacks(dhikrTicker)
+        handler.postDelayed(dhikrTicker, 3500)
+\n        val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(5), 0, dp(5), 0)
@@ -584,7 +589,7 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(32))
 
-        if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !phrasePanelVisible && !settingsPanelVisible) {
+        if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
@@ -1245,20 +1250,7 @@ class KeyboardService : InputMethodService() {
             }
             parent.addView(navigation, rowParams(42))
 
-            val actionRow = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-            }
-            addSpecial(actionRow, "جمله داخلول", 1.4f, 32) {
-                currentInputConnection?.commitText(phrases[phraseIndex] + " ", 1)
-                updateSuggestions()
-            }
-            addSpecial(actionRow, "${phraseIndex + 1} / ${phrases.size}", 0.8f, 32) { }
-            addSpecial(actionRow, "بندول", 0.8f, 32) {
-                phrasePanelVisible = false
-                refreshKeyboard()
-            }
-            parent.addView(actionRow, rowParams(30))
+
         }
     }
 
