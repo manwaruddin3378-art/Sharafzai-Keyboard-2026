@@ -426,25 +426,17 @@ class KeyboardService : InputMethodService() {
             LinearLayout.LayoutParams(0, dp(29), 1f)
         )
 
-        addSpecial(header, "🎙", 0.8f, 29) {
-            startActivity(Intent(this, VoiceInputActivity::class.java)
-                .putExtra("language", language)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }
-
-        addSpecial(header, "🌐", 0.8f, 29) {
-            val languageNames = arrayOf("پښتو", "عربي", "English", "دري")
+        addSpecial(header, "🌐", 0.75f, 29) {
+            val languageNames = arrayOf("پښتو", "دري", "عربي", "English")
+            val ids = intArrayOf(0, 3, 1, 2)
+            val selected = ids.indexOf(language).coerceAtLeast(0)
             AlertDialog.Builder(this)
                 .setTitle("د کیبورډ ژبه وټاکئ")
-                .setSingleChoiceItems(languageNames, language) { dialog, selected ->
-                    language = selected.coerceIn(0, 3)
+                .setSingleChoiceItems(languageNames, selected) { dialog, which ->
+                    language = ids[which]
                     shifted = false
                     caps = false
                     lastShiftTapAt = 0L
-                    emojiPanelVisible = false
-                    diacriticsPanelVisible = false
-                    symbolsPanelVisible = false
-                    settingsPanelVisible = false
                     saveSettings()
                     dialog.dismiss()
                     refreshKeyboard()
@@ -452,34 +444,71 @@ class KeyboardService : InputMethodService() {
                 .setNegativeButton("بند", null)
                 .show()
         }
-
-        addSpecial(header, "＋", 0.8f, 29) {
-            addCurrentWordToDictionary()
+        addSpecial(header, "😊", 0.75f, 29) {
+            emojiPanelVisible = !emojiPanelVisible
+            phrasePanelVisible = false
+            settingsPanelVisible = false
+            clipboardPanelVisible = false
+            refreshKeyboard()
         }
-
-        addSpecial(header, "↕", 0.8f, 29) {
-            keySizeLevel = (keySizeLevel + 1) % 5
+        addSpecial(header, "☪", 0.75f, 29) {
+            phrasePanelVisible = true
+            phraseCategory = 0
+            phraseIndex = 0
+            emojiPanelVisible = false
+            settingsPanelVisible = false
+            clipboardPanelVisible = false
+            refreshKeyboard()
+        }
+        addSpecial(header, "🎨", 0.75f, 29) {
+            themeIndex = (themeIndex + 1) % themes.size
             saveSettings()
             refreshKeyboard()
-            val sizeLabel = listOf("ډېره وړه", "وړه", "منځنۍ", "لویه", "ډېره لویه")[keySizeLevel]
-            Toast.makeText(this, "د تڼیو اندازه: $sizeLabel", Toast.LENGTH_SHORT).show()
         }
-
-        addSpecial(header, "⚙", 0.8f, 29) {
+        addSpecial(header, "⚙", 0.75f, 29) {
             settingsPanelVisible = !settingsPanelVisible
             if (settingsPanelVisible) {
                 emojiPanelVisible = false
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
-                
-                
                 clipboardPanelVisible = false
                 phrasePanelVisible = false
             }
             refreshKeyboard()
         }
-
         root.addView(header, rowParams(44))
+
+        val languageStrip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        listOf(0 to "پښتو", 3 to "دري", 1 to "عربي", 2 to "English").forEach { (id, label) ->
+            val tab = Button(this).apply {
+                text = label
+                textSize = 13f
+                isAllCaps = false
+                minimumWidth = 0
+                minimumHeight = 0
+                setPadding(0, 0, 0, 0)
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.WHITE)
+                background = roundedBackground(
+                    if (language == id) Color.rgb(0, 178, 174) else Color.rgb(5, 37, 70),
+                    dp(12)
+                )
+                setOnClickListener {
+                    language = id
+                    shifted = false
+                    caps = false
+                    saveSettings()
+                    refreshKeyboard()
+                }
+            }
+            languageStrip.addView(tab, LinearLayout.LayoutParams(0, dp(34), 1f).apply {
+                setMargins(dp(2), 0, dp(2), 0)
+            })
+        }
+        root.addView(languageStrip, rowParams(36))
 
         val topTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(topTools, "📋", 0.8f, 35) {
@@ -514,7 +543,7 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(32))
 
-        if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible) {
+        if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !phrasePanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
