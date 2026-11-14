@@ -544,7 +544,7 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        root.addView(topTools, rowParams(37))
+
 
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -726,6 +726,7 @@ class KeyboardService : InputMethodService() {
         }
 
         root.addView(bottom, rowParams(44))
+        root.addView(topTools, rowParams(40))
 
         return root
     }
