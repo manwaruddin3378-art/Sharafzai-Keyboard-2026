@@ -12,11 +12,6 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".ToolsActivity"
-            android:label="د سندس وسایل"
-            android:exported="false" />
-
-        <activity
             android:name=".VoiceInputActivity"
             android:exported="false" />
 
