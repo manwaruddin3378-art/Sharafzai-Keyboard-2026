@@ -1605,6 +1605,16 @@ class KeyboardService : InputMethodService() {
             if (a[i] == b[j]) {
                 i++; j++
             } else {
+                // Treat a neighboring-letter transposition as one common typing error.
+                if (edits == 0 && a.length == b.length &&
+                    i + 1 < a.length && j + 1 < b.length &&
+                    a[i] == b[j + 1] && a[i + 1] == b[j]
+                ) {
+                    edits++
+                    i += 2
+                    j += 2
+                    continue
+                }
                 edits++
                 if (edits > 1) return edits
                 if (a.length > b.length) i++
