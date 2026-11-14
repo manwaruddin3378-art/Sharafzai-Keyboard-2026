@@ -1683,7 +1683,7 @@ class KeyboardService : InputMethodService() {
             MODE_PRIVATE
         ).getStringSet("personalWords_$language", emptySet()).orEmpty()
 
-        val candidates = (offlineWords[language].orEmpty() + personalWords).distinct()
+        val candidates = (offlineWordsFor(language) + personalWords).distinct()
         val prefixMatches = candidates.filter {
             it.startsWith(currentWord, ignoreCase = true) &&
                 !it.equals(currentWord, ignoreCase = true)
