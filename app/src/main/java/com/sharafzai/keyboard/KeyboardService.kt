@@ -400,7 +400,7 @@ class KeyboardService : InputMethodService() {
         }
 
         val brandLogo = TextView(this).apply {
-            text = "☾ سندس\\nSUNDUS"
+            text = "☾ سندس SUNDUS"
             textSize = 11f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(255, 218, 116))
