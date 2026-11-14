@@ -1,6 +1,7 @@
 
 package com.sharafzai.keyboard
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.ClipboardManager
 import android.content.ClipData
@@ -118,6 +119,7 @@ class KeyboardService : InputMethodService() {
     private val theme: KeyboardTheme
         get() = themes[themeIndex]
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
 
