@@ -497,11 +497,7 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = false
             refreshKeyboard()
         }
-        addSpecial(header, "🎨", 0.75f, 29) {
-            themeIndex = (themeIndex + 1) % themes.size
-            saveSettings()
-            refreshKeyboard()
-        }
+        addSpecial(header, "🎨", 0.75f, 29) { showThemePicker() }
         addSpecial(header, "⚙", 0.75f, 29) {
             settingsPanelVisible = !settingsPanelVisible
             if (settingsPanelVisible) {
@@ -576,11 +572,7 @@ class KeyboardService : InputMethodService() {
                 .putExtra("language", language)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        addSpecial(topTools, "🎨\nرنګ", 1f, 38) {
-            themeIndex = (themeIndex + 1) % themes.size
-            saveSettings()
-            refreshKeyboard()
-        }
+        addSpecial(topTools, "🎨\nرنګ", 1f, 38) { showThemePicker() }
 
 
         suggestionContainer = LinearLayout(this).apply {
@@ -766,6 +758,28 @@ class KeyboardService : InputMethodService() {
         root.addView(topTools, rowParams(40))
 
         return root
+    }
+
+    private fun showThemePicker() {
+        val names = listOf(
+            "سندس اصلي", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي", "طلایي", "یاقوتي",
+            "فیروزه", "لاجوردي", "زمردي", "سپوږمۍ", "لمر", "آسماني", "باراني", "ځنګل",
+            "ګلستان", "مرجاني", "ارغواني", "نقره", "برونزي", "شفق", "یخ", "اور",
+            "شګه", "کاکاو", "نعنا", "لیمو", "انګور", "ګلاب", "مرجان", "دود",
+            "شاهي", "مخمل", "کریستال", "سپین زر", "تور الماس", "زمرد شپه", "طلایي شفق",
+            "سندس ځانګړی", "لاجوردي شپه", "شنه زمرد", "ګلابي سپوږمۍ", "شاهي ارغواني",
+            "د صحرا لمر", "یخي آبي", "مروارید", "تور شفق"
+        )
+        AlertDialog.Builder(this)
+            .setTitle("د سندس رنګونه")
+            .setSingleChoiceItems(names.toTypedArray(), themeIndex) { dialog, which ->
+                themeIndex = which.coerceIn(themes.indices)
+                saveSettings()
+                dialog.dismiss()
+                refreshKeyboard()
+            }
+            .setNegativeButton("بند", null)
+            .show()
     }
 
     private fun addSettingsPanel(parent: LinearLayout) {
