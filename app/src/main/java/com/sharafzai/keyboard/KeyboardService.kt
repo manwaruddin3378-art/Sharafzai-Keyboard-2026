@@ -31,7 +31,6 @@ import android.widget.Toast
 import android.widget.PopupWindow
 import android.os.Handler
 import android.os.Looper
-import android.provider.AlarmClock
 
 class KeyboardService : InputMethodService() {
 
@@ -45,8 +44,6 @@ class KeyboardService : InputMethodService() {
     private var emojiPanelVisible = false
     private var diacriticsPanelVisible = false
     private var symbolsPanelVisible = false
-    private var calculatorPanelVisible = false
-    private var toolsPanelVisible = false
     private var settingsPanelVisible = false
     private var phrasePanelVisible = false
     private var phraseCategory = 0
@@ -64,46 +61,6 @@ class KeyboardService : InputMethodService() {
             pendingVoiceText = intent?.getStringExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT).orEmpty()
         }
     }
-    private var adhkarIndex = 0
-    private var adhkarTextView: TextView? = null
-    private val adhkarHandler = Handler(Looper.getMainLooper())
-    private val adhkarList = listOf(
-        "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
-        "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ",
-        "لَا إِلٰهَ إِلَّا اللَّهُ",
-        "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ",
-        "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ",
-        "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
-        "سُبْحَانَ اللَّهِ الْعَظِيمِ",
-        "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
-        "اللَّهُ أَكْبَرُ كَبِيرًا",
-        "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
-        "رَبِّ اغْفِرْ لِي وَارْحَمْنِي",
-        "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
-        "لَا إِلٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
-        "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً",
-        "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ",
-        "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
-        "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ",
-        "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ",
-        "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا",
-        "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا"
-    )
-    private val adhkarRotation = object : Runnable {
-        override fun run() {
-            adhkarIndex = (adhkarIndex + 1) % adhkarList.size
-            adhkarTextView?.apply {
-                text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
-                val colors = listOf(Color.rgb(0, 190, 190), Color.rgb(190, 70, 180), Color.rgb(225, 155, 20), Color.rgb(55, 130, 225))
-                val color = colors[adhkarIndex % colors.size]
-                setTextColor(Color.WHITE)
-                background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(color, Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
-            }
-            adhkarHandler.postDelayed(this, 7_000)
-        }
-    }
-    private var calculatorExpression = ""
-
     private data class GlideKey(val view: View, val value: String)
     private val glideKeys = mutableListOf<GlideKey>()
 
@@ -185,8 +142,6 @@ class KeyboardService : InputMethodService() {
     }
 
     override fun onDestroy() {
-        adhkarHandler.removeCallbacks(adhkarRotation)
-        adhkarTextView = null
         runCatching { unregisterReceiver(voiceReceiver) }
         super.onDestroy()
     }
@@ -406,24 +361,6 @@ class KeyboardService : InputMethodService() {
             }
         }
         updateSuggestions()
-        startAdhkarRotation()
-    }
-
-    override fun onFinishInputView(finishingInput: Boolean) {
-        adhkarHandler.removeCallbacks(adhkarRotation)
-        adhkarTextView = null
-        super.onFinishInputView(finishingInput)
-    }
-
-    private fun startAdhkarRotation() {
-        adhkarHandler.removeCallbacks(adhkarRotation)
-        adhkarIndex = 0
-        adhkarTextView?.apply {
-            text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
-            setTextColor(Color.WHITE)
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 155, 180), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
-        }
-        adhkarHandler.postDelayed(adhkarRotation, 7_000)
     }
 
     override fun onUpdateSelection(
@@ -497,8 +434,8 @@ class KeyboardService : InputMethodService() {
             emojiPanelVisible = false
             diacriticsPanelVisible = false
             symbolsPanelVisible = false
-            calculatorPanelVisible = false
-            toolsPanelVisible = false
+            
+            
             settingsPanelVisible = false
             saveSettings()
             refreshKeyboard()
@@ -522,8 +459,8 @@ class KeyboardService : InputMethodService() {
                 emojiPanelVisible = false
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
-                calculatorPanelVisible = false
-                toolsPanelVisible = false
+                
+                
                 clipboardPanelVisible = false
                 phrasePanelVisible = false
             }
@@ -537,42 +474,24 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = !clipboardPanelVisible
             if (clipboardPanelVisible) {
                 emojiPanelVisible = false; diacriticsPanelVisible = false
-                symbolsPanelVisible = false; calculatorPanelVisible = false
-                toolsPanelVisible = false; settingsPanelVisible = false
+                symbolsPanelVisible = false; 
+                 settingsPanelVisible = false
                 phrasePanelVisible = false
             }
             refreshKeyboard()
-        }
-        addSpecial(topTools, "🧰 وسایل", 1.15f, 35) {
-            openSharafzaiTools("home")
         }
         addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; shifted = false; lastShiftTapAt = 0L; refreshKeyboard() }
         addSpecial(topTools, "AutoText", 1.0f, 35) { showAutoTextEditor() }
         addSpecial(topTools, "جملې", 1.0f, 35) {
             phrasePanelVisible = !phrasePanelVisible
-            toolsPanelVisible = false
+            
             if (phrasePanelVisible) {
                 emojiPanelVisible = false; diacriticsPanelVisible = false
-                symbolsPanelVisible = false; calculatorPanelVisible = false
+                symbolsPanelVisible = false; 
                 settingsPanelVisible = false; clipboardPanelVisible = false
             }
             refreshKeyboard()
         }
-        adhkarTextView = TextView(this).apply {
-            text = "۞ ذکر ۞  " + adhkarList[adhkarIndex]
-            textSize = 19f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            isSingleLine = true
-            ellipsize = android.text.TextUtils.TruncateAt.MARQUEE
-            marqueeRepeatLimit = -1
-            isSelected = true
-            setTextColor(Color.WHITE)
-            setPadding(dp(10), dp(3), dp(10), dp(3))
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(0, 190, 190), Color.rgb(8, 35, 75))).apply { cornerRadius = dp(12).toFloat() }
-            elevation = dp(5).toFloat()
-        }
-        root.addView(adhkarTextView, rowParams(49))
         root.addView(topTools, rowParams(37))
 
         suggestionContainer = LinearLayout(this).apply {
@@ -623,8 +542,8 @@ class KeyboardService : InputMethodService() {
                 clipboardPanelVisible = false
                 diacriticsPanelVisible = false
                 symbolsPanelVisible = false
-                calculatorPanelVisible = false
-                toolsPanelVisible = false
+                
+                
                 settingsPanelVisible = false
             }
             refreshKeyboard()
@@ -636,8 +555,8 @@ class KeyboardService : InputMethodService() {
                 if (diacriticsPanelVisible) {
                     emojiPanelVisible = false
                     symbolsPanelVisible = false
-                    calculatorPanelVisible = false
-                    toolsPanelVisible = false
+                    
+                    
                     settingsPanelVisible = false
                     clipboardPanelVisible = false
                 }
@@ -650,8 +569,8 @@ class KeyboardService : InputMethodService() {
             if (symbolsPanelVisible) {
                 emojiPanelVisible = false
                 diacriticsPanelVisible = false
-                calculatorPanelVisible = false
-                toolsPanelVisible = false
+                
+                
                 settingsPanelVisible = false
                 clipboardPanelVisible = false
             }
@@ -711,14 +630,8 @@ class KeyboardService : InputMethodService() {
             addClipboardPanel(root)
         }
 
-        // Calculator and utility screens are provided by ToolsActivity, not inside the typing keyboard.
-
         if (phrasePanelVisible) {
             addPhrasePanel(root)
-        }
-
-        if (toolsPanelVisible) {
-            addToolsPanel(root)
         }
 
         if (settingsPanelVisible) {
@@ -980,23 +893,6 @@ class KeyboardService : InputMethodService() {
         updateSuggestions()
     }
 
-    private fun addToolsPanel(parent: LinearLayout) {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        addSpecial(row, "📅 زما کلنډر", 1.5f, 40) {
-            openSharafzaiTools("calendar")
-        }
-        addSpecial(row, "⏰ زما الارم", 1.5f, 40) {
-            openSharafzaiTools("alarms")
-        }
-        addSpecial(row, "Close", 1f, 40) {
-            toolsPanelVisible = false
-            refreshKeyboard()
-        }
-        parent.addView(row, rowParams(43))
-    }
-
     private fun addEmojiPanel(parent: LinearLayout) {
         val groups = listOf(
             "مخونه" to listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😎","🤓","🧐","🤔","🤗","🤭","🤫","😴","😭"),
@@ -1200,151 +1096,6 @@ class KeyboardService : InputMethodService() {
         val closeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(closeRow, "بندول", 1f, 34) { phrasePanelVisible = false; refreshKeyboard() }
         parent.addView(closeRow, rowParams(37))
-    }
-
-    private fun openSharafzaiTools(page: String) {
-        startActivity(Intent(this, ToolsActivity::class.java)
-            .putExtra("open_page", page)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }
-
-    private fun addCalculatorPanel(parent: LinearLayout) {
-        val display = TextView(this).apply {
-            text = calculatorExpression.ifEmpty { "0" }
-            textSize = 23f
-            gravity = Gravity.CENTER_VERTICAL or Gravity.END
-            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
-            setPadding(dp(10), 0, dp(10), 0)
-            background = roundedBackground(theme.suggestion, dp(8))
-        }
-        parent.addView(display, rowParams(42))
-
-        fun addCalculatorRow(labels: List<String>) {
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-            }
-            labels.forEach { label ->
-                addSpecial(row, label, 1f, 36) {
-                    when (label) {
-                        "C" -> calculatorExpression = ""
-                        "⌫" -> calculatorExpression = calculatorExpression.dropLast(1)
-                        "=" -> {
-                            val result = runCatching {
-                                CalculatorParser(calculatorExpression).parse()
-                            }.getOrNull()
-                            if (result == null) {
-                                Toast.makeText(this, "د محاسبې عبارت سم نه دی", Toast.LENGTH_SHORT).show()
-                            } else {
-                                val answer = java.math.BigDecimal.valueOf(result)
-                                    .stripTrailingZeros()
-                                    .toPlainString()
-                                currentInputConnection?.commitText(answer, 1)
-                                calculatorExpression = answer
-                                calculatorPanelVisible = false
-                            }
-                        }
-                        else -> calculatorExpression += when (label) {
-                            "×" -> "*"
-                            "÷" -> "/"
-                            else -> label
-                        }
-                    }
-                    refreshKeyboard()
-                }
-            }
-            parent.addView(row, rowParams(39))
-        }
-
-        addCalculatorRow(listOf("7", "8", "9", "÷"))
-        addCalculatorRow(listOf("4", "5", "6", "×"))
-        addCalculatorRow(listOf("1", "2", "3", "−"))
-        addCalculatorRow(listOf("C", "0", ".", "+"))
-        addCalculatorRow(listOf("(", ")", "⌫", "="))
-    }
-
-    private class CalculatorParser(private val input: String) {
-        private var position = 0
-
-        fun parse(): Double {
-            val value = parseExpression()
-            skipSpaces()
-            require(position == input.length && value.isFinite())
-            return value
-        }
-
-        private fun parseExpression(): Double {
-            var value = parseTerm()
-            while (true) {
-                skipSpaces()
-                value = when {
-                    take('+') -> value + parseTerm()
-                    take('-') || take('−') -> value - parseTerm()
-                    else -> return value
-                }
-            }
-        }
-
-        private fun parseTerm(): Double {
-            var value = parseFactor()
-            while (true) {
-                skipSpaces()
-                value = when {
-                    take('*') || take('×') -> value * parseFactor()
-                    take('/') || take('÷') -> {
-                        val divisor = parseFactor()
-                        require(divisor != 0.0)
-                        value / divisor
-                    }
-                    else -> return value
-                }
-            }
-        }
-
-        private fun parseFactor(): Double {
-            skipSpaces()
-            if (take('+')) return parseFactor()
-            if (take('-') || take('−')) return -parseFactor()
-            if (take('(')) {
-                val value = parseExpression()
-                skipSpaces()
-                require(take(')'))
-                return value
-            }
-            return parseNumber()
-        }
-
-        private fun parseNumber(): Double {
-            skipSpaces()
-            val start = position
-            var hasDigit = false
-            while (position < input.length && input[position].isDigit()) {
-                position++
-                hasDigit = true
-            }
-            if (position < input.length && input[position] == '.') {
-                position++
-                while (position < input.length && input[position].isDigit()) {
-                    position++
-                    hasDigit = true
-                }
-            }
-            require(hasDigit)
-            return input.substring(start, position).toDouble()
-        }
-
-        private fun take(char: Char): Boolean {
-            if (position < input.length && input[position] == char) {
-                position++
-                return true
-            }
-            return false
-        }
-
-        private fun skipSpaces() {
-            while (position < input.length && input[position].isWhitespace()) {
-                position++
-            }
-        }
     }
 
     private val handler = Handler(Looper.getMainLooper())
