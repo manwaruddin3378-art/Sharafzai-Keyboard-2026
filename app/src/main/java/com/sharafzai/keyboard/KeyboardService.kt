@@ -1405,7 +1405,7 @@ class KeyboardService : InputMethodService() {
             textSize = 12f
             isAllCaps = false
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
+            setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
             minimumWidth = 0
             minimumHeight = 0
             setPadding(0, 0, 0, 0)
