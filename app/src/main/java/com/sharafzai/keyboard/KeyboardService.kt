@@ -342,6 +342,9 @@ class KeyboardService : InputMethodService() {
         return buildKeyboard()
     }
 
+    // Keep the IME docked above the app content, including landscape mode.
+    override fun onEvaluateFullscreenMode(): Boolean = false
+
     override fun onStartInputView(
         info: EditorInfo,
         restarting: Boolean
@@ -1120,7 +1123,7 @@ class KeyboardService : InputMethodService() {
                 refreshKeyboard()
             }
         }
-        parent.addView(categoryRow, rowParams(35))
+        parent.addView(categoryRow, rowParams(29))
 
         val phraseGroups = listOf(
             listOf(
@@ -1235,12 +1238,12 @@ class KeyboardService : InputMethodService() {
                     updateSuggestions()
                 }
             }
-            navigation.addView(phraseText, LinearLayout.LayoutParams(0, dp(48), 1f))
+            navigation.addView(phraseText, LinearLayout.LayoutParams(0, dp(40), 1f))
             addSpecial(navigation, "❯", 0.65f, 42) {
                 phraseIndex = (phraseIndex + 1) % phrases.size
                 refreshKeyboard()
             }
-            parent.addView(navigation, rowParams(50))
+            parent.addView(navigation, rowParams(42))
 
             val actionRow = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -1255,7 +1258,7 @@ class KeyboardService : InputMethodService() {
                 phrasePanelVisible = false
                 refreshKeyboard()
             }
-            parent.addView(actionRow, rowParams(36))
+            parent.addView(actionRow, rowParams(30))
         }
     }
 
