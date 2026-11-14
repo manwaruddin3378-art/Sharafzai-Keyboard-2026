@@ -26,10 +26,4 @@
         android:imeSubtypeMode="keyboard"
         android:isAsciiCapable="false" />
 
-    <subtype
-        android:label="@string/subtype_urdu"
-        android:imeSubtypeLocale="ur_PK"
-        android:imeSubtypeMode="keyboard"
-        android:isAsciiCapable="false" />
-
 </input-method>
