@@ -1105,9 +1105,25 @@ class KeyboardService : InputMethodService() {
         val previous = before.trimEnd().lastOrNull()
         val sentenceStart = before.isBlank() || previous == null ||
             previous in listOf('.', '?', '!', '؟', '\n')
+        val inputType = currentInputEditorInfo?.inputType
+            ?: android.text.InputType.TYPE_CLASS_TEXT
+        val inputClass = inputType and android.text.InputType.TYPE_MASK_CLASS
+        val variation = inputType and android.text.InputType.TYPE_MASK_VARIATION
+        val isSensitiveOrAddressField = inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
+            variation in setOf(
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            )
+        val shouldAutoCapitalize = language == 2 &&
+            inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
+            !isSensitiveOrAddressField
         val output = when {
             shifted && spec.shifted.isNotEmpty() -> spec.shifted
-            language == 2 && (caps || shifted || sentenceStart) -> spec.normal.uppercase()
+            shouldAutoCapitalize && (caps || shifted || sentenceStart) -> spec.normal.uppercase()
             else -> spec.normal
         }
         currentInputConnection?.commitText(output, 1)
