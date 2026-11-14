@@ -1562,14 +1562,27 @@ class KeyboardService : InputMethodService() {
         val prefixMatches = candidates.filter {
             it.startsWith(currentWord, ignoreCase = true) &&
                 !it.equals(currentWord, ignoreCase = true)
-        }
+        }.sortedWith(
+            compareBy<String> { kotlin.math.abs(it.length - currentWord.length) }
+                .thenBy { it.length }
+        )
         if (prefixMatches.isNotEmpty()) return prefixMatches.take(3)
 
         if (currentWord.length < 4) return emptyList()
         return candidates
-            .map { word -> word to editDistanceAtMostOne(currentWord.lowercase(), word.lowercase()) }
+            .map { word ->
+                Triple(
+                    word,
+                    editDistanceAtMostOne(currentWord.lowercase(), word.lowercase()),
+                    word.commonPrefixWith(currentWord, ignoreCase = true).length
+                )
+            }
             .filter { it.second == 1 }
-            .sortedBy { it.second }
+            .sortedWith(
+                compareBy<Triple<String, Int, Int>> { kotlin.math.abs(it.first.length - currentWord.length) }
+                    .thenByDescending { it.third }
+                    .thenBy { it.first.length }
+            )
             .map { it.first }
             .take(3)
     }
