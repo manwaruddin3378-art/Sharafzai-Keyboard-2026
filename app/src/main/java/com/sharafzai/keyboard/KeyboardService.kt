@@ -792,7 +792,7 @@ class KeyboardService : InputMethodService() {
         val dictionaryKey = "personalWords_$language"
         val words = prefs.getStringSet(dictionaryKey, emptySet())
             ?.toMutableSet() ?: mutableSetOf()
-        val languageName = listOf("پښتو", "عربي", "English", "دري", "اردو")[language]
+        val languageName = listOf("پښتو", "عربي", "English", "دري")[language.coerceIn(0, 3)]
 
         fun showList() {
             val current = prefs.getStringSet(dictionaryKey, emptySet())
