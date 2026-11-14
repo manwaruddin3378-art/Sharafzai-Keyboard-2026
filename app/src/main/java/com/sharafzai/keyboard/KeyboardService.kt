@@ -425,8 +425,8 @@ class KeyboardService : InputMethodService() {
         }
 
         val brandLogo = TextView(this).apply {
-            text = "☾ سندس SUNDUS"
-            textSize = 11f
+            text = "☾\nسندس\nSUNDUS"
+            textSize = 9f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(255, 218, 116))
             typeface = Typeface.create("serif", Typeface.BOLD)
@@ -439,7 +439,7 @@ class KeyboardService : InputMethodService() {
             }
             contentDescription = "SUNDUS سندس"
         }
-        header.addView(brandLogo, LinearLayout.LayoutParams(dp(48), dp(44)))
+        header.addView(brandLogo, LinearLayout.LayoutParams(dp(52), dp(50)))
 
         val title = TextView(this).apply {
             text = when (language) {
@@ -511,7 +511,7 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        root.addView(header, rowParams(48))
+        root.addView(header, rowParams(54))
 
         val languageStrip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
