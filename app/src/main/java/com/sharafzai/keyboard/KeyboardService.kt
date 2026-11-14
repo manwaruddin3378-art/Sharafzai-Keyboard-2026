@@ -510,27 +510,38 @@ class KeyboardService : InputMethodService() {
         }
         root.addView(languageStrip, rowParams(36))
 
-        val topTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(topTools, "📋", 0.8f, 35) {
+        val topTools = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        addSpecial(topTools, "📋\nکاپي", 1f, 38) {
             clipboardPanelVisible = !clipboardPanelVisible
             if (clipboardPanelVisible) {
-                emojiPanelVisible = false; diacriticsPanelVisible = false
-                symbolsPanelVisible = false; 
-                 settingsPanelVisible = false
+                emojiPanelVisible = false
+                diacriticsPanelVisible = false
+                symbolsPanelVisible = false
+                settingsPanelVisible = false
                 phrasePanelVisible = false
             }
             refreshKeyboard()
         }
-        addSpecial(topTools, "Caps", 0.9f, 35) { caps = !caps; shifted = false; lastShiftTapAt = 0L; refreshKeyboard() }
-        addSpecial(topTools, "AutoText", 1.0f, 35) { showAutoTextEditor() }
-        addSpecial(topTools, "جملې", 1.0f, 35) {
-            phrasePanelVisible = !phrasePanelVisible
-            
-            if (phrasePanelVisible) {
-                emojiPanelVisible = false; diacriticsPanelVisible = false
-                symbolsPanelVisible = false; 
-                settingsPanelVisible = false; clipboardPanelVisible = false
-            }
+        addSpecial(topTools, "⭐\nAutoText", 1f, 38) { showAutoTextEditor() }
+        addSpecial(topTools, "🌐\nژباړه", 1f, 38) {
+            AlertDialog.Builder(this)
+                .setTitle("ژباړه")
+                .setMessage("سندس اوس مهال په بشپړ ډول آفلاین دی؛ د جملو ژباړلو لپاره د ژباړې آفلاین ژبنۍ بسته لا نه ده ورزیاته شوې. د ژبو د بدلولو لپاره پورته ژبنیز انتخاب وکاروئ.")
+                .setPositiveButton("سمه ده", null)
+                .show()
+        }
+        addSpecial(topTools, "📖\nقاموس", 1f, 38) { showPersonalDictionaryEditor() }
+        addSpecial(topTools, "🎙\nغږ", 1f, 38) {
+            startActivity(Intent(this, VoiceInputActivity::class.java)
+                .putExtra("language", language)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+        addSpecial(topTools, "🎨\nرنګ", 1f, 38) {
+            themeIndex = (themeIndex + 1) % themes.size
+            saveSettings()
             refreshKeyboard()
         }
         root.addView(topTools, rowParams(37))
@@ -1154,7 +1165,7 @@ class KeyboardService : InputMethodService() {
                 "اگر پرسش دیگری دارید، با خوشحالی پاسخ می‌دهم.",
                 "با احترام و آرزوی موفقیت‌های بیشتر برای شما.",
                 "ببخشید که پاسخ من کمی به تأخیر افتاد.",
-                "امیدوارم همکاری ما fruitful و سودمند باشد.",
+                "امیدوارم همکاری ما سودمند و نتیجه‌بخش باشد.",
                 "در پناه خداوند باشید و روزگار خوشی داشته باشید.",
                 "برای شما سلامتی، آرامش و موفقیت آرزو می‌کنم."
             )
