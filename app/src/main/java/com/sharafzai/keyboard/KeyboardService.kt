@@ -1878,9 +1878,10 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun dp(value: Int): Int {
-        return (
-            value * resources.displayMetrics.density
-        ).toInt()
+        val density = resources.displayMetrics.density
+        val screenHeightDp = resources.displayMetrics.heightPixels / density
+        val compactScale = (screenHeightDp / 780f).coerceIn(0.82f, 1f)
+        return (value * density * compactScale).toInt()
     }
 
     private fun showEmailSetup() {
