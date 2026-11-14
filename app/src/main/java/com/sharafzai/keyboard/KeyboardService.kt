@@ -148,6 +148,7 @@ class KeyboardService : InputMethodService() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
         runCatching { unregisterReceiver(voiceReceiver) }
         super.onDestroy()
     }
