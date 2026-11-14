@@ -1629,18 +1629,7 @@ class KeyboardService : InputMethodService() {
             container.addView(emailChip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(30)))
             return
         }
-        val clip = (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip
-        val clipText = if (clip != null && clip.itemCount > 0) clip.getItemAt(0).coerceToText(this).toString() else ""
-        val otp = Regex("(?<!\\d)\\d{4,8}(?!\\d)").find(clipText)?.value
-        if (otp != null && (editorType and android.text.InputType.TYPE_MASK_CLASS) == android.text.InputType.TYPE_CLASS_NUMBER) {
-            val otpChip = TextView(this).apply {
-                text = "OTP: $otp"; textSize = 14f; gravity = Gravity.CENTER
-                setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38,45,55))
-                setOnClickListener { currentInputConnection?.commitText(otp, 1); updateSuggestions() }
-            }
-            container.addView(otpChip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(30)))
-            return
-        }
+        // Clipboard content is accessed only after the user opens the clipboard panel.
         val suggestions = getOfflineSuggestions()
 
         suggestions.forEach { word ->
