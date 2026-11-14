@@ -32,7 +32,7 @@ class MainActivity : Activity() {
             setPadding(8, 18, 8, 10)
         })
         root.addView(TextView(this).apply {
-            text = "پنځه ژبې، چټک لیکل او شخصي محرمیت"
+            text = "څلور ژبې، چټک لیکل او شخصي محرمیت"
             textSize = 16f
             gravity = Gravity.CENTER
             setTextColor(Color.LTGRAY)
