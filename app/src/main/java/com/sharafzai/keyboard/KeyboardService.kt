@@ -408,11 +408,11 @@ class KeyboardService : InputMethodService() {
 
         val title = TextView(this).apply {
             text = when (language) {
-                0 -> "✦ سندس  |  پښتو"
-                1 -> "✦ سندس  |  العربية"
-                2 -> "✦ سندس  |  ENGLISH"
-                3 -> "✦ سندس  |  دری"
-                else -> "✦ سندس  |  اردو"
+                0 -> "🌙 SUNDUS  |  پښتو"
+                1 -> "🌙 SUNDUS  |  العربية"
+                2 -> "🌙 SUNDUS  |  ENGLISH"
+                3 -> "🌙 SUNDUS  |  دری"
+                else -> "🌙 SUNDUS  |  اردو"
             }
             textSize = 14f
             letterSpacing = 0.03f
@@ -1258,8 +1258,8 @@ class KeyboardService : InputMethodService() {
                     text = longPressOutput
                     textSize = 10f
                     setTextColor(theme.accent)
-                    gravity = Gravity.TOP or Gravity.END
-                    setPadding(0, dp(1), dp(3), 0)
+                    gravity = Gravity.BOTTOM or Gravity.END
+                    setPadding(0, 0, dp(4), dp(3))
                 }
 
                 frame.addView(
