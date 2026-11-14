@@ -433,18 +433,24 @@ class KeyboardService : InputMethodService() {
         }
 
         addSpecial(header, "🌐", 0.8f, 29) {
-            language = (language + 1) % 5
-            shifted = false
-            caps = false
-            lastShiftTapAt = 0L
-            emojiPanelVisible = false
-            diacriticsPanelVisible = false
-            symbolsPanelVisible = false
-            
-            
-            settingsPanelVisible = false
-            saveSettings()
-            refreshKeyboard()
+            val languageNames = arrayOf("پښتو", "عربي", "English", "دري", "اردو")
+            AlertDialog.Builder(this)
+                .setTitle("د کیبورډ ژبه وټاکئ")
+                .setSingleChoiceItems(languageNames, language) { dialog, selected ->
+                    language = selected
+                    shifted = false
+                    caps = false
+                    lastShiftTapAt = 0L
+                    emojiPanelVisible = false
+                    diacriticsPanelVisible = false
+                    symbolsPanelVisible = false
+                    settingsPanelVisible = false
+                    saveSettings()
+                    dialog.dismiss()
+                    refreshKeyboard()
+                }
+                .setNegativeButton("بند", null)
+                .show()
         }
 
         addSpecial(header, "＋", 0.8f, 29) {
