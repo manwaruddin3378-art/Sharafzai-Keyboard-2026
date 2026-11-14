@@ -75,10 +75,11 @@ class KeyboardService : InputMethodService() {
 
     // Forty-eight lightweight, fully offline color themes with high-contrast text.
     private val themes = (listOf(
-        KeyboardTheme(Color.rgb(241, 244, 248),
-            listOf(Color.rgb(255, 255, 255), Color.rgb(250, 252, 255), Color.rgb(235, 240, 247)),
-            Color.rgb(224, 232, 242), Color.rgb(251, 252, 254),
-            Color.rgb(39, 104, 160), Color.rgb(207, 217, 230)),
+        // SUNDUS signature theme: deep navy, turquoise glow, pearl keys and gold-ready accents.
+        KeyboardTheme(Color.rgb(3, 19, 46),
+            listOf(Color.rgb(242, 246, 255), Color.rgb(225, 236, 252), Color.rgb(250, 249, 255)),
+            Color.rgb(7, 45, 103), Color.rgb(4, 31, 70),
+            Color.rgb(34, 218, 235), Color.rgb(38, 190, 229)),
         KeyboardTheme(Color.rgb(20, 25, 35),
             listOf(Color.rgb(48, 57, 72), Color.rgb(41, 50, 65), Color.rgb(34, 42, 56)),
             Color.rgb(57, 68, 86), Color.rgb(29, 36, 49),
@@ -667,7 +668,7 @@ class KeyboardService : InputMethodService() {
             updateSuggestions()
         }
 
-        addSpecial(bottom, "Space", 3.5f, 42) { expandAutoTextAndSpace() }
+        addSpecial(bottom, "✦ SUNDUS | سندس ✦", 3.5f, 42) { expandAutoTextAndSpace() }
 
         addSpecial(bottom, ".", 0.7f, 42) {
             currentInputConnection?.commitText(".", 1)
@@ -1273,7 +1274,7 @@ class KeyboardService : InputMethodService() {
 
             frame.background = roundedBackground(
                 theme.keyColors[index % theme.keyColors.size],
-                dp(10)
+                dp(13)
             )
             frame.elevation = dp(3).toFloat()
 
@@ -1393,15 +1394,25 @@ class KeyboardService : InputMethodService() {
             minimumWidth = 0
             minimumHeight = 0
             setPadding(0, 0, 0, 0)
-            background = roundedBackground(
-                theme.special,
-                dp(10)
-            )
+            background = if (label.contains("SUNDUS")) {
+                GradientDrawable(
+                    GradientDrawable.Orientation.LEFT_RIGHT,
+                    intArrayOf(Color.rgb(3, 47, 91), Color.rgb(2, 101, 132), Color.rgb(3, 47, 91))
+                ).apply {
+                    cornerRadius = dp(12).toFloat()
+                    setStroke(dp(2), Color.rgb(226, 181, 67))
+                }
+            } else roundedBackground(theme.special, dp(12))
+            if (label.contains("SUNDUS")) {
+                setTextColor(Color.rgb(255, 218, 116))
+                textSize = 15f
+                typeface = Typeface.create("serif", Typeface.BOLD)
+            }
             elevation = dp(4).toFloat()
             letterSpacing = 0.01f
         }
 
-        if (label == "Space") {
+        if (label == "Space" || label.contains("SUNDUS")) {
             var downX = 0f
             button.setOnTouchListener { view, event ->
                 when (event.action) {
