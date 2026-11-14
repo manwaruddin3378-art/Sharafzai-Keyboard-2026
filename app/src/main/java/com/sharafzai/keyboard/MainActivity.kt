@@ -55,12 +55,6 @@ class MainActivity : Activity() {
             }
         }
         root.addView(choose, LinearLayout.LayoutParams(-1, dp(54)))
-        val tools = Button(this).apply {
-            text = "۳ ـ د سندس جلا وسایل (کلکولیټر، کلیندر، الارم، یادښتونه)"
-            isAllCaps = false
-            setOnClickListener { startActivity(Intent(this@MainActivity, ToolsActivity::class.java)) }
-        }
-        root.addView(tools, LinearLayout.LayoutParams(-1, dp(54)))
         root.addView(TextView(this).apply {
             text = "د مفتي محمد انوارالدين شرفزي لخوا\n\nسندس یوازې د کیبورډ اپلیکیشن دی. اعلانونه او د انټرنېټ اجازه نه لري. ستاسې شخصي لغتونه او تنظیمات په همدې موبایل کې ساتل کېږي."
             textSize = 14f
