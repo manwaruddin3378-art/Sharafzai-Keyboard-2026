@@ -48,6 +48,7 @@ class KeyboardService : InputMethodService() {
     private var settingsPanelVisible = false
     private var phrasePanelVisible = false
     private var phraseCategory = 0
+    private var phraseIndex = 0
     private var clipboardPanelVisible = false
     private var emojiCategory = 0
     private var fontStyleIndex = 0
@@ -708,7 +709,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(row, "ژبه: ${listOf("پښتو", "عربي", "English", "دري")[language.coerceIn(0, 3)]}", 1.5f, 40) {
-            language = (language + 1) % 5
+            language = (language + 1) % 4
             shifted = false
             caps = false
             lastShiftTapAt = 0L
@@ -1042,45 +1043,152 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
-        val categories = listOf("اسلامي", "پښتو", "English", "دري", "ډیزاین", "۞", "زما")
+        val categories = listOf("اسلامي", "پښتو", "English", "دري", "زما")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         categories.forEachIndexed { index, label ->
-            addSpecial(categoryRow, label, 1f, 36) { phraseCategory = index; refreshKeyboard() }
+            addSpecial(categoryRow, label, 1f, 32) {
+                phraseCategory = index
+                phraseIndex = 0
+                refreshKeyboard()
+            }
         }
-        parent.addView(categoryRow, rowParams(39))
+        parent.addView(categoryRow, rowParams(35))
+
+        val phraseGroups = listOf(
+            listOf(
+                "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+                "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ",
+                "وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ",
+                "جَزَاكَ اللَّهُ خَيْرًا وَبَارَكَ اللَّهُ فِيكَ",
+                "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ",
+                "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ",
+                "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ",
+                "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ",
+                "رَبِّ زِدْنِي عِلْمًا وَارْزُقْنِي فَهْمًا",
+                "اللَّهُمَّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ",
+                "اللَّهُمَّ اهْدِنَا وَوَفِّقْنَا لِمَا تُحِبُّ وَتَرْضَى",
+                "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+                "إِنَّ مَعَ الْعُسْرِ يُسْرًا",
+                "مَا شَاءَ اللَّهُ، لَا قُوَّةَ إِلَّا بِاللَّهِ",
+                "اللَّهُمَّ ارْزُقْنَا عِلْمًا نَافِعًا وَعَمَلًا صَالِحًا",
+                "رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنْتَ السَّمِيعُ الْعَلِيمُ",
+                "اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ"
+            ),
+            listOf(
+                "السلام علیکم، څنګه یاست؟ هیله ده روغ او جوړ به یاست.",
+                "وعلیکم السلام ورحمة الله، الحمدلله ښه یم، ستاسو مهرباني ده.",
+                "ستاسو له پیغام او نېکو هیلو څخه ډېره مننه.",
+                "الله تعالی دې ستاسو په علم، عمر او روزۍ کې برکت واچوي.",
+                "هیله ده دا ورځ مو له خوښیو او بریاوو ډکه تېره شي.",
+                "زه به ستاسو غوښتنه په غور وڅېړم او ژر به ځواب درکړم.",
+                "ستاسو له ارزښتناکې همکارۍ او مرستې څخه د زړه له کومې مننه.",
+                "که مهرباني وکړئ، د موضوع په اړه نور معلومات هم راولېږئ.",
+                "الله دې تل روغ، خوشحاله او په خپلو چارو کې بریالی لره.",
+                "ستاسو خبرې مې ترلاسه کړې؛ په مناسب وخت کې به یې ځواب کړم.",
+                "په درنښت او نېکو هیلو، ستاسو د بریا په هیله.",
+                "بښنه غواړم چې ځواب مې لږ وځنډېد؛ له زغم څخه مو مننه.",
+                "ان شاء الله، هڅه به وکړو چې دا کار په ښه او منظم ډول بشپړ کړو.",
+                "ستاسو د وخت، پاملرنې او همکارۍ قدر کوم.",
+                "که کومه بله پوښتنه لرئ، په خوښۍ سره یې ځوابوم.",
+                "الله مو مل شه، په امان او د بریاوو په هیله."
+            ),
+            listOf(
+                "Hello! I hope you are doing well and staying healthy.",
+                "Thank you very much for your message and kind wishes.",
+                "May Allah bless you with success, good health, and happiness.",
+                "I have received your message and will reply as soon as possible.",
+                "Please let me know if you need any further information.",
+                "I sincerely appreciate your time, support, and cooperation.",
+                "I hope everything is going well for you and your family.",
+                "May your day be filled with peace, kindness, and success.",
+                "I will review the matter carefully and get back to you soon.",
+                "Thank you for your patience and understanding.",
+                "Please accept my sincere apologies for the delayed response.",
+                "I wish you continued success in your studies and professional work.",
+                "It was a pleasure communicating with you. Best wishes!",
+                "If you have any questions, please feel free to contact me.",
+                "May Allah guide us to what is right and beneficial.",
+                "Kind regards, and wishing you all the best."
+            ),
+            listOf(
+                "سلام، امیدوارم صحت‌مند و خوشحال باشید.",
+                "از پیام و مهربانی شما بسیار سپاسگزارم.",
+                "خداوند به علم، عمر و روزی شما برکت نصیب کند.",
+                "پیام شما را دریافت کردم و به زودی پاسخ خواهم داد.",
+                "لطفاً اگر معلومات بیشتری لازم است، برایم ارسال کنید.",
+                "از همکاری و پشتیبانی ارزشمند شما صمیمانه تشکر می‌کنم.",
+                "امیدوارم روز خوبی داشته باشید و کارهایتان به خوبی پیش برود.",
+                "خداوند شما و خانواده‌تان را همیشه سلامت و کامیاب نگهدارد.",
+                "موضوع را با دقت بررسی می‌کنم و نتیجه را با شما شریک می‌سازم.",
+                "از صبر، حوصله و درک شما بسیار ممنونم.",
+                "اگر پرسش دیگری دارید، با خوشحالی پاسخ می‌دهم.",
+                "با احترام و آرزوی موفقیت‌های بیشتر برای شما.",
+                "ببخشید که پاسخ من کمی به تأخیر افتاد.",
+                "امیدوارم همکاری ما fruitful و سودمند باشد.",
+                "در پناه خداوند باشید و روزگار خوشی داشته باشید.",
+                "برای شما سلامتی، آرامش و موفقیت آرزو می‌کنم."
+            )
+        )
         val phrases = when (phraseCategory) {
-            0 -> listOf("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ","الْحَمْدُ لِلَّهِ","مَا شَاءَ اللَّهُ","إِنْ شَاءَ اللَّهُ","سُبْحَانَ اللَّهِ","أَسْتَغْفِرُ اللَّهَ","جَزَاكَ اللَّهُ خَيْرًا","بَارَكَ اللَّهُ فِيكَ","السَّلَامُ عَلَيْكُمْ","وَعَلَيْكُمُ السَّلَامُ","صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ","رَضِيَ اللَّهُ عَنْهُ","سُبْحَانَ اللَّهِ وَبِحَمْدِهِ","لَا إِلٰهَ إِلَّا اللَّهُ","اللَّهُ أَكْبَرُ","لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ","حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ","رَبِّ اغْفِرْ لِي","اللَّهُمَّ ارْحَمْنِي","أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ","رَبَّنَا تَقَبَّلْ مِنَّا","اللَّهُمَّ بَارِكْ لَنَا","اللَّهُمَّ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ","رَبِّ زِدْنِي عِلْمًا","اللَّهُمَّ اهْدِنِي وَسَدِّدْنِي","اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ","اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ","اللَّهُمَّ اغْفِرْ لِي وَلِوَالِدَيَّ","اللَّهُمَّ ثَبِّتْ قَلْبِي عَلَى دِينِكَ","رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا","اللَّهُمَّ صَلِّ عَلَى نَبِيِّنَا مُحَمَّدٍ")
-            1 -> listOf("السلام علیکم، څنګه یاست؟","وعلیکم السلام، الحمدلله ښه یم","ډېره مننه","هیڅ خبره نه ده","مهرباني وکړئ","الله دې مل شه","په خیر راغلې","ستړی مه شې","بیا به سره ګورو","ستاسو له مرستې مننه","بښنه غواړم","ښه ورځ ولرئ","الله دې مل شه او بریالی اوسې","ستاسې له مهربانۍ مننه","هیله ده روغ او جوړ به یاست","زه به ژر درته ځواب درکړم","په امان الله","الله دې ساتنه وکړي","ستاسې ورځ دې نېکمرغه وي","د بریا په هیله","ډېر ښه، مننه","ان شاء الله، همداسې به وکړو","ستاسې له وخت څخه مننه","ستاسې پیغام مې ترلاسه کړ","زه به موضوع وڅېړم او ځواب به درکړم","الله دې په چارو کې برکت واچوي","په درنښت او نېکو هیلو","ستاسې د همکارۍ قدر کوم","هیله ده ورځ مو په خیر تېره شي","ستاسې د بریا په هیله","مهرباني وکړئ خبر راکړئ","الله مو تل خوشحاله لره")
-            2 -> listOf("Hello!","How are you?","I hope you are well.","Thank you very much.","You're welcome.","Please let me know.","Have a nice day!","Good morning!","Good evening!","See you soon.","May Allah bless you.","Best wishes.")
-            3 -> listOf("سلام، حال شما چطور است؟","تشکر بسیار","خواهش می‌کنم","روز خوش داشته باشید","خداوند نگهدارتان باشد","از همکاری شما سپاسگزارم","به امید دیدار","صبح بخیر","شب بخیر","موفق باشید","ببخشید","لطفاً")
-            4 -> listOf("❖ مننه ❖","✦ ښه راغلاست ✦","『 السلام علیکم 』","《 الحمد لله 》","༺ مننه ༻","✧ په خیر اوسئ ✧","◈ بریالی اوسئ ◈","❀ خوښ او خوشحاله اوسئ ❀","★ الله مو مل شه ★")
-            6 -> listOf("۞ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۞","۞ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۞","﷽","ﷺ","۞ سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ۞","۞ جَزَاكَ اللَّهُ خَيْرًا ۞","﴿ وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ﴾","﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾")
+            in 0..3 -> phraseGroups[phraseCategory]
             else -> getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                 .getStringSet("savedPhrases", emptySet()).orEmpty().toList()
         }
+
         if (phrases.isEmpty()) {
             val empty = TextView(this).apply {
-                text = "تر اوسه شخصي جمله نه ده ساتل شوې. د کلیپ‌بورډ له برخې څخه جمله وساتئ."
+                text = "تر اوسه شخصي جمله نه ده ساتل شوې؛ د کلیپ‌بورډ له برخې یې خوندي کړئ."
                 textSize = 12f
                 gravity = Gravity.CENTER
-                setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
+                setTextColor(Color.WHITE)
             }
-            parent.addView(empty, rowParams(38))
-        }
-        phrases.chunked(3).forEach { group ->
-            val phraseRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            group.forEach { phrase ->
-                addSpecial(phraseRow, phrase, 1f, 42) {
-                    currentInputConnection?.commitText("$phrase ", 1)
+            parent.addView(empty, rowParams(42))
+        } else {
+            phraseIndex = phraseIndex.coerceIn(0, phrases.lastIndex)
+            val navigation = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            addSpecial(navigation, "❮", 0.65f, 42) {
+                phraseIndex = if (phraseIndex <= 0) phrases.lastIndex else phraseIndex - 1
+                refreshKeyboard()
+            }
+            val phraseText = TextView(this).apply {
+                text = phrases[phraseIndex]
+                textSize = 13f
+                gravity = Gravity.CENTER
+                maxLines = 3
+                setPadding(dp(5), dp(3), dp(5), dp(3))
+                setTextColor(Color.WHITE)
+                background = roundedBackground(theme.suggestion, dp(8))
+                setOnClickListener {
+                    currentInputConnection?.commitText(phrases[phraseIndex] + " ", 1)
                     updateSuggestions()
                 }
             }
-            repeat(3 - group.size) { addSpecial(phraseRow, " ", 1f, 42) { } }
-            parent.addView(phraseRow, rowParams(45))
+            navigation.addView(phraseText, LinearLayout.LayoutParams(0, dp(48), 1f))
+            addSpecial(navigation, "❯", 0.65f, 42) {
+                phraseIndex = (phraseIndex + 1) % phrases.size
+                refreshKeyboard()
+            }
+            parent.addView(navigation, rowParams(50))
+
+            val actionRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            addSpecial(actionRow, "جمله داخلول", 1.4f, 32) {
+                currentInputConnection?.commitText(phrases[phraseIndex] + " ", 1)
+                updateSuggestions()
+            }
+            addSpecial(actionRow, "${phraseIndex + 1} / ${phrases.size}", 0.8f, 32) { }
+            addSpecial(actionRow, "بندول", 0.8f, 32) {
+                phrasePanelVisible = false
+                refreshKeyboard()
+            }
+            parent.addView(actionRow, rowParams(36))
         }
-        val closeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(closeRow, "بندول", 1f, 34) { phrasePanelVisible = false; refreshKeyboard() }
-        parent.addView(closeRow, rowParams(37))
     }
 
     private val handler = Handler(Looper.getMainLooper())
