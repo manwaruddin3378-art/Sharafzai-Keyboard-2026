@@ -9,6 +9,5 @@
         <item name="android:textColorSecondary">#CCCCCC</item>
         <item name="android:statusBarColor">#0F0F0F</item>
         <item name="android:navigationBarColor">#0F0F0F</item>
-        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
