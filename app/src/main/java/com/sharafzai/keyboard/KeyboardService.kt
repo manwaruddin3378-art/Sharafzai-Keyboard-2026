@@ -400,7 +400,7 @@ class KeyboardService : InputMethodService() {
         }
 
         val brandLogo = ImageView(this).apply {
-            setImageResource(R.drawable.sundus_brand)
+            setImageResource(R.drawable.ic_launcher)
             scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = "SUNDUS سندس"
         }
