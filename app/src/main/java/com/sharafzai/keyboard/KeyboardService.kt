@@ -487,9 +487,11 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(header, "☪", 0.75f, 29) {
-            phrasePanelVisible = true
-            phraseCategory = 0
-            phraseIndex = 0
+            phrasePanelVisible = !phrasePanelVisible
+            if (phrasePanelVisible) {
+                phraseCategory = 0
+                phraseIndex = 0
+            }
             emojiPanelVisible = false
             settingsPanelVisible = false
             clipboardPanelVisible = false
@@ -1122,13 +1124,17 @@ class KeyboardService : InputMethodService() {
         val categories = listOf("اسلامي", "پښتو", "English", "دري", "زما")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         categories.forEachIndexed { index, label ->
-            addSpecial(categoryRow, label, 1f, 32) {
+            addSpecial(categoryRow, label, 1f, 28) {
                 phraseCategory = index
                 phraseIndex = 0
                 refreshKeyboard()
             }
         }
-        parent.addView(categoryRow, rowParams(29))
+        addSpecial(categoryRow, "×", 0.55f, 28) {
+            phrasePanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(categoryRow, rowParams(30))
 
         val phraseGroups = listOf(
             listOf(
