@@ -33,6 +33,9 @@ jobs:
         with:
           gradle-version: '8.2'
 
+      - name: Run Android lint checks
+        run: gradle :app:lintDebug
+
       # Phase 1 test APK uses Android's automatic debug signing.
       # The permanent private release key remains reserved for production releases.
       - name: Build test APK
