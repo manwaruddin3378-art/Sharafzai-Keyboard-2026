@@ -1607,9 +1607,23 @@ class KeyboardService : InputMethodService() {
 
         container.removeAllViews()
         val editorType = currentInputEditorInfo?.inputType ?: 0
+        val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
         val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
+        val isTextPassword = inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
+            variation in setOf(
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+            )
+        val isNumericPassword = inputClass == android.text.InputType.TYPE_CLASS_NUMBER &&
+            variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        val suppressSuggestions = (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+        // Never expose predictions, saved email, or clipboard content in password fields.
+        if (isTextPassword || isNumericPassword || suppressSuggestions) return
+
         val savedEmail = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", "").orEmpty()
-        if (variation == android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS && savedEmail.isNotBlank()) {
+        if (variation == android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS) {
+            if (savedEmail.isBlank()) return
             val emailChip = TextView(this).apply {
                 text = "✉ $savedEmail"; textSize = 14f; gravity = Gravity.CENTER
                 setTextColor(if (themeIndex == 1) Color.WHITE else Color.rgb(38,45,55))
