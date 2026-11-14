@@ -1900,28 +1900,35 @@ private class FloralPatternDrawable(private val baseColor: Int) : Drawable() {
     override fun draw(canvas: Canvas) {
         val save = canvas.save()
         val b = bounds
-        canvas.drawColor(baseColor)
         val w = b.width().toFloat()
         val h = b.height().toFloat()
+        paint.shader = android.graphics.LinearGradient(
+            0f, 0f, 0f, h,
+            intArrayOf(baseColor, Color.rgb(3, 42, 72), Color.rgb(1, 17, 43)),
+            null,
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, w, h, paint)
+        paint.shader = null
 
         fun flower(cx: Float, cy: Float, radius: Float, tint: Int) {
             paint.color = tint
-            paint.alpha = 72
-            for (i in 0 until 6) {
-                val angle = Math.PI * i / 3.0
-                val px = cx + kotlin.math.cos(angle).toFloat() * radius * 0.56f
-                val py = cy + kotlin.math.sin(angle).toFloat() * radius * 0.56f
-                canvas.drawCircle(px, py, radius * 0.38f, paint)
+            paint.alpha = 92
+            for (i in 0 until 8) {
+                val angle = Math.PI * i / 4.0
+                val px = cx + kotlin.math.cos(angle).toFloat() * radius * 0.52f
+                val py = cy + kotlin.math.sin(angle).toFloat() * radius * 0.52f
+                canvas.drawCircle(px, py, radius * 0.31f, paint)
             }
-            paint.color = Color.argb(105, 255, 220, 120)
-            canvas.drawCircle(cx, cy, radius * 0.24f, paint)
+            paint.color = Color.argb(175, 255, 214, 105)
+            canvas.drawCircle(cx, cy, radius * 0.20f, paint)
         }
 
         fun leaf(cx: Float, cy: Float, width: Float, height: Float, tint: Int, angle: Float) {
             canvas.save()
             canvas.rotate(angle, cx, cy)
             paint.color = tint
-            paint.alpha = 52
+            paint.alpha = 66
             canvas.drawOval(
                 cx - width / 2f, cy - height / 2f,
                 cx + width / 2f, cy + height / 2f, paint
@@ -1929,19 +1936,25 @@ private class FloralPatternDrawable(private val baseColor: Int) : Drawable() {
             canvas.restore()
         }
 
-        flower(w * 0.07f, h * 0.10f, 25f, Color.rgb(255, 105, 160))
-        flower(w * 0.94f, h * 0.20f, 30f, Color.rgb(255, 180, 70))
-        flower(w * 0.10f, h * 0.86f, 27f, Color.rgb(150, 120, 245))
-        flower(w * 0.91f, h * 0.88f, 28f, Color.rgb(245, 110, 145))
-        flower(w * 0.50f, h * 0.52f, 18f, Color.rgb(90, 190, 160))
-        leaf(w * 0.17f, h * 0.18f, 24f, 10f, Color.rgb(65, 150, 105), -28f)
-        leaf(w * 0.84f, h * 0.30f, 27f, 11f, Color.rgb(65, 150, 105), 32f)
-        leaf(w * 0.18f, h * 0.78f, 25f, 10f, Color.rgb(65, 150, 105), 25f)
-        leaf(w * 0.83f, h * 0.79f, 25f, 10f, Color.rgb(65, 150, 105), -30f)
+        val radius = (h * 0.075f).coerceIn(24f, 48f)
+        flower(w * 0.025f, h * 0.10f, radius, Color.rgb(255, 104, 170))
+        flower(w * 0.975f, h * 0.17f, radius * 1.05f, Color.rgb(255, 183, 77))
+        flower(w * 0.035f, h * 0.91f, radius * 0.92f, Color.rgb(169, 133, 255))
+        flower(w * 0.965f, h * 0.88f, radius, Color.rgb(255, 112, 153))
+        flower(w * 0.50f, h * 0.04f, radius * 0.48f, Color.rgb(95, 220, 205))
+        leaf(w * 0.13f, h * 0.20f, radius * 1.3f, radius * 0.42f, Color.rgb(61, 177, 128), -28f)
+        leaf(w * 0.86f, h * 0.29f, radius * 1.35f, radius * 0.43f, Color.rgb(61, 177, 128), 32f)
+        leaf(w * 0.15f, h * 0.80f, radius * 1.25f, radius * 0.40f, Color.rgb(61, 177, 128), 25f)
+        leaf(w * 0.85f, h * 0.78f, radius * 1.25f, radius * 0.40f, Color.rgb(61, 177, 128), -30f)
+
+        paint.color = Color.argb(58, 20, 221, 245)
+        paint.strokeWidth = (h * 0.003f).coerceAtLeast(1f)
+        canvas.drawLine(0f, h * 0.19f, w, h * 0.19f, paint)
+        canvas.drawLine(0f, h * 0.985f, w, h * 0.985f, paint)
         canvas.restoreToCount(save)
     }
 
-    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
+        override fun setAlpha(alpha: Int) { paint.alpha = alpha }
     override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) { paint.colorFilter = colorFilter }
     @Deprecated("Deprecated by Android")
     override fun getOpacity(): Int = PixelFormat.OPAQUE
