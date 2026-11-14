@@ -212,7 +212,7 @@ class KeyboardService : InputMethodService() {
     )
 
     private fun offlineWordsFor(languageId: Int): List<String> =
-        (offlineWords[languageId].orEmpty() + extendedOfflineWords[languageId].orEmpty()).distinct()
+        offlineWords[languageId].orEmpty().distinct()
 
     // Microsoft Windows Pashto (Afghanistan), KLID 00000463.
     // Rows follow the physical QWERTY positions; shifted characters match Windows.
@@ -414,7 +414,7 @@ class KeyboardService : InputMethodService() {
         root.addView(dhikrStrip, rowParams(27))
         handler.removeCallbacks(dhikrTicker)
         handler.postDelayed(dhikrTicker, 3500)
-\n        val header = LinearLayout(this).apply {
+        val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(5), 0, dp(5), 0)
