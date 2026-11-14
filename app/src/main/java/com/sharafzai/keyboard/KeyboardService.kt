@@ -399,12 +399,22 @@ class KeyboardService : InputMethodService() {
             ).apply { cornerRadius = dp(11).toFloat() }
         }
 
-        val brandLogo = ImageView(this).apply {
-            setImageResource(R.drawable.ic_launcher)
-            scaleType = ImageView.ScaleType.FIT_CENTER
+        val brandLogo = TextView(this).apply {
+            text = "☾ سندس\\nSUNDUS"
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(255, 218, 116))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.rgb(4, 31, 48), Color.rgb(1, 15, 31))
+            ).apply {
+                shape = GradientDrawable.OVAL
+                setStroke(dp(2), Color.rgb(226, 181, 67))
+            }
             contentDescription = "SUNDUS سندس"
         }
-        header.addView(brandLogo, LinearLayout.LayoutParams(dp(76), dp(38)))
+        header.addView(brandLogo, LinearLayout.LayoutParams(dp(48), dp(44)))
 
         val title = TextView(this).apply {
             text = when (language) {
@@ -476,7 +486,7 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        root.addView(header, rowParams(44))
+        root.addView(header, rowParams(48))
 
         val languageStrip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
