@@ -658,10 +658,6 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
 
-        addSpecial(controlRow, "🧮", 0.9f, 39) {
-            openSharafzaiTools("calculator")
-        }
-
         addSpecial(controlRow, if (caps) "⇪" else "⇧", 1f, 39) {
             val now = System.currentTimeMillis()
             if (language == 2 && shifted && !caps && now - lastShiftTapAt <= 450L) {
