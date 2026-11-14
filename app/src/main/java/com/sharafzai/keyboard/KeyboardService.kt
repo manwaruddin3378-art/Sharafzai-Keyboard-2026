@@ -395,7 +395,8 @@ class KeyboardService : InputMethodService() {
             background = FloralPatternDrawable(theme.background)
         }
 
-        val dhikrStrip = TextView(this).apply {\n            text = adhkar[dhikrIndex]\n            textSize = 15f\n            gravity = Gravity.CENTER\n            setTextColor(Color.WHITE)\n            typeface = Typeface.DEFAULT_BOLD\n            setPadding(0, dp(3), 0, dp(3))\n            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(7, 75, 82), Color.rgb(20, 48, 92))).apply { cornerRadius = dp(9).toFloat() }\n        }\n        dhikrView = dhikrStrip\n        root.addView(dhikrStrip, rowParams(27))\n        handler.removeCallbacks(dhikrTicker)\n        handler.postDelayed(dhikrTicker, 3500)\n\n        val header = LinearLayout(this).apply {
+        val dhikrStrip = TextView(this).apply {
+            text = adhkar[dhikrIndex]\n            textSize = 15f\n            gravity = Gravity.CENTER\n            setTextColor(Color.WHITE)\n            typeface = Typeface.DEFAULT_BOLD\n            setPadding(0, dp(3), 0, dp(3))\n            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.rgb(7, 75, 82), Color.rgb(20, 48, 92))).apply { cornerRadius = dp(9).toFloat() }\n        }\n        dhikrView = dhikrStrip\n        root.addView(dhikrStrip, rowParams(27))\n        handler.removeCallbacks(dhikrTicker)\n        handler.postDelayed(dhikrTicker, 3500)\n\n        val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(5), 0, dp(5), 0)
