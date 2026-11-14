@@ -721,38 +721,34 @@ class KeyboardService : InputMethodService() {
 
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
         }
 
-        addSpecial(bottom, "←", 0.8f, 42) {
-            sendKey(KeyEvent.KEYCODE_DPAD_LEFT)
+        addSpecial(bottom, "123", 0.85f, 42) {
+            numberRowEnabled = !numberRowEnabled
+            saveSettings()
+            refreshKeyboard()
         }
-
-        addSpecial(bottom, "→", 0.8f, 42) {
-            sendKey(KeyEvent.KEYCODE_DPAD_RIGHT)
+        addSpecial(bottom, "😊", 0.8f, 42) {
+            emojiPanelVisible = !emojiPanelVisible
+            phrasePanelVisible = false
+            settingsPanelVisible = false
+            clipboardPanelVisible = false
+            refreshKeyboard()
         }
-
-        if (language == 0 || language == 3) {
-            addSpecial(bottom, "نیم‌فاصله", 1.0f, 42) {
-                currentInputConnection?.commitText("\u200C", 1)
-            }
+        addSpecial(bottom, "🎙", 0.8f, 42) {
+            startActivity(Intent(this, VoiceInputActivity::class.java)
+                .putExtra("language", language)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-
-        addSpecial(bottom, "،", 0.7f, 42) {
-            val value = if (language == 2) "," else "،"
+        addSpecial(bottom, "✦ SUNDUS | سندس ✦", 2.7f, 42) { expandAutoTextAndSpace() }
+        addSpecial(bottom, "⌨", 0.8f, 42) { requestHideSelf(0) }
+        addSpecial(bottom, "، .", 0.8f, 42) {
+            val value = if (language == 2) ", " else "، "
             currentInputConnection?.commitText(value, 1)
             updateSuggestions()
         }
-
-        addSpecial(bottom, "✦ SUNDUS | سندس ✦", 3.5f, 42) { expandAutoTextAndSpace() }
-
-        addSpecial(bottom, ".", 0.7f, 42) {
-            currentInputConnection?.commitText(".", 1)
-            updateSuggestions()
-        }
-
-        addSpecial(bottom, "↵", 1f, 42) {
-            performEnterAction()
-        }
+        addSpecial(bottom, "↵", 1f, 42) { performEnterAction() }
 
         root.addView(bottom, rowParams(44))
         root.addView(topTools, rowParams(40))
