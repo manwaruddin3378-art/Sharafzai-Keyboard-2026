@@ -1564,7 +1564,7 @@ class KeyboardService : InputMethodService() {
                 val updated = prefs.getStringSet("clipboardFavorites", emptySet())
                     ?.toMutableSet() ?: mutableSetOf()
                 updated.add(selected)
-                prefs.edit().putStringSet("clipboardFavorites", updated).apply()
+                prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
                 Toast.makeText(this, "یوازې ستاسو په غوښتنه متن خوندي شو", Toast.LENGTH_SHORT).show()
                 refreshKeyboard()
             }
@@ -2551,7 +2551,7 @@ class KeyboardService : InputMethodService() {
         val saved = prefs.getStringSet(dictionaryKey, emptySet())
             ?.toMutableSet() ?: mutableSetOf()
         saved.add(word)
-        prefs.edit().putStringSet(dictionaryKey, saved).apply()
+        prefs.edit().putStringSet(dictionaryKey, HashSet(saved)).commit()
         Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه؛ که وغواړئ مانا یې هم ولیکئ.", Toast.LENGTH_SHORT).show()
         updateSuggestions()
         showAddDictionaryEntryDialog(word, dictionaryEntries().firstOrNull { it.first == word }?.second.orEmpty())
