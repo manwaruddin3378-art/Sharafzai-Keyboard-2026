@@ -568,7 +568,7 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        root.addView(header, rowParams(54))
+        root.addView(header, rowParams(40))
 
         val languageStrip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -596,7 +596,7 @@ class KeyboardService : InputMethodService() {
                     refreshKeyboard()
                 }
             }
-            languageStrip.addView(tab, LinearLayout.LayoutParams(0, dp(34), 1f).apply {
+            languageStrip.addView(tab, LinearLayout.LayoutParams(0, dp(28), 1f).apply {
                 setMargins(dp(2), 0, dp(2), 0)
             })
         }
@@ -606,7 +606,7 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(topTools, "📋 کاپي", 1f, 40) {
+        addSpecial(topTools, "📋", 1f, 32) {
             clipboardPanelVisible = !clipboardPanelVisible
             if (clipboardPanelVisible) {
                 emojiPanelVisible = false
@@ -617,16 +617,16 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(topTools, "⭐ AutoText", 1f, 40) { showAutoTextEditor() }
-        addSpecial(topTools, "🌐 ژباړه", 1f, 40) { showOfflineTranslationPicker() }
-        addSpecial(topTools, "📖 قاموس", 1f, 40) { showDictionaryHome() }
-        addSpecial(topTools, "🔎 لټون", 1f, 40) { showUniversalSearchDialog() }
-        addSpecial(topTools, "🎙 غږ", 1f, 40) {
+        addSpecial(topTools, "⭐ متن", 1f, 32) { showAutoTextEditor() }
+        addSpecial(topTools, "🌐", 1f, 32) { showOfflineTranslationPicker() }
+        addSpecial(topTools, "📖", 1f, 32) { showDictionaryHome() }
+        addSpecial(topTools, "🔎", 1f, 32) { showUniversalSearchDialog() }
+        addSpecial(topTools, "🎙", 1f, 32) {
             startActivity(Intent(this, VoiceInputActivity::class.java)
                 .putExtra("language", language)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        addSpecial(topTools, "🎨 رنګ", 1f, 40) { showThemePicker() }
+        addSpecial(topTools, "🎨", 1f, 32) { showThemePicker() }
 
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -634,10 +634,10 @@ class KeyboardService : InputMethodService() {
             setBackgroundColor(theme.suggestion)
         }
 
-        root.addView(topTools, rowParams(40))
-        root.addView(languageStrip, rowParams(36))
+        root.addView(topTools, rowParams(32))
+        root.addView(languageStrip, rowParams(30))
 
-        root.addView(suggestionContainer, rowParams(32))
+        root.addView(suggestionContainer, rowParams(26))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
@@ -1460,23 +1460,26 @@ class KeyboardService : InputMethodService() {
 
     private fun addEmojiPanel(parent: LinearLayout) {
         val groups = listOf(
-            "مخونه" to listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😎","🤓","🧐","🤔","🤗","🤭","🤫","😴","😭"),
-            "اسلامي" to listOf("🤲","🙏","🕌","🕋","📿","☪️","🌙","⭐","✨","❤️","💚","🤍","🕊️","🌹","🌸","📖","📚","🧎","🧕","🧔","☝️","🤝","💐","🌿","🪷","🫶","🕋","🕌","🛐","📜","🕯️","🌌","🌠","🧭","🪻","🌾","🍃","💫","🪔"),
-            "زړه" to listOf("❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","❣️","💌","💋","💐","🌹"),
-            "لاسونه" to listOf("👍","👎","👏","🙌","👐","🤝","🙏","🤲","✍️","💪","👋","🤚","✋","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","☝️","👇"),
-            "طبیعت" to listOf("🌞","🌙","⭐","🌟","⚡","🔥","🌈","☁️","🌧️","❄️","🌊","🌳","🌴","🌵","🌷","🌸","🌺","🌻","🍀","🍃","🌿","🦋","🐦","🕊️"),
-            "نښې" to listOf("✅","❌","❗","❓","⚠️","💯","♻️","🔔","🔕","📌","📍","🎉","🎊","🎁","🏆","⭐","🔒","🔑","📱","💬","📩","➡️","⬅️","🔝")
+            "مخونه" to listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😎","🤓","🧐","🤔","🤗","🤭","🤫","😴","😭","🥹","😌","😏","😔","😢","😤","😡","🤯","🥳","🤩","😬","🫠","🫣","🫡","🤠","🥱"),
+            "اسلامي" to listOf("🤲","🙏","🕌","🕋","📿","☪️","🌙","⭐","✨","❤️","💚","🤍","🕊️","🌹","🌸","📖","📚","🧎","🧕","🧔","☝️","🤝","💐","🌿","🪷","🫶","🛐","📜","🕯️","🌌","🌠","🧭","🪻","🌾","🍃","💫","🪔","🕋","🕌","🧎‍♂️","🧎‍♀️","🧕🏻","🧔🏻","🤍","💚","🕊️","🌙","⭐","🕌","📖","🕌","🕋","🪬","🛡️","🫧","🌅","🌄","🌃","☀️","🌤️","🌧️","🌈","🌺","🌻","🌼","🌷","🌱","🌳","🍀","🪴","🪻","🕯️","🧿","📿","🪔","🧭","🗺️","🤲🏻","🙏🏻"),
+            "زړه" to listOf("❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","❣️","💌","💋","💐","🌹","🩷","🩵","🩶","💏","💑","💍","💒","💓","💗"),
+            "لاسونه" to listOf("👍","👎","👏","🙌","👐","🤝","🙏","🤲","✍️","💪","👋","🤚","✋","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","☝️","👇","👆","🖐️","🫱","🫲","🫳","🫴","🫶","🤜","🤛","✊","👊","🤏","🫵"),
+            "طبیعت" to listOf("🌞","🌙","⭐","🌟","⚡","🔥","🌈","☁️","🌧️","❄️","🌊","🌳","🌴","🌵","🌷","🌸","🌺","🌻","🍀","🍃","🌿","🦋","🐦","🕊️","🌍","🌎","🌏","🌅","🌄","🌠","🌌","🌪️","🌫️","☀️","🌤️","⛅","🌥️","🌦️","🌨️","⛈️","🌩️","🌬️","🌱","🪴","🌲","🌵","🌾","🍁","🍂","🍄"),
+            "نښې" to listOf("✅","❌","❗","❓","⚠️","💯","♻️","🔔","🔕","📌","📍","🎉","🎊","🎁","🏆","⭐","🔒","🔑","📱","💬","📩","➡️","⬅️","🔝","🆗","🆕","🆙","🆒","🆓","🆔","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤","🔺","🔻","➕","➖","✖️","➗","💠","🔰"),
+            "حیوانات" to listOf("🐱","🐈","🐶","🐕","🐼","🐻","🦁","🐯","🐸","🐵","🐧","🐦","🦅","🦉","🦋","🐝","🐞","🐢","🐬","🐳","🐟","🦈","🐎","🐪","🐫","🐄","🐑","🐐","🐓","🦚","🦜","🕊️"),
+            "خوراک" to listOf("🍎","🍏","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍒","🍑","🥭","🍍","🥥","🥑","🍅","🥕","🌽","🥒","🥬","🥦","🍞","🥐","🧀","🥚","🍚","🍲","🍵","☕","🥛","🍯"),
+            "سفر" to listOf("🚗","🚕","🚌","🚎","🏎️","🚓","🚑","🚒","🚲","🛵","🏍️","✈️","🛫","🛬","🚀","🚁","🚢","⛵","🚉","🚆","🚇","🗺️","🧭","🏔️","⛰️","🏕️","🏖️","🏝️","🏙️","🏠","🏫","🏥")
         )
         val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         groups.forEachIndexed { index, _ ->
-            addSpecial(tabs, listOf("😊","🤲","❤️","👍","🌿","🔣")[index], 1f, 34) {
+            addSpecial(tabs, listOf("😊","🤲","❤️","👍","🌿","🔣","🐾","🍎","🚗")[index], 1f, 34) {
                 emojiCategory = index
                 refreshKeyboard()
             }
         }
         parent.addView(tabs, rowParams(37))
         groups[emojiCategory.coerceIn(0, groups.lastIndex)].second
-            .take(if (emojiCategory == 1) 32 else 24)
+            .take(48)
             .chunked(8).forEach { row ->
             addKeyRow(parent, row.map { k(it) }, 31)
         }
