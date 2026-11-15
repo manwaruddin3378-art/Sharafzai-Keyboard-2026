@@ -44,7 +44,6 @@ class KeyboardService : InputMethodService() {
     private var keySizeLevel = 1
     private var suggestionContainer: LinearLayout? = null
     private var emojiPanelVisible = false
-    private var diacriticsPanelVisible = false
     private var symbolsPanelVisible = false
     private var settingsPanelVisible = false
     private var phrasePanelVisible = false
@@ -605,7 +604,6 @@ class KeyboardService : InputMethodService() {
             settingsPanelVisible = !settingsPanelVisible
             if (settingsPanelVisible) {
                 emojiPanelVisible = false
-                diacriticsPanelVisible = false
                 symbolsPanelVisible = false
                 clipboardPanelVisible = false
                 phrasePanelVisible = false
@@ -654,7 +652,6 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = !clipboardPanelVisible
             if (clipboardPanelVisible) {
                 emojiPanelVisible = false
-                diacriticsPanelVisible = false
                 symbolsPanelVisible = false
                 settingsPanelVisible = false
                 phrasePanelVisible = false
@@ -1574,7 +1571,7 @@ class KeyboardService : InputMethodService() {
     private fun addEmojiPanel(parent: LinearLayout) {
         val groups = listOf(
             "مخونه" to listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😎","🤓","🧐","🤔","🤗","🤭","🤫","😴","😭","🥹","😌","😏","😔","😢","😤","😡","🤯","🥳","🤩","😬","🫠","🫣","🫡","🤠","🥱"),
-            "اسلامي" to listOf("🤲","🙏","🕌","🕋","📿","☪️","🌙","⭐","✨","❤️","💚","🤍","🕊️","🌹","🌸","📖","📚","🧎","🧕","🧔","☝️","🤝","💐","🌿","🪷","🫶","🛐","📜","🕯️","🌌","🌠","🧭","🪻","🌾","🍃","💫","🪔","🕋","🕌","🧎‍♂️","🧎‍♀️","🧕🏻","🧔🏻","🤍","💚","🕊️","🌙","⭐","🕌","📖","🕌","🕋","🪬","🛡️","🫧","🌅","🌄","🌃","☀️","🌤️","🌧️","🌈","🌺","🌻","🌼","🌷","🌱","🌳","🍀","🪴","🪻","🕯️","🧿","📿","🪔","🧭","🗺️","🤲🏻","🙏🏻"),
+            "اسلامي" to listOf("🤲","🙏","🕌","🕋","📿","☪️","🌙","⭐","✨","❤️","💚","🤍","🕊️","🌹","🌸","📖","📚","🧎","🧕","🧔","☝️","🤝","💐","🌿","🪷","🫶","🛐","📜","🕯️","🪔","🤲🏻","🙏🏻","🧎‍♂️","🧎‍♀️","🧕🏻","🧔🏻"),
             "زړه" to listOf("❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","❣️","💌","💋","💐","🌹","🩷","🩵","🩶","💏","💑","💍","💒","💓","💗"),
             "لاسونه" to listOf("👍","👎","👏","🙌","👐","🤝","🙏","🤲","✍️","💪","👋","🤚","✋","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","☝️","👇","👆","🖐️","🫱","🫲","🫳","🫴","🫶","🤜","🤛","✊","👊","🤏","🫵"),
             "طبیعت" to listOf("🌞","🌙","⭐","🌟","⚡","🔥","🌈","☁️","🌧️","❄️","🌊","🌳","🌴","🌵","🌷","🌸","🌺","🌻","🍀","🍃","🌿","🦋","🐦","🕊️","🌍","🌎","🌏","🌅","🌄","🌠","🌌","🌪️","🌫️","☀️","🌤️","⛅","🌥️","🌦️","🌨️","⛈️","🌩️","🌬️","🌱","🪴","🌲","🌵","🌾","🍁","🍂","🍄"),
