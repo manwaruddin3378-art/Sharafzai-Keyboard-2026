@@ -1528,9 +1528,8 @@ class KeyboardService : InputMethodService() {
 
     private fun expandAutoTextAndSpace() {
         val connection = currentInputConnection ?: return
-        if (isRestrictedEditorField()) return
-        // Do not inspect or expand saved shortcuts in passwords, email, URLs, or non-text fields.
-        if (restrictedField) {
+        // Never inspect words or expand shortcuts in protected/private editor fields.
+        if (isRestrictedEditorField()) {
             connection.commitText(" ", 1)
             updateSuggestions()
             return
@@ -1538,7 +1537,8 @@ class KeyboardService : InputMethodService() {
         val before = connection.getTextBeforeCursor(100, 0)?.toString().orEmpty()
         val word = getCurrentWord(before)
         learnCompletedWord(word)
-        val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getStringSet("autoText_$language", emptySet()).orEmpty()
+        val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+            .getStringSet("autoText_$language", emptySet()).orEmpty()
         val expansion = entries.mapNotNull { entry ->
             val parts = entry.split("|||", limit = 2)
             if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
@@ -1546,7 +1546,9 @@ class KeyboardService : InputMethodService() {
         if (expansion != null && word.isNotEmpty()) {
             connection.deleteSurroundingText(word.length, 0)
             connection.commitText("$expansion ", 1)
-        } else connection.commitText(" ", 1)
+        } else {
+            connection.commitText(" ", 1)
+        }
         updateSuggestions()
     }
 
@@ -2665,12 +2667,7 @@ class KeyboardService : InputMethodService() {
     private fun learnCompletedWord(candidate: String) {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         if (!prefs.getBoolean("autoLearnWords", true)) return
-
-        if (isRestrictedEditorField()) {
-            Toast.makeText(this, "په دې ځانګړې خانه کې کلمه قاموس ته نه شي اضافه کېدای.", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (restrictedField) return
+        if (isRestrictedEditorField()) return
 
         val word = candidate.trim()
         if (word.length !in 2..40 || !word.any { it.isLetter() } ||
@@ -2691,9 +2688,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addCurrentWordToDictionary() {
-        // Do not inspect or expand saved shortcuts in passwords, email, URLs, or non-text fields.
-        if (restrictedField) {
-        if (restrictedField) {
+        if (isRestrictedEditorField()) {
             Toast.makeText(this, "په دې ځانګړې خانه کې کلمه قاموس ته نه شي اضافه کېدای.", Toast.LENGTH_LONG).show()
             return
         }
