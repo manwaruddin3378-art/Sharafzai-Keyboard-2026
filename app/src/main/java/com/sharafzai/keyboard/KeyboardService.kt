@@ -948,17 +948,24 @@ class KeyboardService : InputMethodService() {
                 "د حذف لپاره پر یوې کلمې کلیک وکړئ."
             }
             AlertDialog.Builder(this)
-                .setTitle("شخصي قاموس – $languageName")
+                .setTitle("شخصي قاموس – $languageName (" + sorted.size + ")")
                 .setMessage(message)
                 .setItems(sorted.toTypedArray()) { _, which ->
                     val selected = sorted[which]
-                    val updated = prefs.getStringSet(dictionaryKey, emptySet())
-                        ?.toMutableSet() ?: mutableSetOf()
-                    updated.remove(selected)
-                    prefs.edit().putStringSet(dictionaryKey, updated).apply()
-                    Toast.makeText(this, "«$selected» له قاموس څخه حذف شوه", Toast.LENGTH_SHORT).show()
-                    updateSuggestions()
-                    showList()
+                    AlertDialog.Builder(this)
+                        .setTitle("کلمه حذف کړئ؟")
+                        .setMessage("ایا «$selected» له شخصي قاموس څخه حذف کول غواړئ؟")
+                        .setPositiveButton("حذف") { _, _ ->
+                            val updated = prefs.getStringSet(dictionaryKey, emptySet())
+                                ?.toMutableSet() ?: mutableSetOf()
+                            updated.remove(selected)
+                            prefs.edit().putStringSet(dictionaryKey, updated).apply()
+                            Toast.makeText(this, "«$selected» له قاموس څخه حذف شوه", Toast.LENGTH_SHORT).show()
+                            updateSuggestions()
+                            showList()
+                        }
+                        .setNegativeButton("بېرته") { _, _ -> showList() }
+                        .show()
                 }
                 .setPositiveButton("نوې کلمه") { _, _ ->
                     val input = EditText(this).apply {
