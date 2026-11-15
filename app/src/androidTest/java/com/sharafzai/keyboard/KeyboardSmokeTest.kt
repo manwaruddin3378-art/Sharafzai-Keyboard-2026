@@ -1,5 +1,6 @@
 package com.sharafzai.keyboard
 
+import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -23,10 +24,9 @@ class KeyboardSmokeTest {
         device.wakeUp()
         runCatching { device.executeShellCommand("wm dismiss-keyguard") }
         runCatching { device.executeShellCommand("input keyevent 82") }
-        val launchResult = device.executeShellCommand(
-            "am start -W -n com.sharafzai.keyboard/com.sharafzai.keyboard.KeyboardTestActivity"
-        )
-        assertTrue("Could not launch keyboard test editor: $launchResult", launchResult.contains("Status: ok"))
+        val launchIntent = Intent(instrumentation.targetContext, KeyboardTestActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        instrumentation.startActivitySync(launchIntent)
         device.waitForIdle()
         val editor = device.wait(
             Until.findObject(By.res("android", "edit")),
