@@ -1926,9 +1926,15 @@ class KeyboardService : InputMethodService() {
             )
         val isNumericPassword = inputClass == android.text.InputType.TYPE_CLASS_NUMBER &&
             variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        val isUriField = inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
+            variation == android.text.InputType.TYPE_TEXT_VARIATION_URI
         val suppressSuggestions = (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
-        // Never expose predictions, saved email, or clipboard content in password fields.
-        if (isTextPassword || isNumericPassword || suppressSuggestions) return
+        // Never inspect surrounding text in passwords, numeric fields, URI fields, or
+        // editors that explicitly disable suggestions. Email fields expose only the
+        // user-saved email chip below; they never run word prediction.
+        if (isTextPassword || isNumericPassword || isUriField || suppressSuggestions ||
+            inputClass != android.text.InputType.TYPE_CLASS_TEXT
+        ) return
 
         val savedEmail = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", "").orEmpty()
         if (variation == android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS) {
