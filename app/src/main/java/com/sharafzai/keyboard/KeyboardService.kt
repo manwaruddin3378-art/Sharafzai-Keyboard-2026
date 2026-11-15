@@ -1163,7 +1163,78 @@ class KeyboardService : InputMethodService() {
                         .show()
                 }
             }
+            .setNegativeButton("ژباړې اداره") { _, _ -> showSavedTranslationsManager(targetLanguage) }
+            .show()
+    }
+
+    private fun showSavedTranslationsManager(targetLanguage: Int) {
+        val key = "translationPairs_${language}_$targetLanguage"
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        fun readPairs(): List<Pair<String, String>> =
+            prefs.getStringSet(key, emptySet()).orEmpty().mapNotNull { row ->
+                val parts = row.split("|||", limit = 2)
+                if (parts.size == 2) parts[0] to parts[1] else null
+            }.sortedBy { it.first.lowercase() }
+        fun showList() {
+            val pairs = readPairs()
+            AlertDialog.Builder(this)
+                .setTitle("خوندي شوې ژباړې: ${pairs.size}")
+                .setItems(pairs.map { "${it.first}  →  ${it.second}" }.toTypedArray()) { _, which ->
+                    val pair = pairs[which]
+                    AlertDialog.Builder(this)
+                        .setTitle(pair.first)
+                        .setMessage(pair.second)
+                        .setPositiveButton("ژباړه ولیکئ") { _, _ ->
+                            currentInputConnection?.commitText(pair.second + " ", 1)
+                            updateSuggestions()
+                        }
+                        .setNeutralButton("سمون") { _, _ ->
+                            showEditTranslationDialog(targetLanguage, pair.first, pair.second)
+                        }
+                        .setNegativeButton("حذف") { _, _ ->
+                            AlertDialog.Builder(this)
+                                .setTitle("ژباړه حذف کړئ؟")
+                                .setMessage("دا ثبت شوې ژباړه حذف شي؟")
+                                .setNegativeButton("نه", null)
+                                .setPositiveButton("هو، حذف") { _, _ ->
+                                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    updated.remove("${pair.first}|||${pair.second}")
+                                    prefs.edit().putStringSet(key, updated).apply()
+                                    showList()
+                                }.show()
+                        }
+                        .show()
+                }
+                .setPositiveButton("بند", null)
+                .show()
+        }
+        showList()
+    }
+
+    private fun showEditTranslationDialog(targetLanguage: Int, oldText: String, oldTranslation: String) {
+        val names = listOf("پښتو", "عربي", "English", "دري")
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(4)) }
+        val source = EditText(this).apply { hint = "اصلي متن"; setText(oldText); minLines = 2 }
+        val translated = EditText(this).apply { hint = "ژباړل شوی متن (${names[targetLanguage]})"; setText(oldTranslation); minLines = 2 }
+        content.addView(source)
+        content.addView(translated)
+        AlertDialog.Builder(this)
+            .setTitle("د ژباړې اصلاح")
+            .setView(content)
             .setNegativeButton("بند", null)
+            .setPositiveButton("ذخیره") { _, _ ->
+                val original = source.text.toString().trim()
+                val result = translated.text.toString().trim()
+                if (original.isNotEmpty() && result.isNotEmpty()) {
+                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                    updated.remove("${oldText}|||${oldTranslation}")
+                    updated.removeAll { it.substringBefore("|||") == original }
+                    updated.add("$original|||${result}")
+                    prefs.edit().putStringSet(key, updated).apply()
+                    Toast.makeText(this, "ژباړه اصلاح او خوندي شوه", Toast.LENGTH_SHORT).show()
+                }
+            }
             .show()
     }
 
@@ -1177,6 +1248,12 @@ class KeyboardService : InputMethodService() {
         val display = if (rows.isEmpty()) "تر اوسه شخصي لنډیز نشته." else rows.joinToString("\n") { "${it.first} → ${it.second}" }
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(4)) }
         content.addView(TextView(this).apply { text = display; textSize = 14f })
+        val manage = Button(this).apply {
+            text = "ثبت شوي لنډیزونه اداره کړئ"
+            isAllCaps = false
+            setOnClickListener { showAutoTextManager() }
+        }
+        content.addView(manage)
         val shortcut = EditText(this).apply { hint = "لنډ کوډ، لکه سلام" }
         val expansion = EditText(this).apply { hint = "بشپړه جمله یا متن" }
         content.addView(shortcut); content.addView(expansion)
@@ -1205,6 +1282,64 @@ class KeyboardService : InputMethodService() {
             }
             .setNegativeButton("بند", null)
             .show()
+    }
+
+    private fun showAutoTextManager() {
+        val key = "autoText_$language"
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        fun readRows(): List<Pair<String, String>> =
+            prefs.getStringSet(key, emptySet()).orEmpty().mapNotNull { entry ->
+                val parts = entry.split("|||", limit = 2)
+                if (parts.size == 2) parts[0] to parts[1] else null
+            }.sortedBy { it.first.lowercase() }
+        fun showList() {
+            val rows = readRows()
+            AlertDialog.Builder(this)
+                .setTitle("ثبت شوي AutoText لنډیزونه (${rows.size})")
+                .setItems(rows.map { "${it.first}  →  ${it.second}" }.toTypedArray()) { _, which ->
+                    val selected = rows[which]
+                    AlertDialog.Builder(this)
+                        .setTitle(selected.first)
+                        .setMessage(selected.second)
+                        .setPositiveButton("سمون") { _, _ ->
+                            val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(4)) }
+                            val code = EditText(this).apply { hint = "لنډ کوډ"; setText(selected.first) }
+                            val expansion = EditText(this).apply { hint = "بشپړ متن"; setText(selected.second); minLines = 2 }
+                            content.addView(code)
+                            content.addView(expansion)
+                            AlertDialog.Builder(this)
+                                .setTitle("AutoText اصلاح کړئ")
+                                .setView(content)
+                                .setNegativeButton("بند", null)
+                                .setPositiveButton("ذخیره") { _, _ ->
+                                    val newCode = code.text.toString().trim()
+                                    val newExpansion = expansion.text.toString().trim()
+                                    if (newCode.isNotEmpty() && newExpansion.isNotEmpty()) {
+                                        val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                                        updated.removeAll { it.substringBefore("|||") == selected.first || it.substringBefore("|||") == newCode }
+                                        updated.add("$newCode|||${newExpansion}")
+                                        prefs.edit().putStringSet(key, updated).apply()
+                                        Toast.makeText(this, "AutoText اصلاح شو", Toast.LENGTH_SHORT).show()
+                                    }
+                                }.show()
+                        }
+                        .setNegativeButton("حذف") { _, _ ->
+                            AlertDialog.Builder(this)
+                                .setTitle("لنډیز حذف کړئ؟")
+                                .setNegativeButton("نه", null)
+                                .setPositiveButton("هو، حذف") { _, _ ->
+                                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    updated.remove("${selected.first}|||${selected.second}")
+                                    prefs.edit().putStringSet(key, updated).apply()
+                                    showList()
+                                }.show()
+                        }
+                        .show()
+                }
+                .setPositiveButton("بند", null)
+                .show()
+        }
+        showList()
     }
 
     private fun expandAutoTextAndSpace() {
@@ -1305,8 +1440,21 @@ class KeyboardService : InputMethodService() {
             if (favorites.isEmpty()) Toast.makeText(this, "تر اوسه مو کوم متن په خپله خوښه نه دی خوندي کړی.", Toast.LENGTH_LONG).show()
             else AlertDialog.Builder(this).setTitle("ستاسو خوندي شوي متنونه")
                 .setItems(favorites.toTypedArray()) { _, which ->
-                    currentInputConnection?.commitText(favorites.toList()[which], 1)
-                    updateSuggestions()
+                    val selected = favorites.toList()[which]
+                    AlertDialog.Builder(this)
+                        .setTitle("خوندي شوی متن")
+                        .setMessage(selected)
+                        .setPositiveButton("داخلول") { _, _ ->
+                            currentInputConnection?.commitText(selected, 1)
+                            updateSuggestions()
+                        }
+                        .setNegativeButton("حذف") { _, _ ->
+                            val updated = prefs.getStringSet("clipboardFavorites", emptySet())?.toMutableSet() ?: mutableSetOf()
+                            updated.remove(selected)
+                            prefs.edit().putStringSet("clipboardFavorites", updated).apply()
+                            refreshKeyboard()
+                        }
+                        .show()
                 }.show()
         }
         parent.addView(saveRow, rowParams(39))
