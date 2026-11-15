@@ -62,6 +62,15 @@ class MainActivity : Activity() {
             setTextColor(Color.LTGRAY)
             setPadding(8, 28, 8, 8)
         })
+        // A debug-only text field lets instrumentation exercise the actual IME.
+        // It is excluded from release builds and is not a separate user-facing tool.
+        if (BuildConfig.DEBUG) {
+            root.addView(android.widget.EditText(this).apply {
+                hint = "د کیبورډ ازموینه"
+                setSingleLine(true)
+                textSize = 18f
+            }, LinearLayout.LayoutParams(-1, dp(52)))
+        }
         setContentView(root)
     }
 
