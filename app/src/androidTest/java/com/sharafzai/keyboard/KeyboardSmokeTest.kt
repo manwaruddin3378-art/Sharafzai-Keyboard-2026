@@ -28,11 +28,15 @@ class KeyboardSmokeTest {
             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
 
+        device.waitForIdle()
         val editor = device.wait(
+            Until.findObject(By.res("android", "edit")),
+            10_000
+        ) ?: device.wait(
             Until.findObject(By.desc("keyboard-test-editor")),
-            8_000
+            5_000
         )
-        assertNotNull("Test editor did not open", editor)
+        assertNotNull("Test editor did not open; activity package=" + device.currentPackageName, editor)
         editor!!.click()
 
         assertTrue(
