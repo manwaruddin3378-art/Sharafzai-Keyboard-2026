@@ -20,7 +20,7 @@ class KeyboardSmokeTest {
 
         device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
         device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
-        device.executeShellCommand("am start -n com.sharafzai.keyboard/.MainActivity")
+        device.executeShellCommand("am start -W -n com.sharafzai.keyboard/.KeyboardTestActivity")
 
         val editor = device.wait(
             Until.findObject(By.clazz("android.widget.EditText")),
