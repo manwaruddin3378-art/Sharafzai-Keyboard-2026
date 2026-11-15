@@ -19,6 +19,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".VoiceInputActivity" android:exported="false" android:excludeFromRecents="true" />
+
         <service
             android:name=".KeyboardService"
             android:label="@string/keyboard_name"
