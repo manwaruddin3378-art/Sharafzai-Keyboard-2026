@@ -1212,6 +1212,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun showEditTranslationDialog(targetLanguage: Int, oldText: String, oldTranslation: String) {
+        val key = "translationPairs_${language}_$targetLanguage"
         val names = listOf("پښتو", "عربي", "English", "دري")
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(4)) }
         val source = EditText(this).apply { hint = "اصلي متن"; setText(oldText); minLines = 2 }
