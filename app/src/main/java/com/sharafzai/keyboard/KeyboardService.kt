@@ -1937,7 +1937,11 @@ class KeyboardService : InputMethodService() {
         ) return
 
         val savedEmail = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", "").orEmpty()
-        if (variation == android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS) {
+        val isEmailField = variation in setOf(
+            android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+            android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
+        )
+        if (isEmailField) {
             if (savedEmail.isBlank()) return
             val emailChip = TextView(this).apply {
                 text = "✉ $savedEmail"; textSize = 14f; gravity = Gravity.CENTER
