@@ -1,6 +1,7 @@
 
 package com.sharafzai.keyboard
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
@@ -61,7 +62,22 @@ class KeyboardService : InputMethodService() {
     private var pendingVoiceText = ""
     private val voiceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            pendingVoiceText = intent?.getStringExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT).orEmpty()
+            val recognizedText = intent
+                ?.getStringExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT)
+                .orEmpty()
+            if (recognizedText.isBlank()) return
+
+            // The recognizer activity returns while the IME connection is usually still active.
+            // Commit immediately when possible; retain the text only as a lifecycle fallback.
+            val connection = currentInputConnection
+            val committed = connection != null &&
+                runCatching { connection.commitText(recognizedText, 1) }.getOrDefault(false)
+            if (committed) {
+                pendingVoiceText = ""
+                updateSuggestions()
+            } else {
+                pendingVoiceText = recognizedText
+            }
         }
     }
     private data class GlideKey(val view: View, val value: String)
@@ -119,6 +135,7 @@ class KeyboardService : InputMethodService() {
     private val theme: KeyboardTheme
         get() = themes[themeIndex]
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
 
@@ -413,8 +430,12 @@ class KeyboardService : InputMethodService() {
     ) {
         super.onStartInputView(info, restarting)
         if (pendingVoiceText.isNotBlank()) {
-            currentInputConnection?.commitText(pendingVoiceText, 1)
-            pendingVoiceText = ""
+            val connection = currentInputConnection
+            if (connection != null &&
+                runCatching { connection.commitText(pendingVoiceText, 1) }.getOrDefault(false)
+            ) {
+                pendingVoiceText = ""
+            }
         }
         updateSuggestions()
     }
