@@ -13,6 +13,7 @@ android {
         targetSdk = 34
         versionCode = 17
         versionName = "1.12"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -49,4 +50,7 @@ android {
 
 dependencies {
     // MVP intentionally uses Android's built-in PdfRenderer; no heavy OCR/PDF engine.
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }
