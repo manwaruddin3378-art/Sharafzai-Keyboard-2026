@@ -189,6 +189,13 @@ class KeyboardFeatureAuditTest {
             "Keyboard learned a word from an editor that forbids personalized learning",
             prefs.getStringSet("personalWords_2", emptySet()).orEmpty().contains("plmokn")
         )
+        val micButton = device.wait(Until.findObject(By.text("🎙")), 3_000)
+        assertNotNull("Voice control should remain visible", micButton)
+        micButton!!.click()
+        assertTrue(
+            "Voice entry was not blocked in a private editor",
+            device.wait(Until.hasObject(By.text("په پټنوم او ځانګړو خانو کې غږیز لیکل بند دي.")), 3_000)
+        )
         assertNotNull(privateEditor)
     }
 }
