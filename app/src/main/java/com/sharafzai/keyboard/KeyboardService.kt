@@ -1087,7 +1087,12 @@ class KeyboardService : InputMethodService() {
                                     val updatedEntries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
                                         ?.toMutableSet() ?: mutableSetOf()
                                     updatedEntries.removeAll { it.substringBefore("|||") == term }
-                                    prefs.edit().putStringSet("dictionaryEntries_$language", HashSet(updatedEntries)).commit()
+                                    val hidden = prefs.getStringSet("dictionaryHidden_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    hidden.add(term)
+                                    prefs.edit()
+                                        .putStringSet("dictionaryEntries_$language", HashSet(updatedEntries))
+                                        .putStringSet("dictionaryHidden_$language", HashSet(hidden))
+                                        .commit()
                                     updateSuggestions()
                                     showList()
                                 }.show()
@@ -1143,9 +1148,13 @@ class KeyboardService : InputMethodService() {
                 if (existingTerm.isNotBlank()) entries.removeAll { it.substringBefore("|||") == existingTerm }
                 entries.removeAll { it.substringBefore("|||") == term }
                 entries.add("$term|||$meaning")
+                val hidden = prefs.getStringSet("dictionaryHidden_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
+                if (existingTerm.isNotBlank() && existingTerm != term) hidden.add(existingTerm)
+                hidden.remove(term)
                 val saved = prefs.edit()
                     .putStringSet("personalWords_$language", HashSet(words))
                     .putStringSet("dictionaryEntries_$language", HashSet(entries))
+                    .putStringSet("dictionaryHidden_$language", HashSet(hidden))
                     .commit()
                 if (saved) {
                     dialog.dismiss()
