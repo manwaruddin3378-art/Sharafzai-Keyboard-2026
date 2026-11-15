@@ -529,7 +529,7 @@ class KeyboardService : InputMethodService() {
             val languageNames = arrayOf("پښتو", "دري", "عربي", "English")
             val ids = intArrayOf(0, 3, 1, 2)
             val selected = ids.indexOf(language).coerceAtLeast(0)
-            AlertDialog.Builder(this)
+            ImeDialogBuilder()
                 .setTitle("د کیبورډ ژبه وټاکئ")
                 .setSingleChoiceItems(languageNames, selected) { dialog, which ->
                     language = ids[which]
@@ -619,7 +619,8 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(topTools, "⭐ AutoText", 1f, 40) { showAutoTextEditor() }
         addSpecial(topTools, "🌐 ژباړه", 1f, 40) { showOfflineTranslationPicker() }
-        addSpecial(topTools, "📖 قاموس", 1f, 40) { showPersonalDictionaryEditor() }
+        addSpecial(topTools, "📖 قاموس", 1f, 40) { showDictionaryHome() }
+        addSpecial(topTools, "🔎 لټون", 1f, 40) { showUniversalSearchDialog() }
         addSpecial(topTools, "🎙 غږ", 1f, 40) {
             startActivity(Intent(this, VoiceInputActivity::class.java)
                 .putExtra("language", language)
@@ -801,6 +802,15 @@ class KeyboardService : InputMethodService() {
         return root
     }
 
+    // Attach tool dialogs to the IME window so opening them does not dismiss the keyboard.
+    private inner class ImeDialogBuilder : AlertDialog.Builder(this@KeyboardService) {
+        override fun create(): AlertDialog {
+            return super.create().apply {
+                window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+            }
+        }
+    }
+
     private fun showThemePicker() {
         val names = listOf(
             "سندس اصلي", "شپه", "سمندري", "زرغون", "بنفش", "ګلابي", "طلایي", "یاقوتي",
@@ -811,7 +821,7 @@ class KeyboardService : InputMethodService() {
             "سندس ځانګړی", "لاجوردي شپه", "شنه زمرد", "ګلابي سپوږمۍ", "شاهي ارغواني",
             "د صحرا لمر", "یخي آبي", "مروارید", "تور شفق"
         )
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("د سندس رنګونه")
             .setSingleChoiceItems(names.toTypedArray(), themeIndex) { dialog, which ->
                 themeIndex = which.coerceIn(themes.indices)
@@ -932,6 +942,86 @@ class KeyboardService : InputMethodService() {
             .sortedBy { it.first.lowercase() }
     }
 
+    private fun showDictionaryHome() {
+        ImeDialogBuilder()
+            .setTitle("قاموس او لټون")
+            .setItems(arrayOf("🔎 د کلمو لټون", "＋ نوې کلمه او مانا", "📖 شخصي قاموس اداره کول")) { _, which ->
+                when (which) {
+                    0 -> showDictionarySearchDialog()
+                    1 -> showAddDictionaryEntryDialog()
+                    2 -> showPersonalDictionaryEditor()
+                }
+            }
+            .setNegativeButton("بند", null)
+            .show()
+    }
+
+    // Search is local-only and covers vocabulary and user-saved material.
+    private fun showUniversalSearchDialog() {
+        val input = EditText(this).apply {
+            hint = "کلمه، جمله، ژباړه یا لنډیز ولټوئ"
+            setSingleLine(true)
+        }
+        ImeDialogBuilder()
+            .setTitle("د سندس آفلاین لټون")
+            .setMessage("په قاموس، شخصي جملو، ژباړو، AutoText او خوندي شوو متنونو کې لټون")
+            .setView(input)
+            .setNegativeButton("بند", null)
+            .setPositiveButton("لټون") { _, _ ->
+                val query = normalizeSuggestionText(input.text.toString().trim())
+                if (query.isBlank()) return@setPositiveButton
+                val results = mutableListOf<Pair<String, String>>()
+                val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                val meanings = dictionaryEntries().toMap()
+                (offlineWordsFor(language) + prefs.getStringSet("personalWords_$language", emptySet()).orEmpty())
+                    .distinct().forEach { word ->
+                        val meaning = meanings[word].orEmpty()
+                        if (normalizeSuggestionText(word).contains(query) ||
+                            normalizeSuggestionText(meaning).contains(query)) {
+                            results.add("قاموس: $word" to (if (meaning.isBlank()) word else "$word — $meaning"))
+                        }
+                    }
+                prefs.getStringSet("savedPhrases", emptySet()).orEmpty().forEach { phrase ->
+                    if (normalizeSuggestionText(phrase).contains(query)) results.add("جمله" to phrase)
+                }
+                (0..3).filter { it != language }.forEach { target ->
+                    prefs.getStringSet("translationPairs_${language}_${target}", emptySet()).orEmpty().forEach { pair ->
+                        val parts = pair.split("|||", limit = 2)
+                        if (parts.size == 2 && (normalizeSuggestionText(parts[0]).contains(query) ||
+                            normalizeSuggestionText(parts[1]).contains(query))) {
+                            results.add("ژباړه" to "${parts[0]} → ${parts[1]}")
+                        }
+                    }
+                }
+                prefs.getStringSet("autoText_$language", emptySet()).orEmpty().forEach { row ->
+                    val parts = row.split("|||", limit = 2)
+                    if (parts.size == 2 && (normalizeSuggestionText(parts[0]).contains(query) ||
+                        normalizeSuggestionText(parts[1]).contains(query))) {
+                        results.add("AutoText" to "${parts[0]} → ${parts[1]}")
+                    }
+                }
+                prefs.getStringSet("clipboardFavorites", emptySet()).orEmpty().forEach { saved ->
+                    if (normalizeSuggestionText(saved).contains(query)) results.add("خوندي شوی متن" to saved)
+                }
+                val unique = results.distinctBy { it.second }.take(100)
+                if (unique.isEmpty()) {
+                    Toast.makeText(this, "د لټون پایله ونه موندل شوه.", Toast.LENGTH_LONG).show()
+                } else {
+                    ImeDialogBuilder()
+                        .setTitle("د لټون پایلې: ${unique.size}")
+                        .setItems(unique.map { "${it.first}: ${it.second}" }.toTypedArray()) { _, index ->
+                            val selected = unique[index].second
+                            val insert = selected.substringAfter("→", selected).trim()
+                            currentInputConnection?.commitText(insert + " ", 1)
+                            updateSuggestions()
+                        }
+                        .setNegativeButton("بند", null)
+                        .show()
+                }
+            }
+            .show()
+    }
+
     private fun showPersonalDictionaryEditor() {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val languageName = listOf("پښتو", "عربي", "English", "دري")[language.coerceIn(0, 3)]
@@ -943,13 +1033,13 @@ class KeyboardService : InputMethodService() {
                 val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
                 if (meaning.isBlank()) term else "$term  —  $meaning"
             }
-            AlertDialog.Builder(this)
+            ImeDialogBuilder()
                 .setTitle("شخصي قاموس – $languageName (${allTerms.size})")
                 .setMessage(if (allTerms.isEmpty()) "تر اوسه کلمه نه ده ثبت شوې. نوې کلمه له مانا سره اضافه کړئ." else "د یوې کلمې پر نوم کلیک وکړئ چې مانا یې وګورئ، اصلاح یا حذف یې کړئ.")
                 .setItems(labels.toTypedArray()) { _, which ->
                     val term = allTerms[which]
                     val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
-                    AlertDialog.Builder(this)
+                    ImeDialogBuilder()
                         .setTitle(term)
                         .setMessage(meaning.ifBlank { "د دې کلمې مانا لا نه ده ثبت شوې." })
                         .setPositiveButton("کلمه ولیکئ") { _, _ ->
@@ -960,7 +1050,7 @@ class KeyboardService : InputMethodService() {
                             showAddDictionaryEntryDialog(term, meaning)
                         }
                         .setNegativeButton("حذف") { _, _ ->
-                            AlertDialog.Builder(this)
+                            ImeDialogBuilder()
                                 .setTitle("کلمه حذف کړئ؟")
                                 .setMessage("«$term» له شخصي قاموس څخه حذف شي؟")
                                 .setNegativeButton("نه", null)
@@ -1005,7 +1095,7 @@ class KeyboardService : InputMethodService() {
         }
         content.addView(termInput)
         content.addView(meaningInput)
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle(if (existingTerm.isBlank()) "قاموس ته نوې کلمه اضافه کړئ" else "د قاموس کلمه اصلاح کړئ")
             .setMessage("کلمه او مانا یې په خپله ولیکئ؛ معلومات یوازې په همدې موبایل کې ساتل کېږي.")
             .setView(content)
@@ -1042,7 +1132,7 @@ class KeyboardService : InputMethodService() {
             hint = "کلمه یا د مانا یوه برخه ولیکئ"
             setSingleLine(true)
         }
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("په آفلاین شخصي قاموس کې لټون")
             .setView(input)
             .setNegativeButton("بند", null)
@@ -1064,7 +1154,7 @@ class KeyboardService : InputMethodService() {
                     if (matches.isEmpty()) {
                         Toast.makeText(this, "پایله ونه موندل شوه؛ خپله کلمه او مانا قاموس ته اضافه کړئ.", Toast.LENGTH_LONG).show()
                     } else {
-                        AlertDialog.Builder(this)
+                        ImeDialogBuilder()
                             .setTitle("د لټون پایلې (${matches.size})")
                             .setItems(matches.map { term ->
                                 val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
@@ -1072,7 +1162,7 @@ class KeyboardService : InputMethodService() {
                             }.toTypedArray()) { _, which ->
                                 val term = matches[which]
                                 val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
-                                AlertDialog.Builder(this)
+                                ImeDialogBuilder()
                                     .setTitle(term)
                                     .setMessage(meaning.ifBlank { "د دې کلمې مانا په شخصي قاموس کې نه ده ثبت شوې." })
                                     .setPositiveButton("کلمه ولیکئ") { _, _ ->
@@ -1095,7 +1185,7 @@ class KeyboardService : InputMethodService() {
         val ids = intArrayOf(0, 1, 2, 3)
         val targets = ids.filter { it != language }.toIntArray()
         val labels = targets.map { names[it] }.toTypedArray()
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("د ژباړې هدف ژبه وټاکئ")
             .setItems(labels) { _, which -> showOfflineTranslationEditor(targets[which]) }
             .setNegativeButton("بند", null)
@@ -1115,7 +1205,7 @@ class KeyboardService : InputMethodService() {
             getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                 .getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
 
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("آفلاین شخصي ژباړن: ${languageNames[language]} ← ${languageNames[targetLanguage]}")
             .setMessage("دا برخه ستاسې له خوا خوندي شوې ژباړې لټوي. نوې کلمه یا جمله هم ورزیاتولای شئ؛ اتومات ماشیني ژباړه لا نه ده.")
             .setView(source)
@@ -1128,7 +1218,7 @@ class KeyboardService : InputMethodService() {
                             parts[1] else null
                     }.firstOrNull()
                     if (match != null) {
-                        AlertDialog.Builder(this)
+                        ImeDialogBuilder()
                             .setTitle("ژباړه")
                             .setMessage(match)
                             .setPositiveButton("سمه ده", null)
@@ -1146,7 +1236,7 @@ class KeyboardService : InputMethodService() {
                         minLines = 2
                         setSingleLine(false)
                     }
-                    AlertDialog.Builder(this)
+                    ImeDialogBuilder()
                         .setTitle("نوې ژباړه خوندي کړئ")
                         .setView(translated)
                         .setNegativeButton("بند", null)
@@ -1178,11 +1268,11 @@ class KeyboardService : InputMethodService() {
             }.sortedBy { it.first.lowercase() }
         fun showList() {
             val pairs = readPairs()
-            AlertDialog.Builder(this)
+            ImeDialogBuilder()
                 .setTitle("خوندي شوې ژباړې: ${pairs.size}")
                 .setItems(pairs.map { "${it.first}  →  ${it.second}" }.toTypedArray()) { _, which ->
                     val pair = pairs[which]
-                    AlertDialog.Builder(this)
+                    ImeDialogBuilder()
                         .setTitle(pair.first)
                         .setMessage(pair.second)
                         .setPositiveButton("ژباړه ولیکئ") { _, _ ->
@@ -1193,7 +1283,7 @@ class KeyboardService : InputMethodService() {
                             showEditTranslationDialog(targetLanguage, pair.first, pair.second)
                         }
                         .setNegativeButton("حذف") { _, _ ->
-                            AlertDialog.Builder(this)
+                            ImeDialogBuilder()
                                 .setTitle("ژباړه حذف کړئ؟")
                                 .setMessage("دا ثبت شوې ژباړه حذف شي؟")
                                 .setNegativeButton("نه", null)
@@ -1220,7 +1310,7 @@ class KeyboardService : InputMethodService() {
         val translated = EditText(this).apply { hint = "ژباړل شوی متن (${names[targetLanguage]})"; setText(oldTranslation); minLines = 2 }
         content.addView(source)
         content.addView(translated)
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("د ژباړې اصلاح")
             .setView(content)
             .setNegativeButton("بند", null)
@@ -1259,7 +1349,7 @@ class KeyboardService : InputMethodService() {
         val shortcut = EditText(this).apply { hint = "لنډ کوډ، لکه سلام" }
         val expansion = EditText(this).apply { hint = "بشپړه جمله یا متن" }
         content.addView(shortcut); content.addView(expansion)
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("شخصي AutoText لنډیزونه")
             .setMessage("لنډ کوډ ولیکئ؛ د Space په وهلو سره به په بشپړ متن بدل شي. دا معلومات یوازې په موبایل کې ساتل کېږي.")
             .setView(content)
@@ -1296,11 +1386,11 @@ class KeyboardService : InputMethodService() {
             }.sortedBy { it.first.lowercase() }
         fun showList() {
             val rows = readRows()
-            AlertDialog.Builder(this)
+            ImeDialogBuilder()
                 .setTitle("ثبت شوي AutoText لنډیزونه (${rows.size})")
                 .setItems(rows.map { "${it.first}  →  ${it.second}" }.toTypedArray()) { _, which ->
                     val selected = rows[which]
-                    AlertDialog.Builder(this)
+                    ImeDialogBuilder()
                         .setTitle(selected.first)
                         .setMessage(selected.second)
                         .setPositiveButton("سمون") { _, _ ->
@@ -1309,7 +1399,7 @@ class KeyboardService : InputMethodService() {
                             val expansion = EditText(this).apply { hint = "بشپړ متن"; setText(selected.second); minLines = 2 }
                             content.addView(code)
                             content.addView(expansion)
-                            AlertDialog.Builder(this)
+                            ImeDialogBuilder()
                                 .setTitle("AutoText اصلاح کړئ")
                                 .setView(content)
                                 .setNegativeButton("بند", null)
@@ -1326,7 +1416,7 @@ class KeyboardService : InputMethodService() {
                                 }.show()
                         }
                         .setNegativeButton("حذف") { _, _ ->
-                            AlertDialog.Builder(this)
+                            ImeDialogBuilder()
                                 .setTitle("لنډیز حذف کړئ؟")
                                 .setNegativeButton("نه", null)
                                 .setPositiveButton("هو، حذف") { _, _ ->
@@ -1440,10 +1530,10 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(saveRow, "خوندي شوي: ${favorites.size}", 1.1f, 36) {
             if (favorites.isEmpty()) Toast.makeText(this, "تر اوسه مو کوم متن په خپله خوښه نه دی خوندي کړی.", Toast.LENGTH_LONG).show()
-            else AlertDialog.Builder(this).setTitle("ستاسو خوندي شوي متنونه")
+            else ImeDialogBuilder().setTitle("ستاسو خوندي شوي متنونه")
                 .setItems(favorites.toTypedArray()) { _, which ->
                     val selected = favorites.toList()[which]
-                    AlertDialog.Builder(this)
+                    ImeDialogBuilder()
                         .setTitle("خوندي شوی متن")
                         .setMessage(selected)
                         .setPositiveButton("داخلول") { _, _ ->
@@ -1519,7 +1609,7 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(8), dp(4), dp(8), dp(4))
         }
-        val dialog = AlertDialog.Builder(this)
+        val dialog = ImeDialogBuilder()
             .setTitle("د سندس چټکې جملې")
             .setView(content)
             .setNegativeButton("بند", null)
@@ -1527,6 +1617,7 @@ class KeyboardService : InputMethodService() {
         phraseDialog = dialog
         addPhrasePanel(content)
         dialog.setOnDismissListener { if (phraseDialog === dialog) phraseDialog = null }
+        dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
         dialog.show()
     }
 
@@ -1537,7 +1628,7 @@ class KeyboardService : InputMethodService() {
             setSingleLine(false)
             setText(currentInputConnection?.getSelectedText(0)?.toString().orEmpty())
         }
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("شخصي جمله اضافه کړئ")
             .setView(input)
             .setNegativeButton("بند", null)
@@ -1565,7 +1656,7 @@ class KeyboardService : InputMethodService() {
             setText(existingPhrase)
             setSelection(text.length)
         }
-        AlertDialog.Builder(this)
+        ImeDialogBuilder()
             .setTitle("شخصي جمله اصلاح کړئ")
             .setView(input)
             .setNegativeButton("بند", null)
@@ -1731,7 +1822,7 @@ class KeyboardService : InputMethodService() {
                 }
                 addSpecial(manageRow, "حذف جمله", 1f, 34) {
                     val selected = phrases.getOrNull(phraseIndex)
-                    if (selected != null) AlertDialog.Builder(this)
+                    if (selected != null) ImeDialogBuilder()
                         .setTitle("جمله حذف کړئ؟")
                         .setMessage("ایا دا جمله له شخصي جملو حذف کول غواړئ؟")
                         .setNegativeButton("نه", null)
@@ -1940,10 +2031,10 @@ class KeyboardService : InputMethodService() {
                 val hint = TextView(this).apply {
                     text = longPressOutput
                     textSize = 10f
-                    setTextColor(Color.rgb(255, 226, 120))
+                    setTextColor(Color.BLACK)
                     gravity = Gravity.CENTER
-                    setPadding(dp(1), 0, dp(1), 0)
-                    // Alternate glyph is plain text: no circle, badge, or dark capsule.
+                    setPadding(dp(2), dp(1), dp(2), dp(1))
+                    // Alternate glyph stays inside the upper-right corner of its key.
                     background = null
                 }
 
@@ -1953,7 +2044,10 @@ class KeyboardService : InputMethodService() {
                         FrameLayout.LayoutParams.WRAP_CONTENT,
                         FrameLayout.LayoutParams.WRAP_CONTENT,
                         Gravity.TOP or Gravity.END
-                    )
+                    ).apply {
+                        topMargin = dp(3)
+                        rightMargin = dp(4)
+                    }
                 )
             }
 
@@ -2662,7 +2756,7 @@ class KeyboardService : InputMethodService() {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
             setText(getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", ""))
         }
-        AlertDialog.Builder(this).setTitle("ستاسو ایمیل").setMessage("ایمیل یوازې په دې موبایل کې ساتل کېږي او د ایمیل په خانه کې به په یوه ټک ښکاره شي.")
+        ImeDialogBuilder().setTitle("ستاسو ایمیل").setMessage("ایمیل یوازې په دې موبایل کې ساتل کېږي او د ایمیل په خانه کې به په یوه ټک ښکاره شي.")
             .setView(input).setPositiveButton("ساتل") { _, _ ->
                 getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).edit().putString("preferredEmail", input.text.toString().trim()).apply()
                 refreshKeyboard()
