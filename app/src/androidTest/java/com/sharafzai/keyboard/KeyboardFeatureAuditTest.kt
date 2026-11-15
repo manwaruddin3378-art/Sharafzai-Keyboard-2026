@@ -21,6 +21,9 @@ class KeyboardFeatureAuditTest {
     private val component = "$packageName/com.sharafzai.keyboard.KeyboardTestActivity"
 
     private fun launchEditor(device: UiDevice, privateEditor: Boolean = false): UiObject2 {
+        device.wakeUp()
+        runCatching { device.executeShellCommand("wm dismiss-keyguard") }
+        runCatching { device.executeShellCommand("input keyevent 82") }
         val launchIntent = Intent().setClassName(packageName, component.substringAfter('/'))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra("privateEditor", privateEditor)
