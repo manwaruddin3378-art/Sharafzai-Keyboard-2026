@@ -1,6 +1,7 @@
 package com.sharafzai.keyboard
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -20,8 +21,10 @@ class KeyboardFeatureAuditTest {
     private val component = "$packageName/.KeyboardTestActivity"
 
     private fun launchEditor(device: UiDevice, privateEditor: Boolean = false): UiObject2 {
-        val extra = if (privateEditor) " --ez privateEditor true" else ""
-        device.executeShellCommand("am start -W -n $component$extra")
+        val launchIntent = Intent().setClassName(packageName, component.substringAfter('/'))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra("privateEditor", privateEditor)
+        InstrumentationRegistry.getInstrumentation().startActivitySync(launchIntent)
         val editor = device.wait(
             Until.findObject(By.desc("keyboard-test-editor")),
             8_000
