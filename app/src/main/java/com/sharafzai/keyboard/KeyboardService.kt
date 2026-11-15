@@ -1546,6 +1546,7 @@ class KeyboardService : InputMethodService() {
         }
         parent.addView(tabs, rowParams(37))
         groups[emojiCategory.coerceIn(0, groups.lastIndex)].second
+            .distinct()
             .take(48)
             .chunked(8).forEach { row ->
             addKeyRow(parent, row.map { k(it) }, 31)
