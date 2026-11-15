@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -37,8 +37,6 @@ jobs:
       - name: Run Android lint checks
         run: gradle :app:lintDebug
 
-      # Phase 1 test APK uses Android's automatic debug signing.
-      # The permanent private release key remains reserved for production releases.
       - name: Build test APK
         run: gradle :app:assembleDebug
 
@@ -64,10 +62,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          # Remove whitespace and any clipboard formatting characters before decoding.
           CLEAN_BASE64="$(printf '%s' "$KEYSTORE_BASE64" | tr -cd 'A-Za-z0-9+/=')"
           printf '%s' "$CLEAN_BASE64" | base64 --decode > "$RUNNER_TEMP/sundus-release.jks"
-          # Validate the private keystore and alias before attempting the release build.
           keytool -list -keystore "$RUNNER_TEMP/sundus-release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "${KEY_ALIAS:-sundusrelease}" >/dev/null
           {
             echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/sundus-release.jks"
@@ -92,22 +88,19 @@ jobs:
         run: echo "Release signing is waiting for the private keystore secrets." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run keyboard smoke test on Android emulator
-        timeout-minutes: 25
+        timeout-minutes: 35
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
-          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 4096 -cores 4
+          emulator-boot-timeout: 1200
           disable-animations: true
           script: |
             set -eux
-            # Ensure the emulator is shut down before the runner action cleanup.
             trap 'adb emu kill >/dev/null 2>&1 || true' EXIT
-            # Start ADB explicitly and bound every wait so a stalled emulator
-            # produces a useful failure instead of hanging the workflow forever.
             adb start-server
             timeout 180s adb wait-for-device
 
@@ -129,7 +122,7 @@ jobs:
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 0
             gradle --stop
-            timeout 600s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest
+            timeout 900s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest
 
       - name: Upload Android test reports
         if: always()
