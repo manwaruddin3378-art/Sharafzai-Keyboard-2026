@@ -9,7 +9,6 @@ class KeyboardTestActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(EditText(this).apply {
-            id = 24680
             hint = "SUNDUS emulator test"
             textSize = 20f
             setSingleLine(false)
