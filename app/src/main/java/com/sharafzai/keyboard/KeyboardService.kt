@@ -1793,7 +1793,15 @@ class KeyboardService : InputMethodService() {
         updateSuggestions()
     }
 
+    private var alternatePopupWindow: PopupWindow? = null
+
+    private fun dismissAlternatePopup() {
+        alternatePopupWindow?.dismiss()
+        alternatePopupWindow = null
+    }
+
     private fun showAlternatePopup(anchor: View, alternate: String) {
+        dismissAlternatePopup()
         val preview = TextView(this).apply {
             text = alternate
             textSize = 22f
@@ -1806,8 +1814,11 @@ class KeyboardService : InputMethodService() {
             isOutsideTouchable = false
             elevation = dp(8).toFloat()
         }
+        alternatePopupWindow = popup
+        popup.setOnDismissListener {
+            if (alternatePopupWindow === popup) alternatePopupWindow = null
+        }
         popup.showAsDropDown(anchor, 0, -anchor.height - dp(44))
-        anchor.postDelayed({ if (popup.isShowing) popup.dismiss() }, 650)
     }
 
     private fun addGlidePath(path: MutableList<String>, value: String) {
@@ -1996,6 +2007,7 @@ class KeyboardService : InputMethodService() {
                         }
                         MotionEvent.ACTION_UP -> {
                             handler.removeCallbacks(longPressTask)
+                            dismissAlternatePopup()
                             if (longPressHandled) {
                                 if (pendingLongPressOutput.isNotEmpty()) {
                                     currentInputConnection?.commitText(pendingLongPressOutput, 1)
@@ -2017,6 +2029,7 @@ class KeyboardService : InputMethodService() {
                         }
                         MotionEvent.ACTION_CANCEL -> {
                             handler.removeCallbacks(longPressTask)
+                            dismissAlternatePopup()
                             true
                         }
                         else -> true
@@ -2057,6 +2070,7 @@ class KeyboardService : InputMethodService() {
                         }
                         MotionEvent.ACTION_UP -> {
                             handler.removeCallbacks(alternateTask)
+                            dismissAlternatePopup()
                             if (alternateLongPress && alternatePending.isNotEmpty()) {
                                 currentInputConnection?.commitText(alternatePending, 1)
                                 updateSuggestions()
@@ -2068,6 +2082,7 @@ class KeyboardService : InputMethodService() {
                         }
                         MotionEvent.ACTION_CANCEL -> {
                             handler.removeCallbacks(alternateTask)
+                            dismissAlternatePopup()
                             alternatePending = ""
                             alternateLongPress = false
                             true
