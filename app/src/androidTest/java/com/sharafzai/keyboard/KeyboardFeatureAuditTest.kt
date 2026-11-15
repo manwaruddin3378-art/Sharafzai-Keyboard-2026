@@ -25,11 +25,15 @@ class KeyboardFeatureAuditTest {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra("privateEditor", privateEditor)
         InstrumentationRegistry.getInstrumentation().startActivitySync(launchIntent)
+        device.waitForIdle()
         val editor = device.wait(
+            Until.findObject(By.res("android", "edit")),
+            10_000
+        ) ?: device.wait(
             Until.findObject(By.desc("keyboard-test-editor")),
-            8_000
+            5_000
         )
-        assertNotNull("Keyboard test editor did not open", editor)
+        assertNotNull("Keyboard test editor did not open; activity package=" + device.currentPackageName, editor)
         editor!!.click()
         assertTrue(
             "SUNDUS keyboard did not appear",
