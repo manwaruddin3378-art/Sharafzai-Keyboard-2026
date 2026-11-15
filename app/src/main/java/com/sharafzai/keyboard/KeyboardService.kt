@@ -791,7 +791,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(bottom, "✦ SUNDUS | سندس ✦", 2.7f, 44) { expandAutoTextAndSpace() }
-        addSpecial(bottom, "⌨", 0.8f, 44) { requestHideSelf(0) }
+        addSpecial(bottom, "⌄ پټول", 0.8f, 44) { requestHideSelf(0) }
         addSpecial(bottom, if (language == 2) "," else "،", 0.65f, 44) {
             currentInputConnection?.commitText(if (language == 2) ", " else "، ", 1)
             updateSuggestions()
@@ -989,10 +989,45 @@ class KeyboardService : InputMethodService() {
                         }
                         .show()
                 }
+                .setNeutralButton("لغت ولټوئ") { _, _ -> showDictionarySearchDialog() }
                 .setNegativeButton("بند", null)
                 .show()
         }
         showList()
+    }
+
+    private fun showDictionarySearchDialog() {
+        val input = EditText(this).apply {
+            hint = "د پښتو، دري، عربي یا انګلیسي کلمه ولیکئ"
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("په آفلاین قاموس کې لټون")
+            .setView(input)
+            .setNegativeButton("بند", null)
+            .setPositiveButton("لټون") { _, _ ->
+                val query = input.text.toString().trim()
+                if (query.isNotEmpty()) {
+                    val personal = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                        .getStringSet("personalWords_$language", emptySet()).orEmpty()
+                    val results = (offlineWordsFor(language) + personal).distinct()
+                        .filter { normalizeSuggestionText(it).contains(normalizeSuggestionText(query)) }
+                        .take(80)
+                    if (results.isEmpty()) {
+                        Toast.makeText(this, "دا کلمه په اوسني آفلاین قاموس کې ونه موندل شوه؛ خپله یې اضافه کولای شئ.", Toast.LENGTH_LONG).show()
+                    } else {
+                        AlertDialog.Builder(this)
+                            .setTitle("د لټون پایلې (${results.size})")
+                            .setItems(results.toTypedArray()) { _, which ->
+                                currentInputConnection?.commitText(results[which] + " ", 1)
+                                updateSuggestions()
+                            }
+                            .setNegativeButton("بند", null)
+                            .show()
+                    }
+                }
+            }
+            .show()
     }
 
     private fun showAutoTextEditor() {
