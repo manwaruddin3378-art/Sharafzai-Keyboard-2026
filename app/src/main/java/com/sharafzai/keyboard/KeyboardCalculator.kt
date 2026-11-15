@@ -63,7 +63,7 @@ internal object KeyboardCalculator {
         private fun power(): Double {
             val base = unary()
             skipSpaces()
-            return if (consume('^')) base.pow(power()) else base
+            return if (consume('^')) Math.pow(base, power()) else base
         }
 
         private fun unary(): Double {
@@ -109,7 +109,5 @@ internal object KeyboardCalculator {
         private fun skipSpaces() {
             while (position < input.length && input[position].isWhitespace()) position++
         }
-
-        private fun Double.pow(exponent: Double): Double = kotlin.math.pow(this, exponent)
     }
 }
