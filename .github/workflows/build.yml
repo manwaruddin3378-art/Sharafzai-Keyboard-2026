@@ -101,7 +101,38 @@ jobs:
           emulator-boot-timeout: 900
           disable-animations: true
           script: |
-            adb wait-for-device
-            adb shell getprop sys.boot_completed
+            set -euxo pipefail
+            # Start ADB explicitly and bound every wait so a stalled emulator
+            # produces a useful failure instead of hanging the workflow forever.
+            adb start-server
+            timeout 180s adb wait-for-device
+
+            booted=""
+            for attempt in $(seq 1 60); do
+              booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+              if [ "$booted" = "1" ]; then
+                break
+              fi
+              sleep 5
+            done
+            if [ "$booted" != "1" ]; then
+              echo "Emulator did not finish booting within 5 minutes."
+              adb devices -l || true
+              exit 1
+            fi
+
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
             gradle --stop
-            gradle --no-daemon :app:connectedDebugAndroidTest
+            timeout 600s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest
+
+      - name: Upload Android test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sundus-Android-Test-Reports
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
