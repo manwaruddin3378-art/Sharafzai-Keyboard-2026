@@ -26,10 +26,9 @@ class KeyboardFeatureAuditTest {
         device.wakeUp()
         runCatching { device.executeShellCommand("wm dismiss-keyguard") }
         runCatching { device.executeShellCommand("input keyevent 82") }
-        val launchIntent = Intent().setClassName(packageName, component.substringAfter('/'))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            .putExtra("privateEditor", privateEditor)
-        InstrumentationRegistry.getInstrumentation().startActivitySync(launchIntent)
+        val privateExtra = if (privateEditor) "--ez privateEditor true" else ""
+        val launchResult = device.executeShellCommand("am start -W -n $component $privateExtra")
+        assertTrue("Could not launch keyboard test editor: $launchResult", launchResult.contains("Status: ok"))
         device.waitForIdle()
         val editor = device.wait(
             Until.findObject(By.res("android", "edit")),
