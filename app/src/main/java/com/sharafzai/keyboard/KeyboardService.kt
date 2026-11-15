@@ -582,7 +582,10 @@ class KeyboardService : InputMethodService() {
             setBackgroundColor(theme.suggestion)
         }
 
-        root.addView(topTools, rowParams(40))\n        root.addView(languageStrip, rowParams(36))\n\n        root.addView(suggestionContainer, rowParams(32))
+        root.addView(topTools, rowParams(40))
+        root.addView(languageStrip, rowParams(36))
+
+        root.addView(suggestionContainer, rowParams(32))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
