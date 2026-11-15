@@ -999,7 +999,7 @@ class KeyboardService : InputMethodService() {
                 val results = mutableListOf<Triple<String, String, String>>()
                 val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                 val meanings = dictionaryEntries().toMap()
-                (offlineWordsFor(language) + prefs.getStringSet("personalWords_$language", emptySet()).orEmpty())
+                (offlineWordsFor(language) + prefs.getStringSet("personalWords_$language", emptySet()).orEmpty() + meanings.keys)
                     .distinct().forEach { word ->
                         val meaning = meanings[word].orEmpty()
                         if (normalizeSuggestionText(word).contains(query) ||
