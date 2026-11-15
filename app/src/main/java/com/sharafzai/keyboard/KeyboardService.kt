@@ -940,14 +940,31 @@ class KeyboardService : InputMethodService() {
         parent.addView(dictionaryRow, rowParams(41))
     }
 
+    private fun builtInDictionaryEntries(languageId: Int): List<Pair<String, String>> {
+        return try {
+            assets.open("dictionary_seed.tsv").bufferedReader(Charsets.UTF_8).useLines { lines ->
+                lines.mapNotNull { row ->
+                    val parts = row.split("|", limit = 5)
+                    if (parts.size == 5 && languageId in 0..3 && parts[languageId].isNotBlank()) {
+                        parts[languageId].trim() to parts[4].trim()
+                    } else null
+                }.toList()
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     private fun dictionaryEntries(languageId: Int = language): List<Pair<String, String>> {
-        val key = "dictionaryEntries_$languageId"
-        return getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-            .getStringSet(key, emptySet()).orEmpty()
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val hidden = prefs.getStringSet("dictionaryHidden_$languageId", emptySet()).orEmpty()
+        val builtIn = builtInDictionaryEntries(languageId).filterNot { it.first in hidden }
+        val personal = prefs.getStringSet("dictionaryEntries_$languageId", emptySet()).orEmpty()
             .mapNotNull { row ->
                 val parts = row.split("|||", limit = 2)
                 if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
             }
+        return (builtIn + personal).associateBy { it.first }.values
             .sortedBy { it.first.lowercase() }
     }
 
