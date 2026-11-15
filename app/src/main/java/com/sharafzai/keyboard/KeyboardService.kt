@@ -2682,7 +2682,8 @@ class KeyboardService : InputMethodService() {
                 android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
                 android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
                 android.text.InputType.TYPE_TEXT_VARIATION_URI
-            )
+            ) ||
+            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
         if (restrictedField) {
             Toast.makeText(this, "په دې ځانګړې خانه کې کلمه قاموس ته نه شي اضافه کېدای.", Toast.LENGTH_LONG).show()
             return
