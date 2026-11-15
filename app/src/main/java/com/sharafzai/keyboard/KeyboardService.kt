@@ -385,7 +385,7 @@ class KeyboardService : InputMethodService() {
 
     // Windows Pashto (Afghanistan) number row: base, Shift, and AltGr layers.
     private val pashtoNumbers = listOf(
-        k("\u200D", "ٔ", "€", "ـ"),
+        k("\u200C", "ٔ", "€", "ـ"),
         k("۱", "!", "ٱ"), k("۲", "٬", "ى"),
         k("۳", "٫", "\u200E"), k("۴", "؋", "\u200F"),
         k("۵", "٪", "ٓ"), k("۶", "×", "ٙ"),
