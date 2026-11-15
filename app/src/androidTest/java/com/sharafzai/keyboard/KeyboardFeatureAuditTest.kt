@@ -140,6 +140,19 @@ class KeyboardFeatureAuditTest {
         )
         val requested = info.requestedPermissions.orEmpty().toSet()
         assertFalse("SUNDUS must not request RECORD_AUDIO", Manifest.permission.RECORD_AUDIO in requested)
+
+        // Exercise the recognizer-result handoff into the active editor without requiring
+        // a microphone or a cloud speech service in the CI emulator.
+        instrumentation.targetContext.sendBroadcast(
+            Intent(VoiceInputActivity.ACTION_VOICE_TEXT)
+                .setPackage(packageName)
+                .putExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT, "غږیز ازمایښت")
+        )
+        assertTrue(
+            "Recognized speech was not committed into the active editor",
+            device.wait(Until.hasObject(By.textContains("غږیز ازمایښت")), 3_000) ||
+                editor.text.contains("غږیز ازمایښت")
+        )
     }
 
     @Test
