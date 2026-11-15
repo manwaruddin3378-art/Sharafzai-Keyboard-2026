@@ -2518,6 +2518,8 @@ class KeyboardService : InputMethodService() {
         val type = Character.getType(char)
 
         return char.isLetterOrDigit() ||
+            // Keep the Persian/Dari/Pashto zero-width non-joiner inside compound words.
+            char == '\u200C' ||
             type == Character.NON_SPACING_MARK.toInt() ||
             type == Character.COMBINING_SPACING_MARK.toInt() ||
             type == Character.ENCLOSING_MARK.toInt()
