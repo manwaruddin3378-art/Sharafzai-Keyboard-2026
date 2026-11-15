@@ -1,6 +1,7 @@
 package com.sharafzai.keyboard
 
 import android.Manifest
+import android.app.Instrumentation
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,13 +23,18 @@ class KeyboardFeatureAuditTest {
     private val packageName = "com.sharafzai.keyboard"
     private val component = "$packageName/com.sharafzai.keyboard.KeyboardTestActivity"
 
-    private fun launchEditor(device: UiDevice, privateEditor: Boolean = false): UiObject2 {
+    private fun launchEditor(
+        instrumentation: Instrumentation,
+        device: UiDevice,
+        privateEditor: Boolean = false
+    ): UiObject2 {
         device.wakeUp()
         runCatching { device.executeShellCommand("wm dismiss-keyguard") }
         runCatching { device.executeShellCommand("input keyevent 82") }
-        val privateExtra = if (privateEditor) "--ez privateEditor true" else ""
-        val launchResult = device.executeShellCommand("am start -W -n $component $privateExtra")
-        assertTrue("Could not launch keyboard test editor: $launchResult", launchResult.contains("Status: ok"))
+        val launchIntent = Intent(instrumentation.targetContext, KeyboardTestActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra("privateEditor", privateEditor)
+        instrumentation.startActivitySync(launchIntent)
         device.waitForIdle()
         val editor = device.wait(
             Until.findObject(By.res("android", "edit")),
@@ -59,7 +65,7 @@ class KeyboardFeatureAuditTest {
         val device = UiDevice.getInstance(instrumentation)
         device.executeShellCommand("ime enable $packageName/.KeyboardService")
         device.executeShellCommand("ime set $packageName/.KeyboardService")
-        val editor = launchEditor(device)
+        val editor = launchEditor(instrumentation, device)
 
         // All four language layouts insert their expected characters.
         tap(device, "پښتو")
@@ -185,7 +191,7 @@ class KeyboardFeatureAuditTest {
 
         // The Android private-editor flag must prevent learning in the same keyboard.
         prefs.edit().remove("personalWords_2").commit()
-        val privateEditor = launchEditor(device, privateEditor = true)
+        val privateEditor = launchEditor(instrumentation, device, privateEditor = true)
         tap(device, "English")
         "plmokn".forEach { tap(device, it.toString()) }
         tap(device, "✦ SUNDUS | سندس ✦")
