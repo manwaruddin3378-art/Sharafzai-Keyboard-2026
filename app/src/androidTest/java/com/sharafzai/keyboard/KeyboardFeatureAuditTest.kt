@@ -111,7 +111,9 @@ class KeyboardFeatureAuditTest {
         assertTrue("AutoText editor did not open", device.wait(Until.hasObject(By.text("شخصي AutoText لنډیزونه")), 3_000))
         device.pressBack()
 
-        tap(device, "🌐")
+        val globeButtons = device.findObjects(By.text("🌐"))
+        assertTrue("Language and translation toolbar buttons missing", globeButtons.size >= 2)
+        globeButtons[1].click()
         assertTrue("Offline translation picker did not open", device.wait(Until.hasObject(By.text("د ژباړې هدف ژبه وټاکئ")), 3_000))
         device.pressBack()
 
