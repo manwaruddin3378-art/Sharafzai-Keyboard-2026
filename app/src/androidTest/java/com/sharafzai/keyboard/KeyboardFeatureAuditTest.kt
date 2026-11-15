@@ -133,6 +133,10 @@ class KeyboardFeatureAuditTest {
         assertTrue("Offline search dialog did not open", device.wait(Until.hasObject(By.text("د سندس آفلاین لټون")), 3_000))
         tap(device, "بند")
 
+        tap(device, "🧮")
+        assertTrue("Offline calculator did not open", device.wait(Until.hasObject(By.text("د سندس آفلاین حسابګر")), 3_000))
+        tap(device, "بند")
+
         tap(device, "📖")
         assertTrue("Dictionary home did not open", device.wait(Until.hasObject(By.text("قاموس او لټون")), 3_000))
         tap(device, "بند")
