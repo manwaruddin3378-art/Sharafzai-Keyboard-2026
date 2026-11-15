@@ -9,7 +9,9 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -156,6 +158,17 @@ class KeyboardFeatureAuditTest {
             device.wait(Until.hasObject(By.textContains("غږیز ازمایښت")), 3_000) ||
                 editor.text.contains("غږیز ازمایښت")
         )
+    }
+
+
+    @Test
+    fun offlineCalculatorEvaluatesSafeArithmeticExpressions() {
+        assertEquals("50", KeyboardCalculator.evaluate("(125 + 75) / 4"))
+        assertEquals("-4", KeyboardCalculator.evaluate("-2^2"))
+        assertEquals("512", KeyboardCalculator.evaluate("2^3^2"))
+        assertEquals("1", KeyboardCalculator.evaluate("10 % 3"))
+        assertNull("Division by zero must be rejected", KeyboardCalculator.evaluate("1 / 0"))
+        assertNull("Unexpected input must be rejected", KeyboardCalculator.evaluate("1 + 2xyz"))
     }
 
     @Test
