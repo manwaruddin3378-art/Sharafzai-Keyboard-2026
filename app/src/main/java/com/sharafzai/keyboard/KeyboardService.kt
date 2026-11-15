@@ -802,17 +802,26 @@ class KeyboardService : InputMethodService() {
         return root
     }
 
-    // A dialog launched by an InputMethodService must be a child of the IME window.
-    // TYPE_APPLICATION_ATTACHED_DIALOG alone is not enough: Android also requires the
-    // actual IME window token. Without it, the dialog is treated as an unrelated app
-    // window and the system hides the keyboard when a toolbar action is tapped.
+    // Attach every toolbar dialog to the actual IME window. Prefer the token stored
+    // in the IME Window attributes; decorView.windowToken can be null during early
+    // view creation on some Android builds, which previously left dialogs detached.
     private fun attachDialogToIme(dialog: AlertDialog): AlertDialog {
         val dialogWindow = dialog.window ?: return dialog
-        val imeToken = this@KeyboardService.window?.window?.decorView?.windowToken
+        val imeWindow = this@KeyboardService.window?.window
+        val imeToken = imeWindow?.attributes?.token
+            ?: imeWindow?.decorView?.windowToken
         val params = dialogWindow.attributes
         params.type = android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
-        if (imeToken != null) params.token = imeToken
+        if (imeToken != null) {
+            params.token = imeToken
+        } else {
+            android.util.Log.w("SundusIME", "IME window token is not available; dialog may not attach")
+        }
         dialogWindow.attributes = params
+        dialogWindow.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED or
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
         return dialog
     }
 
