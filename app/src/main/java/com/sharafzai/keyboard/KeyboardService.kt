@@ -1913,6 +1913,14 @@ class KeyboardService : InputMethodService() {
         parent.addView(row, rowParams(actualHeight + 3))
     }
 
+    private fun performKeyFeedback(view: View) {
+        if (hapticEnabled) view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        if (soundEnabled) {
+            (getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager)
+                .playSoundEffect(android.media.AudioManager.FX_KEYPRESS_STANDARD)
+        }
+    }
+
     private fun addSpecial(
         parent: LinearLayout,
         label: String,
@@ -1957,7 +1965,10 @@ class KeyboardService : InputMethodService() {
                         if (kotlin.math.abs(delta) > dp(18)) {
                             val steps = (kotlin.math.abs(delta) / dp(12)).toInt().coerceAtLeast(1)
                             repeat(steps) { sendKey(if (delta < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT) }
-                        } else action()
+                        } else {
+                            performKeyFeedback(view)
+                            action()
+                        }
                         true
                     }
                     MotionEvent.ACTION_CANCEL -> true
@@ -1978,6 +1989,7 @@ class KeyboardService : InputMethodService() {
                         touchStartX = event.x
                         swipeDeleteTriggered = false
                         wordDeleteMode = false
+                        performKeyFeedback(button)
                         action()
                         val characterRepeat = object : Runnable {
                             override fun run() {
@@ -2035,7 +2047,7 @@ class KeyboardService : InputMethodService() {
             }
         } else {
             button.setOnClickListener {
-                if (hapticEnabled) it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                performKeyFeedback(it)
                 action()
             }
         }
