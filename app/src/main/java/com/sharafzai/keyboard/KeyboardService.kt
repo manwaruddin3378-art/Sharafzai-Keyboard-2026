@@ -959,13 +959,22 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun showDictionaryHome() {
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val autoLearn = prefs.getBoolean("autoLearnWords", true)
         ImeDialogBuilder()
             .setTitle("قاموس او لټون")
-            .setItems(arrayOf("🔎 د کلمو لټون", "＋ نوې کلمه او مانا", "📖 شخصي قاموس اداره کول")) { _, which ->
+            .setMessage("اتومات زده کړه یوازې بشپړې کلمې په همدې موبایل کې ساتي؛ بشپړ متن نه ذخیره کوي. اوسنی حالت: ${if (autoLearn) "فعاله" else "بنده"}")
+            .setItems(arrayOf("🔎 د کلمو لټون", "＋ نوې کلمه او مانا", "📖 شخصي قاموس اداره کول", if (autoLearn) "اتومات زده کړه بنده کړئ" else "اتومات زده کړه فعاله کړئ")) { _, which ->
                 when (which) {
                     0 -> showDictionarySearchDialog()
                     1 -> showAddDictionaryEntryDialog()
                     2 -> showPersonalDictionaryEditor()
+                    3 -> {
+                        val enabled = !prefs.getBoolean("autoLearnWords", true)
+                        prefs.edit().putBoolean("autoLearnWords", enabled).commit()
+                        Toast.makeText(this, if (enabled) "اتومات زده کړه فعاله شوه" else "اتومات زده کړه بنده شوه", Toast.LENGTH_SHORT).show()
+                        showDictionaryHome()
+                    }
                 }
             }
             .setNegativeButton("بند", null)
@@ -1522,6 +1531,7 @@ class KeyboardService : InputMethodService() {
         }
         val before = connection.getTextBeforeCursor(100, 0)?.toString().orEmpty()
         val word = getCurrentWord(before)
+        learnCompletedWord(word)
         val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getStringSet("autoText_$language", emptySet()).orEmpty()
         val expansion = entries.mapNotNull { entry ->
             val parts = entry.split("|||", limit = 2)
@@ -2619,6 +2629,45 @@ class KeyboardService : InputMethodService() {
         }
         if (i < a.length || j < b.length) edits++
         return edits
+    }
+
+    // Learn only a completed single word after the user types a space.
+    // This is local-only, user-controllable, and never runs in restricted editor fields.
+    private fun learnCompletedWord(candidate: String) {
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        if (!prefs.getBoolean("autoLearnWords", true)) return
+
+        val editorType = currentInputEditorInfo?.inputType ?: 0
+        val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
+        val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
+        val restrictedField = inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
+            variation in setOf(
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            ) ||
+            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+        if (restrictedField) return
+
+        val word = candidate.trim()
+        if (word.length !in 2..40 || !word.any { it.isLetter() } ||
+            word.any { !isWordCharacter(it) }
+        ) return
+
+        val key = "personalWords_$language"
+        val words = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+        if (word in words || offlineWordsFor(language).any {
+                normalizeSuggestionText(it) == normalizeSuggestionText(word)
+            }
+        ) return
+
+        // Keep the on-device personal vocabulary bounded.
+        if (words.size >= 3000) return
+        words.add(word)
+        prefs.edit().putStringSet(key, HashSet(words)).apply()
     }
 
     private fun addCurrentWordToDictionary() {
