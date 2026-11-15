@@ -213,8 +213,69 @@ class KeyboardService : InputMethodService() {
         ),
     )
 
+    // Expanded offline vocabulary for the four supported languages.
+    // All entries are bundled locally; no network access or typing-history collection is used.
+    private val extendedOfflineWords = mapOf(
+        0 to listOf(
+            "افغانستان","کابل","جلال","ننګرهار","لغمان","کونړ","کندهار","هرات","بلخ","پکتیا",
+            "پکتیکا","خوست","فراه","بادغیس","بامیان","دایکندی","غزني","وردګ","لوګر","پنجشېر",
+            "اسلامي","فقه","حدیث","تفسیر","عقیده","شریعت","حلال","حرام","عبادت","لمونځ",
+            "روژه","زکات","حج","عمره","مسجد","مدرسه","علما","عالمان","طالب","زده‌کوونکی",
+            "ښوونه","روزنه","تعلیم","تحصیل","څېړنه","مقاله","رساله","کتابتون","لیکوال","ژباړه",
+            "اقتصاد","بانک","معامله","تجارت","بازرګاني","پانګه","پانګونه","ګټه","تاوان","قرارداد",
+            "اجاره","مرابحه","مشارکت","مضاربت","استصناع","سلم","وکالت","کفالت","ضمانت","ملکیت",
+            "قانون","حقوق","عدالت","محکمه","قاضي","فتوا","مفتي","فقهي","حنفي","مذهب",
+            "پوهه","فکر","کلتور","ټولنه","کورنۍ","ملګرتیا","درناوی","باور","رښتیا","مسؤولیت",
+            "پرمختګ","بریالیتوب","هڅه","زحمت","خدمت","مرسته","همکاري","اتحاد","سوله","امنیت",
+            "روغتیا","درملنه","ډاکټر","روغتون","ښوونځی","پوهنتون","ټکنالوژي","کمپیوټر","انټرنېټ","معلومات"
+        ),
+        1 to listOf(
+            "أفغانستان","كابل","جلال آباد","قندهار","هرات","مزار","ننګرهار","إسلام","فقه","حديث",
+            "تفسير","عقيدة","شريعة","حلال","حرام","عبادة","صلاة","صوم","زكاة","حج",
+            "عمرة","مسجد","مدرسة","جامعة","علماء","طالب","تعليم","تعلم","بحث","دراسة",
+            "رسالة","مقالة","مكتبة","كاتب","ترجمة","اقتصاد","مصرف","بنك","معاملة","تجارة",
+            "استثمار","رأس","مال","ربح","خسارة","عقد","إجارة","مرابحة","مشاركة","مضاربة",
+            "استصناع","سلم","وكالة","كفالة","ضمان","ملكية","قانون","حقوق","عدالة","محكمة",
+            "قاضي","فتوى","مفتي","حنفي","مذهب","لغة","كلمة","جملة","كتابة","قراءة",
+            "مدير","موظف","عمل","وظيفة","خبرة","مهارة","مشروع","إدارة","تنمية","تطوير",
+            "صحة","طبيب","مستشفى","عائلة","أسرة","أب","أم","أخ","أخت","صباح",
+            "مساء","اليوم","غدا","أمس","الآن","دائما","أحيانا","مساعدة","تعاون","احترام",
+            "مسؤولية","نجاح","توفيق","سلام","أمن","وطن","شعب","مجتمع","ثقافة","تقنية"
+        ),
+        2 to listOf(
+            "about","above","across","action","activity","actually","address","advice","afghanistan","after",
+            "again","against","agreement","already","always","answer","application","area","around","article",
+            "available","beautiful","because","before","between","business","calendar","change","children","clear",
+            "college","community","complete","computer","continue","correct","country","create","culture","customer",
+            "database","decision","different","dictionary","development","education","email","employee","english",
+            "enough","environment","especially","example","excellent","experience","family","finance","financial",
+            "follow","friendship","future","general","government","graduate","greatest","guidance","history","however",
+            "important","improve","information","international","Islamic","keyboard","knowledge","language","learning",
+            "library","management","meaning","message","mobile","modern","money","morning","necessary","network",
+            "office","opportunity","organization","original","people","personal","phone","please","practice","prepare",
+            "problem","professional","project","quality","question","research","respect","responsibility","right",
+            "school","science","security","sentence","service","simple","solution","special","student","success",
+            "support","system","technology","thanks","together","training","translation","university","useful","voice",
+            "welcome","wonderful","working","writing","yesterday","tomorrow"
+        ),
+        3 to listOf(
+            "افغانستان","کابل","جلال‌آباد","قندهار","هرات","مزارشریف","ننگرهار","اسلام","فقه","حدیث",
+            "تفسیر","عقیده","شریعت","حلال","حرام","عبادت","نماز","روزه","زکات","حج",
+            "عمره","مسجد","مدرسه","دانشگاه","عالمان","طالب","آموزش","تعلیم","یادگیری","پژوهش",
+            "تحقیق","رساله","مقاله","کتابخانه","نویسنده","ترجمه","اقتصاد","بانک","معامله","تجارت",
+            "سرمایه","سرمایه‌گذاری","سود","زیان","قرارداد","اجاره","مرابحه","مشارکت","مضاربت","استصناع",
+            "سلم","وکالت","کفالت","ضمانت","مالکیت","قانون","حقوق","عدالت","محکمه","قاضی",
+            "فتوا","مفتی","حنفی","مذهب","زبان","واژه","جمله","نوشتن","خواندن","مدیر",
+            "کارمند","کار","وظیفه","تجربه","مهارت","پروژه","مدیریت","توسعه","پیشرفت","سلامتی",
+            "پزشک","بیمارستان","خانواده","پدر","مادر","برادر","خواهر","صبح","شام","امروز",
+            "فردا","دیروز","اکنون","همیشه","گاهی","کمک","همکاری","احترام","مسؤولیت","موفقیت",
+            "آرامش","صلح","امنیت","وطن","مردم","جامعه","فرهنگ","فناوری","کمپیوتر","معلومات"
+        )
+    )
+
     private fun offlineWordsFor(languageId: Int): List<String> =
-        offlineWords[languageId].orEmpty().distinct()
+        (offlineWords[languageId].orEmpty() + extendedOfflineWords[languageId].orEmpty())
+            .distinct()
 
     // Microsoft Windows Pashto (Afghanistan), KLID 00000463.
     // Rows follow the physical QWERTY positions; shifted characters match Windows.
