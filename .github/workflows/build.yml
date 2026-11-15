@@ -44,16 +44,17 @@ jobs:
       - name: Run keyboard smoke test on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 29
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
           emulator-boot-timeout: 900
           script: |
             adb wait-for-device
             adb shell getprop sys.boot_completed
-            gradle :app:connectedDebugAndroidTest
+            gradle --stop
+            gradle --no-daemon :app:connectedDebugAndroidTest
 
       - name: Report APK size
         run: |
