@@ -40,13 +40,13 @@ internal object KeyboardCalculator {
         }
 
         private fun term(): Double {
-            var value = power()
+            var value = unary()
             while (true) {
                 skipSpaces()
                 when {
-                    consume('*') -> value *= power()
+                    consume('*') -> value *= unary()
                     consume('/') -> {
-                        val divisor = power()
+                        val divisor = unary()
                         require(divisor != 0.0) { "Division by zero" }
                         value /= divisor
                     }
@@ -61,9 +61,9 @@ internal object KeyboardCalculator {
         }
 
         private fun power(): Double {
-            val base = unary()
+            val base = primary()
             skipSpaces()
-            return if (consume('^')) Math.pow(base, power()) else base
+            return if (consume('^')) Math.pow(base, unary()) else base
         }
 
         private fun unary(): Double {
@@ -71,7 +71,7 @@ internal object KeyboardCalculator {
             return when {
                 consume('+') -> unary()
                 consume('-') -> -unary()
-                else -> primary()
+                else -> power()
             }
         }
 
