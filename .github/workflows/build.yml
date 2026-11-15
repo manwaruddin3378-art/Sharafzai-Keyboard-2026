@@ -41,22 +41,6 @@ jobs:
       - name: Build test APK
         run: gradle :app:assembleDebug
 
-      - name: Run keyboard smoke test on Android emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
-          emulator-boot-timeout: 900
-          disable-animations: false
-          script: |
-            adb wait-for-device
-            adb shell getprop sys.boot_completed
-            gradle --stop
-            gradle --no-daemon :app:connectedDebugAndroidTest
-
       - name: Report APK size
         run: |
           APK="app/build/outputs/apk/debug/app-debug.apk"
@@ -106,3 +90,18 @@ jobs:
         if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEYSTORE_PASSWORD == '' }}
         run: echo "Release signing is waiting for the private keystore secrets." >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Run keyboard smoke test on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
+          emulator-boot-timeout: 900
+          disable-animations: false
+          script: |
+            adb wait-for-device
+            adb shell getprop sys.boot_completed
+            gradle --stop
+            gradle --no-daemon :app:connectedDebugAndroidTest
