@@ -921,82 +921,128 @@ class KeyboardService : InputMethodService() {
         parent.addView(dictionaryRow, rowParams(41))
     }
 
+    private fun dictionaryEntries(languageId: Int = language): List<Pair<String, String>> {
+        val key = "dictionaryEntries_$languageId"
+        return getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+            .getStringSet(key, emptySet()).orEmpty()
+            .mapNotNull { row ->
+                val parts = row.split("|||", limit = 2)
+                if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
+            }
+            .sortedBy { it.first.lowercase() }
+    }
+
     private fun showPersonalDictionaryEditor() {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        val dictionaryKey = "personalWords_$language"
-        val words = prefs.getStringSet(dictionaryKey, emptySet())
-            ?.toMutableSet() ?: mutableSetOf()
         val languageName = listOf("پښتو", "عربي", "English", "دري")[language.coerceIn(0, 3)]
-
         fun showList() {
-            val current = prefs.getStringSet(dictionaryKey, emptySet())
-                ?.toMutableSet() ?: mutableSetOf()
-            val sorted = current.sorted()
-            val message = if (sorted.isEmpty()) {
-                "تر اوسه په شخصي قاموس کې کلمه نشته."
-            } else {
-                "د حذف لپاره پر یوې کلمې کلیک وکړئ."
+            val entries = dictionaryEntries()
+            val words = prefs.getStringSet("personalWords_$language", emptySet()).orEmpty()
+            val allTerms = (entries.map { it.first } + words).distinct().sorted()
+            val labels = allTerms.map { term ->
+                val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
+                if (meaning.isBlank()) term else "$term  —  $meaning"
             }
             AlertDialog.Builder(this)
-                .setTitle("شخصي قاموس – $languageName (" + sorted.size + ")")
-                .setMessage(message)
-                .setItems(sorted.toTypedArray()) { _, which ->
-                    val selected = sorted[which]
+                .setTitle("شخصي قاموس – $languageName (${allTerms.size})")
+                .setMessage(if (allTerms.isEmpty()) "تر اوسه کلمه نه ده ثبت شوې. نوې کلمه له مانا سره اضافه کړئ." else "د یوې کلمې پر نوم کلیک وکړئ چې مانا یې وګورئ، اصلاح یا حذف یې کړئ.")
+                .setItems(labels.toTypedArray()) { _, which ->
+                    val term = allTerms[which]
+                    val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
                     AlertDialog.Builder(this)
-                        .setTitle("کلمه حذف کړئ؟")
-                        .setMessage("ایا «$selected» له شخصي قاموس څخه حذف کول غواړئ؟")
-                        .setPositiveButton("حذف") { _, _ ->
-                            val updated = prefs.getStringSet(dictionaryKey, emptySet())
-                                ?.toMutableSet() ?: mutableSetOf()
-                            updated.remove(selected)
-                            prefs.edit().putStringSet(dictionaryKey, updated).apply()
-                            Toast.makeText(this, "«$selected» له قاموس څخه حذف شوه", Toast.LENGTH_SHORT).show()
+                        .setTitle(term)
+                        .setMessage(meaning.ifBlank { "د دې کلمې مانا لا نه ده ثبت شوې." })
+                        .setPositiveButton("کلمه ولیکئ") { _, _ ->
+                            currentInputConnection?.commitText("$term ", 1)
                             updateSuggestions()
-                            showList()
                         }
-                        .setNegativeButton("بېرته") { _, _ -> showList() }
-                        .show()
-                }
-                .setPositiveButton("نوې کلمه") { _, _ ->
-                    val input = EditText(this).apply {
-                        hint = "کلمه ولیکئ"
-                        setSingleLine(true)
-                        setTextColor(Color.BLACK)
-                    }
-                    AlertDialog.Builder(this)
-                        .setTitle("قاموس ته کلمه اضافه کړئ")
-                        .setView(input)
-                        .setNegativeButton("بېرته", null)
-                        .setPositiveButton("ذخیره") { _, _ ->
-                            val word = input.text.toString().trim()
-                            if (word.length >= 2) {
-                                val updated = prefs.getStringSet(dictionaryKey, emptySet())
-                                    ?.toMutableSet() ?: mutableSetOf()
-                                updated.add(word)
-                                prefs.edit().putStringSet(dictionaryKey, updated).apply()
-                                Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه", Toast.LENGTH_SHORT).show()
-                                updateSuggestions()
-                            } else {
-                                Toast.makeText(this, "لږ تر لږه دوه توري ولیکئ", Toast.LENGTH_SHORT).show()
-                            }
-                            showList()
+                        .setNeutralButton("سمون") { _, _ ->
+                            showAddDictionaryEntryDialog(term, meaning)
+                        }
+                        .setNegativeButton("حذف") { _, _ ->
+                            AlertDialog.Builder(this)
+                                .setTitle("کلمه حذف کړئ؟")
+                                .setMessage("«$term» له شخصي قاموس څخه حذف شي؟")
+                                .setNegativeButton("نه", null)
+                                .setPositiveButton("هو، حذف") { _, _ ->
+                                    val updatedWords = prefs.getStringSet("personalWords_$language", emptySet())
+                                        ?.toMutableSet() ?: mutableSetOf()
+                                    updatedWords.remove(term)
+                                    prefs.edit().putStringSet("personalWords_$language", updatedWords).apply()
+                                    val updatedEntries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
+                                        ?.toMutableSet() ?: mutableSetOf()
+                                    updatedEntries.removeAll { it.substringBefore("|||") == term }
+                                    prefs.edit().putStringSet("dictionaryEntries_$language", updatedEntries).apply()
+                                    updateSuggestions()
+                                    showList()
+                                }.show()
                         }
                         .show()
                 }
-                .setNeutralButton("لغت ولټوئ") { _, _ -> showDictionarySearchDialog() }
+                .setPositiveButton("＋ نوې کلمه") { _, _ -> showAddDictionaryEntryDialog() }
+                .setNeutralButton("لټون") { _, _ -> showDictionarySearchDialog() }
                 .setNegativeButton("بند", null)
                 .show()
         }
         showList()
     }
 
+    private fun showAddDictionaryEntryDialog(existingTerm: String = "", existingMeaning: String = "") {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(8), dp(18), dp(4))
+        }
+        val termInput = EditText(this).apply {
+            hint = "کلمه یا اصطلاح"
+            setSingleLine(true)
+            setText(existingTerm)
+        }
+        val meaningInput = EditText(this).apply {
+            hint = "د کلمې مانا او تشریح"
+            minLines = 2
+            setSingleLine(false)
+            setText(existingMeaning)
+        }
+        content.addView(termInput)
+        content.addView(meaningInput)
+        AlertDialog.Builder(this)
+            .setTitle(if (existingTerm.isBlank()) "قاموس ته نوې کلمه اضافه کړئ" else "د قاموس کلمه اصلاح کړئ")
+            .setMessage("کلمه او مانا یې په خپله ولیکئ؛ معلومات یوازې په همدې موبایل کې ساتل کېږي.")
+            .setView(content)
+            .setNegativeButton("بند", null)
+            .setPositiveButton("ذخیره") { _, _ ->
+                val term = termInput.text.toString().trim()
+                val meaning = meaningInput.text.toString().trim()
+                if (term.isNotEmpty()) {
+                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                    val words = prefs.getStringSet("personalWords_$language", emptySet())
+                        ?.toMutableSet() ?: mutableSetOf()
+                    words.add(term)
+                    val entries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
+                        ?.toMutableSet() ?: mutableSetOf()
+                    if (existingTerm.isNotBlank()) entries.removeAll { it.substringBefore("|||") == existingTerm }
+                    entries.removeAll { it.substringBefore("|||") == term }
+                    if (meaning.isNotBlank()) entries.add("$term|||$meaning")
+                    prefs.edit()
+                        .putStringSet("personalWords_$language", words)
+                        .putStringSet("dictionaryEntries_$language", entries)
+                        .apply()
+                    Toast.makeText(this, "کلمه او مانا په شخصي قاموس کې خوندي شول", Toast.LENGTH_SHORT).show()
+                    updateSuggestions()
+                } else {
+                    Toast.makeText(this, "مهرباني وکړئ کلمه ولیکئ", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .show()
+    }
+
     private fun showDictionarySearchDialog() {
         val input = EditText(this).apply {
-            hint = "د پښتو، دري، عربي یا انګلیسي کلمه ولیکئ"
+            hint = "کلمه یا د مانا یوه برخه ولیکئ"
             setSingleLine(true)
         }
         AlertDialog.Builder(this)
-            .setTitle("په آفلاین قاموس کې لټون")
+            .setTitle("په آفلاین شخصي قاموس کې لټون")
             .setView(input)
             .setNegativeButton("بند", null)
             .setPositiveButton("لټون") { _, _ ->
@@ -1004,17 +1050,36 @@ class KeyboardService : InputMethodService() {
                 if (query.isNotEmpty()) {
                     val personal = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                         .getStringSet("personalWords_$language", emptySet()).orEmpty()
-                    val results = (offlineWordsFor(language) + personal).distinct()
-                        .filter { normalizeSuggestionText(it).contains(normalizeSuggestionText(query)) }
+                    val entries = dictionaryEntries()
+                    val matches = (offlineWordsFor(language) + personal + entries.map { it.first })
+                        .distinct()
+                        .filter { term ->
+                            normalizeSuggestionText(term).contains(normalizeSuggestionText(query)) ||
+                                entries.firstOrNull { it.first == term }?.second?.let {
+                                    normalizeSuggestionText(it).contains(normalizeSuggestionText(query))
+                                } == true
+                        }
                         .take(80)
-                    if (results.isEmpty()) {
-                        Toast.makeText(this, "دا کلمه په اوسني آفلاین قاموس کې ونه موندل شوه؛ خپله یې اضافه کولای شئ.", Toast.LENGTH_LONG).show()
+                    if (matches.isEmpty()) {
+                        Toast.makeText(this, "پایله ونه موندل شوه؛ خپله کلمه او مانا قاموس ته اضافه کړئ.", Toast.LENGTH_LONG).show()
                     } else {
                         AlertDialog.Builder(this)
-                            .setTitle("د لټون پایلې (${results.size})")
-                            .setItems(results.toTypedArray()) { _, which ->
-                                currentInputConnection?.commitText(results[which] + " ", 1)
-                                updateSuggestions()
+                            .setTitle("د لټون پایلې (${matches.size})")
+                            .setItems(matches.map { term ->
+                                val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
+                                if (meaning.isBlank()) term else "$term — $meaning"
+                            }.toTypedArray()) { _, which ->
+                                val term = matches[which]
+                                val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
+                                AlertDialog.Builder(this)
+                                    .setTitle(term)
+                                    .setMessage(meaning.ifBlank { "د دې کلمې مانا په شخصي قاموس کې نه ده ثبت شوې." })
+                                    .setPositiveButton("کلمه ولیکئ") { _, _ ->
+                                        currentInputConnection?.commitText("$term ", 1)
+                                        updateSuggestions()
+                                    }
+                                    .setNegativeButton("بند", null)
+                                    .show()
                             }
                             .setNegativeButton("بند", null)
                             .show()
@@ -2119,8 +2184,9 @@ class KeyboardService : InputMethodService() {
             ?.toMutableSet() ?: mutableSetOf()
         saved.add(word)
         prefs.edit().putStringSet(dictionaryKey, saved).apply()
-        Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه؛ که وغواړئ مانا یې هم ولیکئ.", Toast.LENGTH_SHORT).show()
         updateSuggestions()
+        showAddDictionaryEntryDialog(word, dictionaryEntries().firstOrNull { it.first == word }?.second.orEmpty())
     }
 
     private fun updateSuggestions() {
