@@ -1542,13 +1542,14 @@ class KeyboardService : InputMethodService() {
                 var downRawY = 0f
                 var glideStarted = false
                 var longPressHandled = false
+                var pendingLongPressOutput = ""
                 val path = mutableListOf<String>()
                 val longPressTask = Runnable {
                     if (!glideStarted && longPressOutput.isNotEmpty()) {
-                        currentInputConnection?.commitText(longPressOutput, 1)
+                        // Preview the alternate while held; insert it only when the finger is released.
+                        pendingLongPressOutput = longPressOutput
                         showAlternatePopup(frame, longPressOutput)
                         longPressHandled = true
-                        updateSuggestions()
                     }
                 }
 
@@ -1559,6 +1560,7 @@ class KeyboardService : InputMethodService() {
                             downRawY = event.rawY
                             glideStarted = false
                             longPressHandled = false
+                            pendingLongPressOutput = ""
                             path.clear()
                             path.add(spec.normal)
                             handler.postDelayed(longPressTask, android.view.ViewConfiguration.getLongPressTimeout().toLong())
@@ -1579,6 +1581,11 @@ class KeyboardService : InputMethodService() {
                         MotionEvent.ACTION_UP -> {
                             handler.removeCallbacks(longPressTask)
                             if (longPressHandled) {
+                                if (pendingLongPressOutput.isNotEmpty()) {
+                                    currentInputConnection?.commitText(pendingLongPressOutput, 1)
+                                    pendingLongPressOutput = ""
+                                    updateSuggestions()
+                                }
                                 true
                             } else if (glideStarted && path.size >= 3) {
                                 findGlideKey(event.rawX, event.rawY)?.let { addGlidePath(path, it.value) }
