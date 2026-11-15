@@ -618,13 +618,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(topTools, "⭐ AutoText", 1f, 40) { showAutoTextEditor() }
-        addSpecial(topTools, "🌐 ژباړه", 1f, 40) {
-            AlertDialog.Builder(this)
-                .setTitle("ژباړه")
-                .setMessage("د ژباړې بشپړ آفلاین بسته لا نه ده ورزیاته شوې؛ د ژبو د بدلولو لپاره پورته ژبنیز انتخاب وکاروئ.")
-                .setPositiveButton("سمه ده", null)
-                .show()
-        }
+        addSpecial(topTools, "🌐 ژباړه", 1f, 40) { showOfflineTranslationPicker() }
         addSpecial(topTools, "📖 قاموس", 1f, 40) { showPersonalDictionaryEditor() }
         addSpecial(topTools, "🎙 غږ", 1f, 40) {
             startActivity(Intent(this, VoiceInputActivity::class.java)
@@ -1027,6 +1021,84 @@ class KeyboardService : InputMethodService() {
                     }
                 }
             }
+            .show()
+    }
+
+    private fun showOfflineTranslationPicker() {
+        val names = arrayOf("پښتو", "عربي", "English", "دري")
+        val ids = intArrayOf(0, 1, 2, 3)
+        val targets = ids.filter { it != language }.toIntArray()
+        val labels = targets.map { names[it] }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("د ژباړې هدف ژبه وټاکئ")
+            .setItems(labels) { _, which -> showOfflineTranslationEditor(targets[which]) }
+            .setNegativeButton("بند", null)
+            .show()
+    }
+
+    // Personal translation memory works fully offline; it does not pretend to be machine translation.
+    private fun showOfflineTranslationEditor(targetLanguage: Int) {
+        val languageNames = listOf("پښتو", "عربي", "English", "دري")
+        val source = EditText(this).apply {
+            hint = "متن یا جمله ولیکئ"
+            minLines = 2
+            setSingleLine(false)
+        }
+        val key = "translationPairs_${language}_$targetLanguage"
+        fun savedPairs(): MutableSet<String> =
+            getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                .getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+
+        AlertDialog.Builder(this)
+            .setTitle("آفلاین شخصي ژباړن: ${languageNames[language]} ← ${languageNames[targetLanguage]}")
+            .setMessage("دا برخه ستاسې له خوا خوندي شوې ژباړې لټوي. نوې کلمه یا جمله هم ورزیاتولای شئ؛ اتومات ماشیني ژباړه لا نه ده.")
+            .setView(source)
+            .setPositiveButton("ژباړه ولټوه") { _, _ ->
+                val query = source.text.toString().trim()
+                if (query.isNotEmpty()) {
+                    val match = savedPairs().mapNotNull { entry ->
+                        val parts = entry.split("|||", limit = 2)
+                        if (parts.size == 2 && normalizeSuggestionText(parts[0]) == normalizeSuggestionText(query))
+                            parts[1] else null
+                    }.firstOrNull()
+                    if (match != null) {
+                        AlertDialog.Builder(this)
+                            .setTitle("ژباړه")
+                            .setMessage(match)
+                            .setPositiveButton("سمه ده", null)
+                            .show()
+                    } else {
+                        Toast.makeText(this, "دا متن لا په شخصي ژباړن کې نشته؛ د «نوې ژباړه» له لارې یې ثبت کړئ.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNeutralButton("نوې ژباړه") { _, _ ->
+                val original = source.text.toString().trim()
+                if (original.isNotEmpty()) {
+                    val translated = EditText(this).apply {
+                        hint = "ژباړل شوی متن په ${languageNames[targetLanguage]} ولیکئ"
+                        minLines = 2
+                        setSingleLine(false)
+                    }
+                    AlertDialog.Builder(this)
+                        .setTitle("نوې ژباړه خوندي کړئ")
+                        .setView(translated)
+                        .setNegativeButton("بند", null)
+                        .setPositiveButton("ذخیره") { _, _ ->
+                            val value = translated.text.toString().trim()
+                            if (value.isNotEmpty()) {
+                                val pairs = savedPairs()
+                                pairs.removeAll { it.substringBefore("|||") == original }
+                                pairs.add("$original|||$value")
+                                getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                                    .edit().putStringSet(key, pairs).apply()
+                                Toast.makeText(this, "ژباړه په موبایل کې خوندي شوه", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        .show()
+                }
+            }
+            .setNegativeButton("بند", null)
             .show()
     }
 
