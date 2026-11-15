@@ -1083,7 +1083,7 @@ class KeyboardService : InputMethodService() {
                                     val updatedWords = prefs.getStringSet("personalWords_$language", emptySet())
                                         ?.toMutableSet() ?: mutableSetOf()
                                     updatedWords.remove(term)
-                                    prefs.edit().putStringSet("personalWords_$language", updatedWords).apply()
+                                    prefs.edit().putStringSet("personalWords_$language", HashSet(updatedWords)).commit()
                                     val updatedEntries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
                                         ?.toMutableSet() ?: mutableSetOf()
                                     updatedEntries.removeAll { it.substringBefore("|||") == term }
@@ -1621,7 +1621,7 @@ class KeyboardService : InputMethodService() {
                         .setNegativeButton("حذف") { _, _ ->
                             val updated = prefs.getStringSet("clipboardFavorites", emptySet())?.toMutableSet() ?: mutableSetOf()
                             updated.remove(selected)
-                            prefs.edit().putStringSet("clipboardFavorites", updated).apply()
+                            prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
                             refreshKeyboard()
                         }
                         .show()
@@ -1640,7 +1640,7 @@ class KeyboardService : InputMethodService() {
                     val updated = prefs.getStringSet("clipboardFavorites", emptySet())
                         ?.toMutableSet() ?: mutableSetOf()
                     updated.remove(item)
-                    prefs.edit().putStringSet("clipboardFavorites", updated).apply()
+                    prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
                     Toast.makeText(this, "له خوندي شويو متنونو حذف شو", Toast.LENGTH_SHORT).show()
                     refreshKeyboard()
                     true
@@ -1676,7 +1676,7 @@ class KeyboardService : InputMethodService() {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
         saved.add(phrase)
-        prefs.edit().putStringSet("savedPhrases", saved).apply()
+        prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()
         Toast.makeText(this, "جمله په شخصي جملو کې وساتل شوه", Toast.LENGTH_SHORT).show()
     }
 
@@ -1931,7 +1931,7 @@ class KeyboardService : InputMethodService() {
                             val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                             val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
                             saved.remove(selected)
-                            prefs.edit().putStringSet("savedPhrases", saved).apply()
+                            prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()
                             phraseIndex = 0
                             showPhraseWindow()
                         }.show()
