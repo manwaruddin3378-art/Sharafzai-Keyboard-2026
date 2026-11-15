@@ -604,6 +604,7 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(header, "😊", 0.75f, 29) {
             emojiPanelVisible = !emojiPanelVisible
+            symbolsPanelVisible = false
             phrasePanelVisible = false
             settingsPanelVisible = false
             clipboardPanelVisible = false
@@ -611,6 +612,7 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(header, "☪\nجملې", 0.9f, 34) {
             emojiPanelVisible = false
+            symbolsPanelVisible = false
             settingsPanelVisible = false
             clipboardPanelVisible = false
             showPhraseWindow()
@@ -1526,19 +1528,7 @@ class KeyboardService : InputMethodService() {
 
     private fun expandAutoTextAndSpace() {
         val connection = currentInputConnection ?: return
-        val editorType = currentInputEditorInfo?.inputType ?: 0
-        val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
-        val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
-        val restrictedField = inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
-            variation in setOf(
-                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
-                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
-                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
-                android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
-                android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
-                android.text.InputType.TYPE_TEXT_VARIATION_URI
-            ) ||
-            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+        if (isRestrictedEditorField()) return
         // Do not inspect or expand saved shortcuts in passwords, email, URLs, or non-text fields.
         if (restrictedField) {
             connection.commitText(" ", 1)
@@ -2647,16 +2637,16 @@ class KeyboardService : InputMethodService() {
         return edits
     }
 
-    // Learn only a completed single word after the user types a space.
-    // This is local-only, user-controllable, and never runs in restricted editor fields.
-    private fun learnCompletedWord(candidate: String) {
-        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        if (!prefs.getBoolean("autoLearnWords", true)) return
-
-        val editorType = currentInputEditorInfo?.inputType ?: 0
+    // Respect Android's explicit request not to personalize or inspect this editor.
+    // Saved email chips are also hidden in fields that disable personalized learning.
+    private fun isRestrictedEditorField(info: EditorInfo? = currentInputEditorInfo): Boolean {
+        val editor = info ?: return true
+        val editorType = editor.inputType
         val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
         val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
-        val restrictedField = inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
+        val privateImeField = Build.VERSION.SDK_INT >= 26 &&
+            (editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+        return inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
             variation in setOf(
                 android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
                 android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
@@ -2665,7 +2655,20 @@ class KeyboardService : InputMethodService() {
                 android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
                 android.text.InputType.TYPE_TEXT_VARIATION_URI
             ) ||
-            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0 ||
+            privateImeField
+    }
+
+    // Learn only a completed single word after the user types a space.
+    // This is local-only, user-controllable, and never runs in restricted editor fields.
+    private fun learnCompletedWord(candidate: String) {
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        if (!prefs.getBoolean("autoLearnWords", true)) return
+
+        if (isRestrictedEditorField()) {
+            Toast.makeText(this, "په دې ځانګړې خانه کې کلمه قاموس ته نه شي اضافه کېدای.", Toast.LENGTH_LONG).show()
+            return
+        }
         if (restrictedField) return
 
         val word = candidate.trim()
@@ -2687,19 +2690,8 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addCurrentWordToDictionary() {
-        val editorType = currentInputEditorInfo?.inputType ?: 0
-        val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
-        val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
-        val restrictedField = inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
-            variation in setOf(
-                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
-                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
-                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
-                android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
-                android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
-                android.text.InputType.TYPE_TEXT_VARIATION_URI
-            ) ||
-            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+        // Do not inspect or expand saved shortcuts in passwords, email, URLs, or non-text fields.
+        if (restrictedField) {
         if (restrictedField) {
             Toast.makeText(this, "په دې ځانګړې خانه کې کلمه قاموس ته نه شي اضافه کېدای.", Toast.LENGTH_LONG).show()
             return
@@ -2743,11 +2735,11 @@ class KeyboardService : InputMethodService() {
         val isUriField = inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
             variation == android.text.InputType.TYPE_TEXT_VARIATION_URI
         val suppressSuggestions = (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
-        // Never inspect surrounding text in passwords, numeric fields, URI fields, or
-        // editors that explicitly disable suggestions. Email fields expose only the
-        // user-saved email chip below; they never run word prediction.
+        val noPersonalizedLearning = Build.VERSION.SDK_INT >= 26 &&
+            ((currentInputEditorInfo?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+        // Never inspect surrounding text or show personalized content in protected editors.
         if (isTextPassword || isNumericPassword || isUriField || suppressSuggestions ||
-            inputClass != android.text.InputType.TYPE_CLASS_TEXT
+            noPersonalizedLearning || inputClass != android.text.InputType.TYPE_CLASS_TEXT
         ) return
 
         val savedEmail = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", "").orEmpty()
