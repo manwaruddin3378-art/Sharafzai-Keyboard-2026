@@ -93,7 +93,7 @@ jobs:
 
       - name: Run keyboard smoke test on Android emulator
         timeout-minutes: 25
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: YevheniiKotyrlo/android-emulator-runner@43c43c242e3a25ac81f0aa3ce8c8324de2fb1aab
         with:
           api-level: 34
           target: google_apis
