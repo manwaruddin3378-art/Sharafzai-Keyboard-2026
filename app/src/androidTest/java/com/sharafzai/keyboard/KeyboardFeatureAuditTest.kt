@@ -180,7 +180,7 @@ class KeyboardFeatureAuditTest {
         device.executeShellCommand("ime set $packageName/.KeyboardService")
 
         // Ordinary text fields may learn one completed word locally.
-        launchEditor(device)
+        launchEditor(instrumentation, device)
         tap(device, "English")
         "qzxvbn".forEach { tap(device, it.toString()) }
         tap(device, "✦ SUNDUS | سندس ✦")
