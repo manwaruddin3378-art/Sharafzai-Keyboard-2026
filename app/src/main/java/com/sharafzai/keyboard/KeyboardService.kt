@@ -2,6 +2,8 @@
 package com.sharafzai.keyboard
 
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.content.ClipboardManager
 import android.content.ClipData
 import android.content.Context
@@ -56,6 +58,12 @@ class KeyboardService : InputMethodService() {
     private var autoCorrectEnabled = true
     private var hapticEnabled = true
     private var soundEnabled = false
+    private var pendingVoiceText = ""
+    private val voiceReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            pendingVoiceText = intent?.getStringExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT).orEmpty()
+        }
+    }
     private data class GlideKey(val view: View, val value: String)
     private val glideKeys = mutableListOf<GlideKey>()
 
@@ -140,10 +148,17 @@ class KeyboardService : InputMethodService() {
         autoCorrectEnabled = false
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
+        val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(voiceReceiver, voiceFilter)
+        }
     }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        runCatching { unregisterReceiver(voiceReceiver) }
         super.onDestroy()
     }
 
@@ -397,6 +412,10 @@ class KeyboardService : InputMethodService() {
         restarting: Boolean
     ) {
         super.onStartInputView(info, restarting)
+        if (pendingVoiceText.isNotBlank()) {
+            currentInputConnection?.commitText(pendingVoiceText, 1)
+            pendingVoiceText = ""
+        }
         updateSuggestions()
     }
 
@@ -638,6 +657,11 @@ class KeyboardService : InputMethodService() {
         addSpecial(topTools, "🌐", 1f, 32) { showOfflineTranslationPicker() }
         addSpecial(topTools, "📖", 1f, 32) { showDictionaryHome() }
         addSpecial(topTools, "🔎", 1f, 32) { showUniversalSearchDialog() }
+        addSpecial(topTools, "🎙", 1f, 32) {
+            startActivity(Intent(this, VoiceInputActivity::class.java)
+                .putExtra("language", language)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
         addSpecial(topTools, "🎨", 1f, 32) { showThemePicker() }
 
         suggestionContainer = LinearLayout(this).apply {
