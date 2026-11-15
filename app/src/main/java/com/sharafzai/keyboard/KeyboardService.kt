@@ -1563,6 +1563,25 @@ class KeyboardService : InputMethodService() {
 
     private fun expandAutoTextAndSpace() {
         val connection = currentInputConnection ?: return
+        val editorType = currentInputEditorInfo?.inputType ?: 0
+        val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
+        val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
+        val restrictedField = inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
+            variation in setOf(
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            ) ||
+            (editorType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+        // Do not inspect or expand saved shortcuts in passwords, email, URLs, or non-text fields.
+        if (restrictedField) {
+            connection.commitText(" ", 1)
+            updateSuggestions()
+            return
+        }
         val before = connection.getTextBeforeCursor(100, 0)?.toString().orEmpty()
         val word = getCurrentWord(before)
         val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getStringSet("autoText_$language", emptySet()).orEmpty()
