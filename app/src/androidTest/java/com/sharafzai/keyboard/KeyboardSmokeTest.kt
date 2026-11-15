@@ -1,5 +1,6 @@
 package com.sharafzai.keyboard
 
+import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -20,7 +21,12 @@ class KeyboardSmokeTest {
 
         device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
         device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
-        device.executeShellCommand("am start -W -n com.sharafzai.keyboard/.KeyboardTestActivity")
+        instrumentation.startActivitySync(
+            Intent().setClassName(
+                instrumentation.targetContext.packageName,
+                "com.sharafzai.keyboard.KeyboardTestActivity"
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
 
         val editor = device.wait(
             Until.findObject(By.clazz("android.widget.EditText")),
