@@ -85,7 +85,7 @@ class KeyboardFeatureAuditTest {
         // Theme picker.
         tap(device, "🎨")
         assertTrue("Theme picker did not open", device.wait(Until.hasObject(By.text("د سندس رنګونه")), 3_000))
-        device.pressBack()
+        tap(device, "بند")
 
         // Settings panel and its number-row switch.
         tap(device, "⚙")
@@ -105,25 +105,25 @@ class KeyboardFeatureAuditTest {
         assertNotNull("Quick phrases button missing", phraseButton)
         phraseButton!!.click()
         assertTrue("Quick phrases dialog did not open", device.wait(Until.hasObject(By.text("د سندس چټکې جملې")), 3_000))
-        device.pressBack()
+        tap(device, "بند")
 
         tap(device, "⭐ متن")
         assertTrue("AutoText editor did not open", device.wait(Until.hasObject(By.text("شخصي AutoText لنډیزونه")), 3_000))
-        device.pressBack()
+        tap(device, "بند")
 
         val globeButtons = device.findObjects(By.text("🌐"))
         assertTrue("Language and translation toolbar buttons missing", globeButtons.size >= 2)
         globeButtons[1].click()
         assertTrue("Offline translation picker did not open", device.wait(Until.hasObject(By.text("د ژباړې هدف ژبه وټاکئ")), 3_000))
-        device.pressBack()
+        tap(device, "بند")
 
         tap(device, "🔎")
         assertTrue("Offline search dialog did not open", device.wait(Until.hasObject(By.text("د سندس آفلاین لټون")), 3_000))
-        device.pressBack()
+        tap(device, "بند")
 
         tap(device, "📖")
         assertTrue("Dictionary home did not open", device.wait(Until.hasObject(By.text("قاموس او لټون")), 3_000))
-        device.pressBack()
+        tap(device, "بند")
 
         // Voice entry remains present, while the SUNDUS package itself requests no microphone permission.
         assertNotNull("Voice typing control missing", device.findObject(By.text("🎙")))
