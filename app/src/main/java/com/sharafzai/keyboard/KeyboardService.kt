@@ -53,6 +53,7 @@ class KeyboardService : InputMethodService() {
     private var phraseIndex = 0
     private var clipboardPanelVisible = false
     private var emojiCategory = 0
+    private var symbolsCategory = 0
     private var fontStyleIndex = 0
     private var numberRowEnabled = true
     private var nativeDigitsEnabled = true
@@ -712,94 +713,10 @@ class KeyboardService : InputMethodService() {
             }
         }
 
-        val controlRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
 
-        addSpecial(controlRow, "😊", 0.9f, 39) {
-            emojiPanelVisible = !emojiPanelVisible
-            if (emojiPanelVisible) {
-                clipboardPanelVisible = false
-                diacriticsPanelVisible = false
-                symbolsPanelVisible = false
-                
-                
-                settingsPanelVisible = false
-            }
-            refreshKeyboard()
-        }
-
-        if (true) {
-            addSpecial(controlRow, "◌َ", 0.9f, 39) {
-                diacriticsPanelVisible = !diacriticsPanelVisible
-                if (diacriticsPanelVisible) {
-                    emojiPanelVisible = false
-                    symbolsPanelVisible = false
-                    
-                    
-                    settingsPanelVisible = false
-                    clipboardPanelVisible = false
-                }
-                refreshKeyboard()
-            }
-        }
-
-        addSpecial(controlRow, "#+=", 0.9f, 39) {
-            symbolsPanelVisible = !symbolsPanelVisible
-            if (symbolsPanelVisible) {
-                emojiPanelVisible = false
-                diacriticsPanelVisible = false
-                
-                
-                settingsPanelVisible = false
-                clipboardPanelVisible = false
-            }
-            refreshKeyboard()
-        }
-
-        addSpecial(controlRow, if (caps) "⇪" else "⇧", 1f, 39) {
-            val now = System.currentTimeMillis()
-            if (language == 2 && shifted && !caps && now - lastShiftTapAt <= 450L) {
-                // Double-tap Shift enables English Caps Lock.
-                caps = true
-                shifted = false
-                lastShiftTapAt = 0L
-            } else if (caps) {
-                // A further tap releases Caps Lock.
-                caps = false
-                shifted = false
-                lastShiftTapAt = 0L
-            } else {
-                shifted = !shifted
-                lastShiftTapAt = if (shifted) now else 0L
-            }
-            refreshKeyboard()
-        }
-
-        addSpecial(controlRow, "⌫", 1.2f, 39) {
-            deletePreviousCharacter()
-            updateSuggestions()
-        }
-
-        root.addView(controlRow, rowParams(41))
-
-        if (diacriticsPanelVisible) {
-            val diacriticKeys = listOf(
-                k("َ"), k("ً"), k("ُ"), k("ٌ"),
-                k("ِ"), k("ٍ"), k("ْ"), k("ّ"),
-                k("ٰ"), k("ٓ"), k("ٔ"), k("ٖ")
-            )
-            addKeyRow(root, diacriticKeys, 34)
-        }
 
         if (symbolsPanelVisible) {
-            val symbolKeys = listOf(
-                k("@"), k("#"), k("$"), k("%"), k("&"), k("*"), k("+"), k("="),
-                k("/"), k("\\"), k("("), k(")"), k("["), k("]"), k("{"), k("}"),
-                k("<"), k(">"), k("!"), k("?"), k(":"), k(";"), k("~"), k("_"),
-                k("-"), k("—"), k("…"), k("•"), k("©"), k("®"), k("™"), k("٪")
-            )
-            symbolKeys.chunked(8).forEach { row -> addKeyRow(root, row, 32) }
+            addSymbolsPanel(root)
         }
 
         if (emojiPanelVisible) {
@@ -823,23 +740,47 @@ class KeyboardService : InputMethodService() {
             gravity = Gravity.CENTER
         }
 
-        addSpecial(bottom, "123", 0.85f, 42) {
-            numberRowEnabled = !numberRowEnabled
-            saveSettings()
+        // Three equal visual zones keep the SUNDUS space key exactly centered.
+        val leftZone = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        addSpecial(leftZone, if (symbolsPanelVisible) "ABC" else "123", 1f, 44) {
+            symbolsPanelVisible = !symbolsPanelVisible
+            if (symbolsPanelVisible) {
+                emojiPanelVisible = false
+                clipboardPanelVisible = false
+                settingsPanelVisible = false
+                phrasePanelVisible = false
+                symbolsCategory = 0
+            }
             refreshKeyboard()
         }
-        addSpecial(bottom, "✦ SUNDUS | سندس ✦", 2.7f, 44) { expandAutoTextAndSpace() }
-        addSpecial(bottom, "⌄ پټول", 0.8f, 44) { requestHideSelf(0) }
-        addSpecial(bottom, if (language == 2) "," else "،", 0.65f, 44) {
+
+        val centerZone = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        addSpecial(centerZone, "✦ SUNDUS | سندس ✦", 1f, 44) { expandAutoTextAndSpace() }
+
+        val rightZone = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        addSpecial(rightZone, "⌄", 0.8f, 44) { requestHideSelf(0) }
+        addSpecial(rightZone, if (language == 2) "," else "،", 0.55f, 44) {
             currentInputConnection?.commitText(if (language == 2) ", " else "، ", 1)
             updateSuggestions()
         }
-        addSpecial(bottom, ".", 0.65f, 44) {
+        addSpecial(rightZone, ".", 0.55f, 44) {
             currentInputConnection?.commitText(". ", 1)
             updateSuggestions()
         }
-        addSpecial(bottom, "↵", 1f, 44) { performEnterAction() }
+        addSpecial(rightZone, "↵", 0.8f, 44) { performEnterAction() }
 
+        bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 1f))
+        bottom.addView(centerZone, LinearLayout.LayoutParams(0, dp(46), 2.4f))
+        bottom.addView(rightZone, LinearLayout.LayoutParams(0, dp(46), 1f))
         root.addView(bottom, rowParams(46))
 
         return root
@@ -1596,6 +1537,40 @@ class KeyboardService : InputMethodService() {
         updateSuggestions()
     }
 
+    private fun addSymbolsPanel(parent: LinearLayout) {
+        val tabs = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        listOf("نښې", "اعراب", "اسلامي").forEachIndexed { index, label ->
+            addSpecial(tabs, label, 1f, 34) {
+                symbolsCategory = index
+                refreshKeyboard()
+            }
+        }
+        parent.addView(tabs, rowParams(36))
+
+        val keys = when (symbolsCategory) {
+            1 -> listOf(
+                "َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ْ", "ّ",
+                "ٰ", "ٓ", "ٔ", "ٖ", "ٗ", "٘", "ٙ", "ٚ",
+                "ٛ", "ٜ", "ٝ", "ٞ", "ٟ", "ـ", "ٕ", "ٖ"
+            )
+            2 -> listOf(
+                "﷽", "ﷺ", "ﷻ", "☪", "۞", "۩", "ٱ", "۝",
+                "ۖ", "ۗ", "ۚ", "ۙ", "ۛ", "ۜ", "﴿", "﴾",
+                "٭", "۞", "۩", "☾", "☽", "۞", "۝", "﷽"
+            )
+            else -> listOf(
+                "@", "#", "$", "%", "&", "*", "+", "=",
+                "/", "\\", "(", ")", "[", "]", "{", "}",
+                "<", ">", "!", "?", ":", ";", "~", "_",
+                "-", "—", "…", "•", "©", "®", "™", "٪"
+            )
+        }
+        keys.chunked(8).forEach { row -> addKeyRow(parent, row.map { k(it) }, 34) }
+    }
+
     private fun addEmojiPanel(parent: LinearLayout) {
         val groups = listOf(
             "مخونه" to listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😙","😚","😋","😛","😜","🤪","😎","🤓","🧐","🤔","🤗","🤭","🤫","😴","😭","🥹","😌","😏","😔","😢","😤","😡","🤯","🥳","🤩","😬","🫠","🫣","🫡","🤠","🥱"),
@@ -1610,7 +1585,7 @@ class KeyboardService : InputMethodService() {
         )
         val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         groups.forEachIndexed { index, _ ->
-            addSpecial(tabs, listOf("😊","🤲","❤️","👍","🌿","🔣","🐾","🍎","🚗")[index], 1f, 34) {
+            addSpecial(tabs, listOf("😊","اسلامي","❤️","👍","🌿","🔣","🐾","🍎","🚗")[index], 1f, 34) {
                 emojiCategory = index
                 refreshKeyboard()
             }
