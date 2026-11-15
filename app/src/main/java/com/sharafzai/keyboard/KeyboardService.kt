@@ -742,8 +742,7 @@ class KeyboardService : InputMethodService() {
         }
         addSpecial(bottom, "↵", 1f, 44) { performEnterAction() }
 
-        root.addView(bottom, rowParams(44))
-        root.addView(topTools, rowParams(40))
+        root.addView(bottom, rowParams(46))
 
         return root
     }
