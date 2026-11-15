@@ -29,7 +29,7 @@ class KeyboardSmokeTest {
         )
 
         val editor = device.wait(
-            Until.findObject(By.clazz("android.widget.EditText")),
+            Until.findObject(By.desc("keyboard-test-editor")),
             8_000
         )
         assertNotNull("Test editor did not open", editor)
