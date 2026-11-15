@@ -65,7 +65,7 @@ class KeyboardService : InputMethodService() {
             val recognizedText = intent
                 ?.getStringExtra(VoiceInputActivity.EXTRA_RECOGNIZED_TEXT)
                 .orEmpty()
-            if (recognizedText.isBlank()) return
+            if (recognizedText.isBlank() || isRestrictedEditorField()) return
 
             // The recognizer activity returns while the IME connection is usually still active.
             // Commit immediately when possible; retain the text only as a lifecycle fallback.
@@ -430,11 +430,15 @@ class KeyboardService : InputMethodService() {
     ) {
         super.onStartInputView(info, restarting)
         if (pendingVoiceText.isNotBlank()) {
-            val connection = currentInputConnection
-            if (connection != null &&
-                runCatching { connection.commitText(pendingVoiceText, 1) }.getOrDefault(false)
-            ) {
+            if (isRestrictedEditorField()) {
                 pendingVoiceText = ""
+            } else {
+                val connection = currentInputConnection
+                if (connection != null &&
+                    runCatching { connection.commitText(pendingVoiceText, 1) }.getOrDefault(false)
+                ) {
+                    pendingVoiceText = ""
+                }
             }
         }
         updateSuggestions()
@@ -681,9 +685,13 @@ class KeyboardService : InputMethodService() {
         addSpecial(topTools, "📖", 1f, 32) { showDictionaryHome() }
         addSpecial(topTools, "🔎", 1f, 32) { showUniversalSearchDialog() }
         addSpecial(topTools, "🎙", 1f, 32) {
-            startActivity(Intent(this, VoiceInputActivity::class.java)
-                .putExtra("language", language)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            if (isRestrictedEditorField()) {
+                Toast.makeText(this, "په پټنوم او ځانګړو خانو کې غږیز لیکل بند دي.", Toast.LENGTH_SHORT).show()
+            } else {
+                startActivity(Intent(this, VoiceInputActivity::class.java)
+                    .putExtra("language", language)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
         }
         addSpecial(topTools, "🎨", 1f, 32) { showThemePicker() }
 
