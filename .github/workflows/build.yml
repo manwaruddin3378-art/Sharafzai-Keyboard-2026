@@ -104,20 +104,6 @@ jobs:
             adb start-server
             timeout 180s adb wait-for-device
 
-            booted=""
-            for attempt in $(seq 1 60); do
-              booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
-              if [ "$booted" = "1" ]; then
-                break
-              fi
-              sleep 5
-            done
-            if [ "$booted" != "1" ]; then
-              echo "Emulator did not finish booting within 5 minutes."
-              adb devices -l || true
-              exit 1
-            fi
-
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 0
