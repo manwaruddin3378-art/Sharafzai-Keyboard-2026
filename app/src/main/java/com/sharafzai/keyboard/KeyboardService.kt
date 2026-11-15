@@ -48,6 +48,7 @@ class KeyboardService : InputMethodService() {
     private var symbolsPanelVisible = false
     private var settingsPanelVisible = false
     private var phrasePanelVisible = false
+    private var phraseDialog: AlertDialog? = null
     private var phraseCategory = 0
     private var phraseIndex = 0
     private var clipboardPanelVisible = false
@@ -550,15 +551,10 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(header, "☪\nجملې", 0.9f, 34) {
-            phrasePanelVisible = !phrasePanelVisible
-            if (phrasePanelVisible) {
-                phraseCategory = 0
-                phraseIndex = 0
-            }
             emojiPanelVisible = false
             settingsPanelVisible = false
             clipboardPanelVisible = false
-            refreshKeyboard()
+            showPhraseWindow()
         }
         addSpecial(header, "🎨", 0.75f, 29) { showThemePicker() }
         addSpecial(header, "⚙", 0.75f, 29) {
@@ -1192,6 +1188,51 @@ class KeyboardService : InputMethodService() {
         Toast.makeText(this, "جمله په شخصي جملو کې وساتل شوه", Toast.LENGTH_SHORT).show()
     }
 
+    private fun showPhraseWindow() {
+        phraseDialog?.dismiss()
+        phraseCategory = phraseCategory.coerceIn(0, 4)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("د سندس چټکې جملې")
+            .setView(content)
+            .setNegativeButton("بند", null)
+            .create()
+        phraseDialog = dialog
+        addPhrasePanel(content)
+        dialog.setOnDismissListener { if (phraseDialog === dialog) phraseDialog = null }
+        dialog.show()
+    }
+
+    private fun showAddPhraseDialog() {
+        val input = EditText(this).apply {
+            hint = "خپله جمله یا متن ولیکئ"
+            minLines = 3
+            setSingleLine(false)
+            setText(currentInputConnection?.getSelectedText(0)?.toString().orEmpty())
+        }
+        AlertDialog.Builder(this)
+            .setTitle("شخصي جمله اضافه کړئ")
+            .setView(input)
+            .setNegativeButton("بند", null)
+            .setPositiveButton("ذخیره") { _, _ ->
+                val phrase = input.text.toString().trim()
+                if (phrase.isNotEmpty()) {
+                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                    val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
+                    saved.add(phrase)
+                    prefs.edit().putStringSet("savedPhrases", saved).apply()
+                    phraseCategory = 4
+                    phraseIndex = 0
+                    Toast.makeText(this, "جمله شخصي برخې ته اضافه شوه", Toast.LENGTH_SHORT).show()
+                    showPhraseWindow()
+                }
+            }
+            .show()
+    }
+
     private fun addPhrasePanel(parent: LinearLayout) {
         val categories = listOf("اسلامي", "پښتو", "English", "دري", "زما")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -1199,12 +1240,13 @@ class KeyboardService : InputMethodService() {
             addSpecial(categoryRow, label, 1f, 28) {
                 phraseCategory = index
                 phraseIndex = 0
-                refreshKeyboard()
+                showPhraseWindow()
             }
         }
+        addSpecial(categoryRow, "＋", 0.65f, 28) { showAddPhraseDialog() }
         addSpecial(categoryRow, "×", 0.55f, 28) {
             phrasePanelVisible = false
-            refreshKeyboard()
+            phraseDialog?.dismiss()
         }
         parent.addView(categoryRow, rowParams(30))
 
@@ -1306,7 +1348,7 @@ class KeyboardService : InputMethodService() {
             }
             addSpecial(navigation, "❮", 0.65f, 42) {
                 phraseIndex = if (phraseIndex <= 0) phrases.lastIndex else phraseIndex - 1
-                refreshKeyboard()
+                showPhraseWindow()
             }
             val phraseText = TextView(this).apply {
                 text = phrases[phraseIndex]
@@ -1319,14 +1361,34 @@ class KeyboardService : InputMethodService() {
                 setOnClickListener {
                     currentInputConnection?.commitText(phrases[phraseIndex] + " ", 1)
                     updateSuggestions()
+                    phraseDialog?.dismiss()
                 }
             }
             navigation.addView(phraseText, LinearLayout.LayoutParams(0, dp(40), 1f))
             addSpecial(navigation, "❯", 0.65f, 42) {
                 phraseIndex = (phraseIndex + 1) % phrases.size
-                refreshKeyboard()
+                showPhraseWindow()
             }
             parent.addView(navigation, rowParams(42))
+            if (phraseCategory == 4) {
+                val removeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                addSpecial(removeRow, "ټاکل شوې جمله حذف", 1f, 34) {
+                    val selected = phrases.getOrNull(phraseIndex)
+                    if (selected != null) AlertDialog.Builder(this)
+                        .setTitle("جمله حذف کړئ؟")
+                        .setMessage("ایا دا جمله له شخصي جملو حذف کول غواړئ؟")
+                        .setNegativeButton("نه", null)
+                        .setPositiveButton("هو، حذف") { _, _ ->
+                            val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                            val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
+                            saved.remove(selected)
+                            prefs.edit().putStringSet("savedPhrases", saved).apply()
+                            phraseIndex = 0
+                            showPhraseWindow()
+                        }.show()
+                }
+                parent.addView(removeRow, rowParams(36))
+            }
 
 
         }
@@ -1512,12 +1574,9 @@ class KeyboardService : InputMethodService() {
                     textSize = 10f
                     setTextColor(Color.rgb(255, 226, 120))
                     gravity = Gravity.CENTER
-                    setPadding(dp(3), dp(1), dp(3), dp(1))
-                    background = GradientDrawable().apply {
-                        setColor(Color.rgb(17, 49, 83))
-                        cornerRadius = dp(5).toFloat()
-                        setStroke(dp(1), Color.rgb(224, 178, 62))
-                    }
+                    setPadding(dp(1), 0, dp(1), 0)
+                    // Alternate glyph is plain text: no circle, badge, or dark capsule.
+                    background = null
                 }
 
                 frame.addView(
