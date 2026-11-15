@@ -1787,6 +1787,24 @@ class KeyboardService : InputMethodService() {
         }
     }
 
+    // Normalize Arabic-script variants for matching without changing inserted spelling.
+    private fun normalizeSuggestionText(value: String): String {
+        return value.lowercase()
+            .filterNot {
+                val type = Character.getType(it)
+                type == Character.NON_SPACING_MARK.toInt() ||
+                    type == Character.COMBINING_SPACING_MARK.toInt() ||
+                    type == Character.ENCLOSING_MARK.toInt() ||
+                    it == '\u0640'
+            }
+            .replace('ك', 'ک')
+            .replace('ي', 'ی')
+            .replace('ى', 'ی')
+            .replace('أ', 'ا')
+            .replace('إ', 'ا')
+            .replace('آ', 'ا')
+    }
+
     private fun getOfflineSuggestions(): List<String> {
         val before = currentInputConnection
             ?.getTextBeforeCursor(60, 0)
@@ -1804,22 +1822,25 @@ class KeyboardService : InputMethodService() {
         ).getStringSet("personalWords_$language", emptySet()).orEmpty()
 
         val candidates = (offlineWordsFor(language) + personalWords).distinct()
-        val prefixMatches = candidates.filter {
-            it.startsWith(currentWord, ignoreCase = true) &&
-                !it.equals(currentWord, ignoreCase = true)
+        val normalizedCurrent = normalizeSuggestionText(currentWord)
+        val prefixMatches = candidates.filter { word ->
+            val normalizedWord = normalizeSuggestionText(word)
+            normalizedWord.startsWith(normalizedCurrent) && normalizedWord != normalizedCurrent
         }.sortedWith(
-            compareBy<String> { kotlin.math.abs(it.length - currentWord.length) }
-                .thenBy { it.length }
+            compareBy<String> {
+                kotlin.math.abs(normalizeSuggestionText(it).length - normalizedCurrent.length)
+            }.thenBy { normalizeSuggestionText(it).length }
         )
         if (prefixMatches.isNotEmpty()) return prefixMatches.take(3)
 
-        if (currentWord.length < 4) return emptyList()
+        if (normalizedCurrent.length < 4) return emptyList()
         return candidates
             .map { word ->
+                val normalizedWord = normalizeSuggestionText(word)
                 Triple(
                     word,
-                    editDistanceAtMostOne(currentWord.lowercase(), word.lowercase()),
-                    word.commonPrefixWith(currentWord, ignoreCase = true).length
+                    editDistanceAtMostOne(normalizedCurrent, normalizedWord),
+                    normalizedWord.commonPrefixWith(normalizedCurrent).length
                 )
             }
             .filter { it.second == 1 }
