@@ -93,7 +93,7 @@ jobs:
 
       - name: Run keyboard smoke test on Android emulator
         timeout-minutes: 25
-        uses: YevheniiKotyrlo/android-emulator-runner@43c43c242e3a25ac81f0aa3ce8c8324de2fb1aab
+        uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
           target: google_apis
@@ -104,6 +104,8 @@ jobs:
           disable-animations: true
           script: |
             set -eux
+            # Ensure the emulator is shut down before the runner action cleanup.
+            trap 'adb emu kill >/dev/null 2>&1 || true' EXIT
             # Start ADB explicitly and bound every wait so a stalled emulator
             # produces a useful failure instead of hanging the workflow forever.
             adb start-server
