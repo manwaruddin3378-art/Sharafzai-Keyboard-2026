@@ -444,11 +444,54 @@ class KeyboardService : InputMethodService() {
     }
 
     private val adhkar = listOf("سُبْحَانَ اللَّهِ", "الْحَمْدُ لِلَّهِ", "اللَّهُ أَكْبَرُ", "لَا إِلَٰهَ إِلَّا اللَّهُ", "أَسْتَغْفِرُ اللَّهَ", "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ")
+    private val dhikrColors = listOf(
+        Color.rgb(255, 226, 125), Color.rgb(142, 232, 255),
+        Color.rgb(177, 255, 190), Color.rgb(255, 174, 210),
+        Color.rgb(211, 190, 255), Color.rgb(255, 195, 139)
+    )
     private var dhikrIndex = 0
+    private var dhikrEnterFromRight = true
     private val dhikrTicker = object : Runnable {
         override fun run() {
-            dhikrIndex = (dhikrIndex + 1) % adhkar.size
-            dhikrView?.text = adhkar[dhikrIndex]
+            val view = dhikrView
+            if (view == null || !view.isAttachedToWindow) {
+                handler.postDelayed(this, 3500)
+                return
+            }
+            // Slide the current remembrance away, then bring the next one in
+            // from the opposite side with its own contrasting text/background colors.
+            val width = view.width.toFloat().coerceAtLeast(dp(80).toFloat())
+            val outgoing = if (dhikrEnterFromRight) -width else width
+            val incoming = if (dhikrEnterFromRight) width else -width
+            view.animate().cancel()
+            view.animate()
+                .alpha(0f)
+                .translationX(outgoing)
+                .setDuration(260L)
+                .withEndAction {
+                    dhikrIndex = (dhikrIndex + 1) % adhkar.size
+                    view.text = adhkar[dhikrIndex]
+                    view.setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
+                    val base = dhikrColors[dhikrIndex % dhikrColors.size]
+                    val darker = Color.rgb(
+                        (Color.red(base) * 0.30f).toInt(),
+                        (Color.green(base) * 0.30f).toInt(),
+                        (Color.blue(base) * 0.30f).toInt()
+                    )
+                    view.background = GradientDrawable(
+                        GradientDrawable.Orientation.LEFT_RIGHT,
+                        intArrayOf(darker, Color.rgb(7, 35, 62), darker)
+                    ).apply { cornerRadius = dp(9).toFloat() }
+                    view.translationX = incoming
+                    view.alpha = 0f
+                    view.animate()
+                        .alpha(1f)
+                        .translationX(0f)
+                        .setDuration(420L)
+                        .start()
+                    dhikrEnterFromRight = !dhikrEnterFromRight
+                }
+                .start()
             handler.postDelayed(this, 3500)
         }
     }
@@ -466,12 +509,12 @@ class KeyboardService : InputMethodService() {
             text = adhkar[dhikrIndex]
             textSize = 15f
             gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
+            setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
             typeface = Typeface.DEFAULT_BOLD
             setPadding(0, dp(3), 0, dp(3))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(7, 75, 82), Color.rgb(20, 48, 92))
+                intArrayOf(Color.rgb(5, 43, 59), Color.rgb(20, 48, 92), Color.rgb(5, 43, 59))
             ).apply { cornerRadius = dp(9).toFloat() }
         }
         dhikrView = dhikrStrip
