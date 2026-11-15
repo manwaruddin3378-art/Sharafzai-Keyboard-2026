@@ -1599,7 +1599,7 @@ class KeyboardService : InputMethodService() {
             val longPressOutput = when {
                 spec.longPress.isNotEmpty() -> spec.longPress
                 spec.shifted.isNotEmpty() -> spec.shifted
-                language == 2 -> spec.normal.uppercase()
+                language == 2 && spec.normal.any { it.isLetter() } -> spec.normal.uppercase()
                 else -> ""
             }
 
@@ -1701,19 +1701,56 @@ class KeyboardService : InputMethodService() {
                     }
                 }
             } else {
-                frame.setOnClickListener {
-                    commitKeyTap(spec, frame)
+                var alternatePending = ""
+                var alternateLongPress = false
+                val alternateTask = Runnable {
+                    if (longPressOutput.isNotEmpty()) {
+                        alternatePending = longPressOutput
+                        alternateLongPress = true
+                        showAlternatePopup(frame, longPressOutput)
+                    }
                 }
-
-                frame.setOnLongClickListener {
-                    val alternate = longPressOutput
-                    if (alternate.isEmpty()) {
-                        false
-                    } else {
-                        currentInputConnection?.commitText(alternate, 1)
-                        showAlternatePopup(frame, alternate)
-                        updateSuggestions()
-                        true
+                var alternateDownX = 0f
+                var alternateDownY = 0f
+                frame.setOnTouchListener { _, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            alternateDownX = event.rawX
+                            alternateDownY = event.rawY
+                            alternatePending = ""
+                            alternateLongPress = false
+                            handler.postDelayed(
+                                alternateTask,
+                                android.view.ViewConfiguration.getLongPressTimeout().toLong()
+                            )
+                            true
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            val moved = kotlin.math.hypot(
+                                (event.rawX - alternateDownX).toDouble(),
+                                (event.rawY - alternateDownY).toDouble()
+                            )
+                            if (moved > dp(12)) handler.removeCallbacks(alternateTask)
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            handler.removeCallbacks(alternateTask)
+                            if (alternateLongPress && alternatePending.isNotEmpty()) {
+                                currentInputConnection?.commitText(alternatePending, 1)
+                                updateSuggestions()
+                            } else {
+                                commitKeyTap(spec, frame)
+                            }
+                            alternatePending = ""
+                            true
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            handler.removeCallbacks(alternateTask)
+                            alternatePending = ""
+                            alternateLongPress = false
+                            true
+                        }
+                        else -> true
                     }
                 }
             }
