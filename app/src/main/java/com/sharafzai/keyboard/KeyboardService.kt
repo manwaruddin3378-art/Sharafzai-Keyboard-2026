@@ -1,7 +1,6 @@
 
 package com.sharafzai.keyboard
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.ClipboardManager
 import android.content.ClipData
