@@ -51,7 +51,7 @@ internal object KeyboardCalculator {
                         value /= divisor
                     }
                     consume('%') -> {
-                        val divisor = power()
+                        val divisor = unary()
                         require(divisor != 0.0) { "Division by zero" }
                         value %= divisor
                     }
