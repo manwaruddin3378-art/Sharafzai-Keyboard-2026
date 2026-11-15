@@ -103,7 +103,7 @@ jobs:
           emulator-boot-timeout: 600
           disable-animations: true
           script: |
-            set -euxo pipefail
+            set -eux
             # Start ADB explicitly and bound every wait so a stalled emulator
             # produces a useful failure instead of hanging the workflow forever.
             adb start-server
