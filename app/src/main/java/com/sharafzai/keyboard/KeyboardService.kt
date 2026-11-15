@@ -1667,7 +1667,7 @@ class KeyboardService : InputMethodService() {
             emojiPage = (emojiPage + 1) % pageCount
             refreshKeyboard()
         }
-        addSpecial(pageNav, "بندول", 0.8f, 30) {
+        addSpecial(pageNav, "د ایموجي بندول", 0.8f, 30) {
             emojiPanelVisible = false
             refreshKeyboard()
         }
