@@ -802,13 +802,22 @@ class KeyboardService : InputMethodService() {
         return root
     }
 
-    // Attach tool dialogs to the IME window so opening them does not dismiss the keyboard.
+    // A dialog launched by an InputMethodService must be a child of the IME window.
+    // TYPE_APPLICATION_ATTACHED_DIALOG alone is not enough: Android also requires the
+    // actual IME window token. Without it, the dialog is treated as an unrelated app
+    // window and the system hides the keyboard when a toolbar action is tapped.
+    private fun attachDialogToIme(dialog: AlertDialog): AlertDialog {
+        val dialogWindow = dialog.window ?: return dialog
+        val imeToken = this@KeyboardService.window?.window?.decorView?.windowToken
+        val params = dialogWindow.attributes
+        params.type = android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
+        if (imeToken != null) params.token = imeToken
+        dialogWindow.attributes = params
+        return dialog
+    }
+
     private inner class ImeDialogBuilder : AlertDialog.Builder(this@KeyboardService) {
-        override fun create(): AlertDialog {
-            return super.create().apply {
-                window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-            }
-        }
+        override fun create(): AlertDialog = attachDialogToIme(super.create())
     }
 
     private fun showThemePicker() {
@@ -1616,7 +1625,7 @@ class KeyboardService : InputMethodService() {
         phraseDialog = dialog
         addPhrasePanel(content)
         dialog.setOnDismissListener { if (phraseDialog === dialog) phraseDialog = null }
-        dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+        attachDialogToIme(dialog)
         dialog.show()
     }
 
