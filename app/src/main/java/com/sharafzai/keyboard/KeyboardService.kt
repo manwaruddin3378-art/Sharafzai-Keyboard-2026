@@ -1375,43 +1375,54 @@ class KeyboardService : InputMethodService() {
             val parts = it.split("|||", limit = 2)
             if (parts.size == 2) parts[0] to parts[1] else null
         }.sortedBy { it.first }
-        val display = if (rows.isEmpty()) "تر اوسه شخصي لنډیز نشته." else rows.joinToString("\n") { "${it.first} → ${it.second}" }
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), dp(4)) }
-        content.addView(TextView(this).apply { text = display; textSize = 14f })
-        val manage = Button(this).apply {
-            text = "ثبت شوي لنډیزونه اداره کړئ"
-            isAllCaps = false
-            setOnClickListener { showAutoTextManager() }
+        val display = if (rows.isEmpty()) "تر اوسه لنډیز نه دی ثبت شوی." else rows.joinToString("\n") { "${it.first} → ${it.second}" }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(8), dp(18), dp(4))
         }
-        content.addView(manage)
-        val shortcut = EditText(this).apply { hint = "لنډ کوډ، لکه سلام" }
-        val expansion = EditText(this).apply { hint = "بشپړه جمله یا متن" }
-        content.addView(shortcut); content.addView(expansion)
-        ImeDialogBuilder()
+        content.addView(TextView(this).apply {
+            text = display
+            textSize = 13f
+            maxLines = 5
+            setPadding(0, 0, 0, dp(6))
+        })
+        val shortcut = EditText(this).apply { hint = "لنډ کوډ، لکه سلام"; setSingleLine(true) }
+        val expansion = EditText(this).apply { hint = "بشپړه جمله یا متن"; minLines = 2 }
+        content.addView(shortcut)
+        content.addView(expansion)
+        val dialog = ImeDialogBuilder()
             .setTitle("شخصي AutoText لنډیزونه")
-            .setMessage("لنډ کوډ ولیکئ؛ د Space په وهلو سره به په بشپړ متن بدل شي. دا معلومات یوازې په موبایل کې ساتل کېږي.")
+            .setMessage("لنډ کوډ د Space په وهلو سره بشپړ متن ته پراخېږي. ټول معلومات آفلاین ساتل کېږي.")
             .setView(content)
-            .setPositiveButton("ساتل") { _, _ ->
+            .setPositiveButton("＋ ساتل", null)
+            .setNeutralButton("ثبت شوي اداره کول", null)
+            .setNegativeButton("بند", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val code = shortcut.text.toString().trim()
                 val value = expansion.text.toString().trim()
-                if (code.isNotEmpty() && value.isNotEmpty()) {
-                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-                    updated.removeAll { it.substringBefore("|||") == code }
-                    updated.add("$code|||$value")
-                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
-                    Toast.makeText(this, "لنډیز خوندي شو", Toast.LENGTH_SHORT).show()
+                if (code.isEmpty() || value.isEmpty()) {
+                    Toast.makeText(this, "لنډ کوډ او بشپړ متن دواړه ولیکئ", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+                updated.removeAll { it.substringBefore("|||") == code }
+                updated.add("$code|||$value")
+                if (prefs.edit().putStringSet(key, HashSet(updated)).commit()) {
+                    dialog.dismiss()
+                    Toast.makeText(this, "AutoText لنډیز خوندي شو", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "لنډیز خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
                 }
             }
-            .setNeutralButton("پاکول") { _, _ ->
-                val code = shortcut.text.toString().trim()
-                if (code.isNotEmpty()) {
-                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-                    updated.removeAll { it.substringBefore("|||") == code }
-                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
-                }
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                dialog.dismiss()
+                showAutoTextManager()
             }
-            .setNegativeButton("بند", null)
-            .show()
+        }
+        attachDialogToIme(dialog)
+        dialog.show()
     }
 
     private fun showAutoTextManager() {
