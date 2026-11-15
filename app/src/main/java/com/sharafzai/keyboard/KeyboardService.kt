@@ -3061,7 +3061,7 @@ class KeyboardService : InputMethodService() {
         }
         val expression = EditText(this).apply {
             hint = "بېلګه: (125 + 75) ÷ 4"
-            singleLine = true
+            setSingleLine(true)
             textSize = 18f
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
                 android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
