@@ -970,7 +970,7 @@ class KeyboardService : InputMethodService() {
             .setPositiveButton("لټون") { _, _ ->
                 val query = normalizeSuggestionText(input.text.toString().trim())
                 if (query.isBlank()) return@setPositiveButton
-                val results = mutableListOf<Pair<String, String>>()
+                val results = mutableListOf<Triple<String, String, String>>()
                 val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                 val meanings = dictionaryEntries().toMap()
                 (offlineWordsFor(language) + prefs.getStringSet("personalWords_$language", emptySet()).orEmpty())
@@ -978,18 +978,18 @@ class KeyboardService : InputMethodService() {
                         val meaning = meanings[word].orEmpty()
                         if (normalizeSuggestionText(word).contains(query) ||
                             normalizeSuggestionText(meaning).contains(query)) {
-                            results.add("قاموس: $word" to (if (meaning.isBlank()) word else "$word — $meaning"))
+                            results.add(Triple("قاموس", if (meaning.isBlank()) word else "$word — $meaning", word))
                         }
                     }
                 prefs.getStringSet("savedPhrases", emptySet()).orEmpty().forEach { phrase ->
-                    if (normalizeSuggestionText(phrase).contains(query)) results.add("جمله" to phrase)
+                    if (normalizeSuggestionText(phrase).contains(query)) results.add(Triple("جمله", phrase, phrase))
                 }
                 (0..3).filter { it != language }.forEach { target ->
                     prefs.getStringSet("translationPairs_${language}_${target}", emptySet()).orEmpty().forEach { pair ->
                         val parts = pair.split("|||", limit = 2)
                         if (parts.size == 2 && (normalizeSuggestionText(parts[0]).contains(query) ||
                             normalizeSuggestionText(parts[1]).contains(query))) {
-                            results.add("ژباړه" to "${parts[0]} → ${parts[1]}")
+                            results.add(Triple("ژباړه", "${parts[0]} → ${parts[1]}", parts[1]))
                         }
                     }
                 }
@@ -997,11 +997,11 @@ class KeyboardService : InputMethodService() {
                     val parts = row.split("|||", limit = 2)
                     if (parts.size == 2 && (normalizeSuggestionText(parts[0]).contains(query) ||
                         normalizeSuggestionText(parts[1]).contains(query))) {
-                        results.add("AutoText" to "${parts[0]} → ${parts[1]}")
+                        results.add(Triple("AutoText", "${parts[0]} → ${parts[1]}", parts[1]))
                     }
                 }
                 prefs.getStringSet("clipboardFavorites", emptySet()).orEmpty().forEach { saved ->
-                    if (normalizeSuggestionText(saved).contains(query)) results.add("خوندي شوی متن" to saved)
+                    if (normalizeSuggestionText(saved).contains(query)) results.add(Triple("خوندي شوی متن", saved, saved))
                 }
                 val unique = results.distinctBy { it.second }.take(100)
                 if (unique.isEmpty()) {
@@ -1010,8 +1010,7 @@ class KeyboardService : InputMethodService() {
                     ImeDialogBuilder()
                         .setTitle("د لټون پایلې: ${unique.size}")
                         .setItems(unique.map { "${it.first}: ${it.second}" }.toTypedArray()) { _, index ->
-                            val selected = unique[index].second
-                            val insert = selected.substringAfter("→", selected).trim()
+                            val insert = unique[index].third
                             currentInputConnection?.commitText(insert + " ", 1)
                             updateSuggestions()
                         }
