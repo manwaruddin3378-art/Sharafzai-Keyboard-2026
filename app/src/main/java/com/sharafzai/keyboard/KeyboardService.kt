@@ -1070,7 +1070,7 @@ class KeyboardService : InputMethodService() {
                                     val updatedEntries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
                                         ?.toMutableSet() ?: mutableSetOf()
                                     updatedEntries.removeAll { it.substringBefore("|||") == term }
-                                    prefs.edit().putStringSet("dictionaryEntries_$language", updatedEntries).apply()
+                                    prefs.edit().putStringSet("dictionaryEntries_$language", HashSet(updatedEntries)).commit()
                                     updateSuggestions()
                                     showList()
                                 }.show()
@@ -1298,7 +1298,7 @@ class KeyboardService : InputMethodService() {
                                 .setPositiveButton("هو، حذف") { _, _ ->
                                     val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
                                     updated.remove("${pair.first}|||${pair.second}")
-                                    prefs.edit().putStringSet(key, updated).apply()
+                                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
                                     showList()
                                 }.show()
                         }
@@ -1331,7 +1331,7 @@ class KeyboardService : InputMethodService() {
                     updated.remove("${oldText}|||${oldTranslation}")
                     updated.removeAll { it.substringBefore("|||") == original }
                     updated.add("$original|||${result}")
-                    prefs.edit().putStringSet(key, updated).apply()
+                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
                     Toast.makeText(this, "ژباړه اصلاح او خوندي شوه", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -1368,7 +1368,7 @@ class KeyboardService : InputMethodService() {
                     val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
                     updated.removeAll { it.substringBefore("|||") == code }
                     updated.add("$code|||$value")
-                    prefs.edit().putStringSet(key, updated).apply()
+                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
                     Toast.makeText(this, "لنډیز خوندي شو", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -1377,7 +1377,7 @@ class KeyboardService : InputMethodService() {
                 if (code.isNotEmpty()) {
                     val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
                     updated.removeAll { it.substringBefore("|||") == code }
-                    prefs.edit().putStringSet(key, updated).apply()
+                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
                 }
             }
             .setNegativeButton("بند", null)
@@ -1418,7 +1418,7 @@ class KeyboardService : InputMethodService() {
                                         val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
                                         updated.removeAll { it.substringBefore("|||") == selected.first || it.substringBefore("|||") == newCode }
                                         updated.add("$newCode|||${newExpansion}")
-                                        prefs.edit().putStringSet(key, updated).apply()
+                                        prefs.edit().putStringSet(key, HashSet(updated)).commit()
                                         Toast.makeText(this, "AutoText اصلاح شو", Toast.LENGTH_SHORT).show()
                                     }
                                 }.show()
@@ -1430,7 +1430,7 @@ class KeyboardService : InputMethodService() {
                                 .setPositiveButton("هو، حذف") { _, _ ->
                                     val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
                                     updated.remove("${selected.first}|||${selected.second}")
-                                    prefs.edit().putStringSet(key, updated).apply()
+                                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
                                     showList()
                                 }.show()
                         }
@@ -1639,24 +1639,36 @@ class KeyboardService : InputMethodService() {
             setSingleLine(false)
             setText(currentInputConnection?.getSelectedText(0)?.toString().orEmpty())
         }
-        ImeDialogBuilder()
+        val dialog = ImeDialogBuilder()
             .setTitle("شخصي جمله اضافه کړئ")
             .setView(input)
             .setNegativeButton("بند", null)
-            .setPositiveButton("ذخیره") { _, _ ->
+            .setPositiveButton("ذخیره", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val phrase = input.text.toString().trim()
-                if (phrase.isNotEmpty()) {
-                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                    val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
-                    saved.add(phrase)
-                    prefs.edit().putStringSet("savedPhrases", saved).apply()
+                if (phrase.isEmpty()) {
+                    Toast.makeText(this, "لومړی جمله ولیکئ", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
+                saved.add(phrase)
+                if (prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()) {
                     phraseCategory = 4
                     phraseIndex = 0
-                    Toast.makeText(this, "جمله شخصي برخې ته اضافه شوه", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                    phraseDialog?.dismiss()
+                    Toast.makeText(this, "جمله په شخصي برخې کې خوندي شوه", Toast.LENGTH_SHORT).show()
                     showPhraseWindow()
+                } else {
+                    Toast.makeText(this, "جمله خوندي نه شوه؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
                 }
             }
-            .show()
+        }
+        attachDialogToIme(dialog)
+        dialog.show()
     }
 
     private fun showEditPhraseDialog(existingPhrase: String) {
@@ -1667,26 +1679,37 @@ class KeyboardService : InputMethodService() {
             setText(existingPhrase)
             setSelection(text.length)
         }
-        ImeDialogBuilder()
+        val dialog = ImeDialogBuilder()
             .setTitle("شخصي جمله اصلاح کړئ")
             .setView(input)
             .setNegativeButton("بند", null)
-            .setPositiveButton("بدلون خوندي کړئ") { _, _ ->
+            .setPositiveButton("بدلون خوندي کړئ", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val updatedPhrase = input.text.toString().trim()
-                if (updatedPhrase.isNotEmpty()) {
-                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                    val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
-                    saved.remove(existingPhrase)
-                    saved.add(updatedPhrase)
-                    prefs.edit().putStringSet("savedPhrases", saved).apply()
+                if (updatedPhrase.isEmpty()) {
+                    Toast.makeText(this, "جمله تشه نه شي پاتې کېدای", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
+                saved.remove(existingPhrase)
+                saved.add(updatedPhrase)
+                if (prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()) {
                     phraseIndex = 0
-                    Toast.makeText(this, "شخصي جمله اصلاح شوه", Toast.LENGTH_SHORT).show()
+                    phraseCategory = 4
+                    dialog.dismiss()
+                    phraseDialog?.dismiss()
+                    Toast.makeText(this, "شخصي جمله اصلاح او خوندي شوه", Toast.LENGTH_SHORT).show()
                     showPhraseWindow()
                 } else {
-                    Toast.makeText(this, "جمله تشه نه شي پاتې کېدای", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "بدلون خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
                 }
             }
-            .show()
+        }
+        attachDialogToIme(dialog)
+        dialog.show()
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
