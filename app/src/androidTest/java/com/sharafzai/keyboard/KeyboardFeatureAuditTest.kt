@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class KeyboardFeatureAuditTest {
     private val packageName = "com.sharafzai.keyboard"
-    private val component = "$packageName/.KeyboardTestActivity"
+    private val component = "$packageName/com.sharafzai.keyboard.KeyboardTestActivity"
 
     private fun launchEditor(device: UiDevice, privateEditor: Boolean = false): UiObject2 {
         val launchIntent = Intent().setClassName(packageName, component.substringAfter('/'))
