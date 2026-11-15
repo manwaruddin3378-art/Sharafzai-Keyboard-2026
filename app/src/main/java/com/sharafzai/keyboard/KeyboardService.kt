@@ -1017,6 +1017,7 @@ class KeyboardService : InputMethodService() {
                     val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
                     val words = prefs.getStringSet("personalWords_$language", emptySet())
                         ?.toMutableSet() ?: mutableSetOf()
+                    if (existingTerm.isNotBlank()) words.remove(existingTerm)
                     words.add(term)
                     val entries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
                         ?.toMutableSet() ?: mutableSetOf()
@@ -1556,6 +1557,36 @@ class KeyboardService : InputMethodService() {
             .show()
     }
 
+    private fun showEditPhraseDialog(existingPhrase: String) {
+        val input = EditText(this).apply {
+            hint = "خپله جمله یا متن ولیکئ"
+            minLines = 3
+            setSingleLine(false)
+            setText(existingPhrase)
+            setSelection(text.length)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("شخصي جمله اصلاح کړئ")
+            .setView(input)
+            .setNegativeButton("بند", null)
+            .setPositiveButton("بدلون خوندي کړئ") { _, _ ->
+                val updatedPhrase = input.text.toString().trim()
+                if (updatedPhrase.isNotEmpty()) {
+                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                    val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
+                    saved.remove(existingPhrase)
+                    saved.add(updatedPhrase)
+                    prefs.edit().putStringSet("savedPhrases", saved).apply()
+                    phraseIndex = 0
+                    Toast.makeText(this, "شخصي جمله اصلاح شوه", Toast.LENGTH_SHORT).show()
+                    showPhraseWindow()
+                } else {
+                    Toast.makeText(this, "جمله تشه نه شي پاتې کېدای", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .show()
+    }
+
     private fun addPhrasePanel(parent: LinearLayout) {
         val categories = listOf("اسلامي", "پښتو", "English", "دري", "زما")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -1694,8 +1725,11 @@ class KeyboardService : InputMethodService() {
             }
             parent.addView(navigation, rowParams(42))
             if (phraseCategory == 4) {
-                val removeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-                addSpecial(removeRow, "ټاکل شوې جمله حذف", 1f, 34) {
+                val manageRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                addSpecial(manageRow, "✎ جمله اصلاح", 1f, 34) {
+                    phrases.getOrNull(phraseIndex)?.let { showEditPhraseDialog(it) }
+                }
+                addSpecial(manageRow, "حذف جمله", 1f, 34) {
                     val selected = phrases.getOrNull(phraseIndex)
                     if (selected != null) AlertDialog.Builder(this)
                         .setTitle("جمله حذف کړئ؟")
@@ -1710,7 +1744,7 @@ class KeyboardService : InputMethodService() {
                             showPhraseWindow()
                         }.show()
                 }
-                parent.addView(removeRow, rowParams(36))
+                parent.addView(manageRow, rowParams(36))
             }
 
 
