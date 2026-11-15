@@ -1103,36 +1103,44 @@ class KeyboardService : InputMethodService() {
         }
         content.addView(termInput)
         content.addView(meaningInput)
-        ImeDialogBuilder()
+        val dialog = ImeDialogBuilder()
             .setTitle(if (existingTerm.isBlank()) "قاموس ته نوې کلمه اضافه کړئ" else "د قاموس کلمه اصلاح کړئ")
-            .setMessage("کلمه او مانا یې په خپله ولیکئ؛ معلومات یوازې په همدې موبایل کې ساتل کېږي.")
+            .setMessage("کلمه او مانا یې ولیکئ؛ معلومات په همدې موبایل کې ساتل کېږي.")
             .setView(content)
             .setNegativeButton("بند", null)
-            .setPositiveButton("ذخیره") { _, _ ->
+            .setPositiveButton("ذخیره", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val term = termInput.text.toString().trim()
                 val meaning = meaningInput.text.toString().trim()
-                if (term.isNotEmpty()) {
-                    val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                    val words = prefs.getStringSet("personalWords_$language", emptySet())
-                        ?.toMutableSet() ?: mutableSetOf()
-                    if (existingTerm.isNotBlank()) words.remove(existingTerm)
-                    words.add(term)
-                    val entries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
-                        ?.toMutableSet() ?: mutableSetOf()
-                    if (existingTerm.isNotBlank()) entries.removeAll { it.substringBefore("|||") == existingTerm }
-                    entries.removeAll { it.substringBefore("|||") == term }
-                    if (meaning.isNotBlank()) entries.add("$term|||$meaning")
-                    prefs.edit()
-                        .putStringSet("personalWords_$language", words)
-                        .putStringSet("dictionaryEntries_$language", entries)
-                        .apply()
-                    Toast.makeText(this, "کلمه او مانا په شخصي قاموس کې خوندي شول", Toast.LENGTH_SHORT).show()
+                if (term.isEmpty() || meaning.isEmpty()) {
+                    Toast.makeText(this, "کلمه او مانا دواړه ولیکئ", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                val words = prefs.getStringSet("personalWords_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
+                if (existingTerm.isNotBlank()) words.remove(existingTerm)
+                words.add(term)
+                val entries = prefs.getStringSet("dictionaryEntries_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
+                if (existingTerm.isNotBlank()) entries.removeAll { it.substringBefore("|||") == existingTerm }
+                entries.removeAll { it.substringBefore("|||") == term }
+                entries.add("$term|||$meaning")
+                val saved = prefs.edit()
+                    .putStringSet("personalWords_$language", HashSet(words))
+                    .putStringSet("dictionaryEntries_$language", HashSet(entries))
+                    .commit()
+                if (saved) {
+                    dialog.dismiss()
+                    Toast.makeText(this, "کلمه او مانا خوندي شول", Toast.LENGTH_SHORT).show()
                     updateSuggestions()
                 } else {
-                    Toast.makeText(this, "مهرباني وکړئ کلمه ولیکئ", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "ذخیره ناکامه شوه؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
                 }
             }
-            .show()
+        }
+        attachDialogToIme(dialog)
+        dialog.show()
     }
 
     private fun showDictionarySearchDialog() {
@@ -1209,61 +1217,83 @@ class KeyboardService : InputMethodService() {
             setSingleLine(false)
         }
         val key = "translationPairs_${language}_$targetLanguage"
+        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         fun savedPairs(): MutableSet<String> =
-            getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                .getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+            prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
 
-        ImeDialogBuilder()
+        val dialog = ImeDialogBuilder()
             .setTitle("آفلاین شخصي ژباړن: ${languageNames[language]} ← ${languageNames[targetLanguage]}")
-            .setMessage("دا برخه ستاسې له خوا خوندي شوې ژباړې لټوي. نوې کلمه یا جمله هم ورزیاتولای شئ؛ اتومات ماشیني ژباړه لا نه ده.")
+            .setMessage("خپلې ژباړې ثبت او وروسته یې ولټوئ. دا برخه اتومات ماشیني ژباړه نه ده.")
             .setView(source)
-            .setPositiveButton("ژباړه ولټوه") { _, _ ->
+            .setPositiveButton("ژباړه ولټوه", null)
+            .setNeutralButton("＋ نوې ژباړه", null)
+            .setNegativeButton("ژباړې اداره", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val query = source.text.toString().trim()
-                if (query.isNotEmpty()) {
-                    val match = savedPairs().mapNotNull { entry ->
-                        val parts = entry.split("|||", limit = 2)
-                        if (parts.size == 2 && normalizeSuggestionText(parts[0]) == normalizeSuggestionText(query))
-                            parts[1] else null
-                    }.firstOrNull()
-                    if (match != null) {
-                        ImeDialogBuilder()
-                            .setTitle("ژباړه")
-                            .setMessage(match)
-                            .setPositiveButton("سمه ده", null)
-                            .show()
-                    } else {
-                        Toast.makeText(this, "دا متن لا په شخصي ژباړن کې نشته؛ د «نوې ژباړه» له لارې یې ثبت کړئ.", Toast.LENGTH_LONG).show()
-                    }
+                if (query.isEmpty()) {
+                    Toast.makeText(this, "لومړی متن ولیکئ", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val match = savedPairs().mapNotNull { entry ->
+                    val parts = entry.split("|||", limit = 2)
+                    if (parts.size == 2 && normalizeSuggestionText(parts[0]) == normalizeSuggestionText(query)) parts[1] else null
+                }.firstOrNull()
+                dialog.dismiss()
+                if (match != null) {
+                    ImeDialogBuilder().setTitle("ژباړه").setMessage(match)
+                        .setPositiveButton("سمه ده", null).show()
+                } else {
+                    Toast.makeText(this, "دا متن لا نه دی ثبت شوی؛ نوې ژباړه یې اضافه کړئ.", Toast.LENGTH_LONG).show()
                 }
             }
-            .setNeutralButton("نوې ژباړه") { _, _ ->
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
                 val original = source.text.toString().trim()
-                if (original.isNotEmpty()) {
-                    val translated = EditText(this).apply {
-                        hint = "ژباړل شوی متن په ${languageNames[targetLanguage]} ولیکئ"
-                        minLines = 2
-                        setSingleLine(false)
-                    }
-                    ImeDialogBuilder()
-                        .setTitle("نوې ژباړه خوندي کړئ")
-                        .setView(translated)
-                        .setNegativeButton("بند", null)
-                        .setPositiveButton("ذخیره") { _, _ ->
-                            val value = translated.text.toString().trim()
-                            if (value.isNotEmpty()) {
-                                val pairs = savedPairs()
-                                pairs.removeAll { it.substringBefore("|||") == original }
-                                pairs.add("$original|||$value")
-                                getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                                    .edit().putStringSet(key, pairs).apply()
-                                Toast.makeText(this, "ژباړه په موبایل کې خوندي شوه", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        .show()
+                if (original.isEmpty()) {
+                    Toast.makeText(this, "لومړی اصلي متن ولیکئ", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
                 }
+                dialog.dismiss()
+                val translated = EditText(this).apply {
+                    hint = "ژباړل شوی متن په ${languageNames[targetLanguage]} ولیکئ"
+                    minLines = 2
+                    setSingleLine(false)
+                }
+                val addDialog = ImeDialogBuilder()
+                    .setTitle("نوې ژباړه خوندي کړئ")
+                    .setView(translated)
+                    .setNegativeButton("بند", null)
+                    .setPositiveButton("ذخیره", null)
+                    .create()
+                addDialog.setOnShowListener {
+                    addDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        val value = translated.text.toString().trim()
+                        if (value.isEmpty()) {
+                            Toast.makeText(this, "ژباړه هم ولیکئ", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                        val pairs = savedPairs()
+                        pairs.removeAll { it.substringBefore("|||") == original }
+                        pairs.add("$original|||$value")
+                        if (prefs.edit().putStringSet(key, HashSet(pairs)).commit()) {
+                            addDialog.dismiss()
+                            Toast.makeText(this, "ژباړه خوندي شوه", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this, "ژباړه خوندي نه شوه؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+                attachDialogToIme(addDialog)
+                addDialog.show()
             }
-            .setNegativeButton("ژباړې اداره") { _, _ -> showSavedTranslationsManager(targetLanguage) }
-            .show()
+            dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                dialog.dismiss()
+                showSavedTranslationsManager(targetLanguage)
+            }
+        }
+        attachDialogToIme(dialog)
+        dialog.show()
     }
 
     private fun showSavedTranslationsManager(targetLanguage: Int) {
