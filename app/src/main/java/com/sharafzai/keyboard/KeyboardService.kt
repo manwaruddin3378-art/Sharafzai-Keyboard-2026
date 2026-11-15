@@ -2021,7 +2021,8 @@ class KeyboardService : InputMethodService() {
             )
         val shouldAutoCapitalize = language == 2 &&
             inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
-            !isSensitiveOrAddressField
+            !isSensitiveOrAddressField &&
+            !isRestrictedEditorField()
         // Read nearby editor text only when English sentence capitalization actually needs it.
         val sentenceStart = if (shouldAutoCapitalize && !caps && !shifted) {
             val before = currentInputConnection?.getTextBeforeCursor(30, 0)?.toString().orEmpty()
