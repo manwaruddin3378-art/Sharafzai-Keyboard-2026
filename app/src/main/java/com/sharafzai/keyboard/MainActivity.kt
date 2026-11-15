@@ -64,7 +64,7 @@ class MainActivity : Activity() {
         })
         // A debug-only text field lets instrumentation exercise the actual IME.
         // It is excluded from release builds and is not a separate user-facing tool.
-        if (BuildConfig.DEBUG) {
+        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             root.addView(android.widget.EditText(this).apply {
                 hint = "د کیبورډ ازموینه"
                 setSingleLine(true)
