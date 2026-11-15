@@ -21,6 +21,9 @@ class KeyboardSmokeTest {
 
         device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
         device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
+        device.wakeUp()
+        runCatching { device.executeShellCommand("wm dismiss-keyguard") }
+        runCatching { device.executeShellCommand("input keyevent 82") }
         instrumentation.startActivitySync(
             Intent().setClassName(
                 instrumentation.targetContext.packageName,
