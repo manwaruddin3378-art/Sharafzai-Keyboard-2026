@@ -488,7 +488,7 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = false
             refreshKeyboard()
         }
-        addSpecial(header, "☪", 0.75f, 29) {
+        addSpecial(header, "☪\nجملې", 0.9f, 34) {
             phrasePanelVisible = !phrasePanelVisible
             if (phrasePanelVisible) {
                 phraseCategory = 0
@@ -543,13 +543,13 @@ class KeyboardService : InputMethodService() {
                 setMargins(dp(2), 0, dp(2), 0)
             })
         }
-        root.addView(languageStrip, rowParams(36))
+
 
         val topTools = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(topTools, "📋\nکاپي", 1f, 38) {
+        addSpecial(topTools, "📋 کاپي", 1f, 40) {
             clipboardPanelVisible = !clipboardPanelVisible
             if (clipboardPanelVisible) {
                 emojiPanelVisible = false
@@ -560,22 +560,21 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(topTools, "⭐\nAutoText", 1f, 38) { showAutoTextEditor() }
-        addSpecial(topTools, "🌐\nژباړه", 1f, 38) {
+        addSpecial(topTools, "⭐ AutoText", 1f, 40) { showAutoTextEditor() }
+        addSpecial(topTools, "🌐 ژباړه", 1f, 40) {
             AlertDialog.Builder(this)
                 .setTitle("ژباړه")
-                .setMessage("سندس اوس مهال په بشپړ ډول آفلاین دی؛ د جملو ژباړلو لپاره د ژباړې آفلاین ژبنۍ بسته لا نه ده ورزیاته شوې. د ژبو د بدلولو لپاره پورته ژبنیز انتخاب وکاروئ.")
+                .setMessage("د ژباړې بشپړ آفلاین بسته لا نه ده ورزیاته شوې؛ د ژبو د بدلولو لپاره پورته ژبنیز انتخاب وکاروئ.")
                 .setPositiveButton("سمه ده", null)
                 .show()
         }
-        addSpecial(topTools, "📖\nقاموس", 1f, 38) { showPersonalDictionaryEditor() }
-        addSpecial(topTools, "🎙\nغږ", 1f, 38) {
+        addSpecial(topTools, "📖 قاموس", 1f, 40) { showPersonalDictionaryEditor() }
+        addSpecial(topTools, "🎙 غږ", 1f, 40) {
             startActivity(Intent(this, VoiceInputActivity::class.java)
                 .putExtra("language", language)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        addSpecial(topTools, "🎨\nرنګ", 1f, 38) { showThemePicker() }
-
+        addSpecial(topTools, "🎨 رنګ", 1f, 40) { showThemePicker() }
 
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -583,7 +582,7 @@ class KeyboardService : InputMethodService() {
             setBackgroundColor(theme.suggestion)
         }
 
-        root.addView(suggestionContainer, rowParams(32))
+        root.addView(topTools, rowParams(40))\n        root.addView(languageStrip, rowParams(36))\n\n        root.addView(suggestionContainer, rowParams(32))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
@@ -731,26 +730,17 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(bottom, "😊", 0.8f, 42) {
-            emojiPanelVisible = !emojiPanelVisible
-            phrasePanelVisible = false
-            settingsPanelVisible = false
-            clipboardPanelVisible = false
-            refreshKeyboard()
-        }
-        addSpecial(bottom, "🎙", 0.8f, 42) {
-            startActivity(Intent(this, VoiceInputActivity::class.java)
-                .putExtra("language", language)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }
-        addSpecial(bottom, "✦ SUNDUS | سندس ✦", 2.7f, 42) { expandAutoTextAndSpace() }
-        addSpecial(bottom, "⌨", 0.8f, 42) { requestHideSelf(0) }
-        addSpecial(bottom, "، .", 0.8f, 42) {
-            val value = if (language == 2) ", " else "، "
-            currentInputConnection?.commitText(value, 1)
+        addSpecial(bottom, "✦ SUNDUS | سندس ✦", 2.7f, 44) { expandAutoTextAndSpace() }
+        addSpecial(bottom, "⌨", 0.8f, 44) { requestHideSelf(0) }
+        addSpecial(bottom, if (language == 2) "," else "،", 0.65f, 44) {
+            currentInputConnection?.commitText(if (language == 2) ", " else "، ", 1)
             updateSuggestions()
         }
-        addSpecial(bottom, "↵", 1f, 42) { performEnterAction() }
+        addSpecial(bottom, ".", 0.65f, 44) {
+            currentInputConnection?.commitText(". ", 1)
+            updateSuggestions()
+        }
+        addSpecial(bottom, "↵", 1f, 44) { performEnterAction() }
 
         root.addView(bottom, rowParams(44))
         root.addView(topTools, rowParams(40))
@@ -1421,7 +1411,7 @@ class KeyboardService : InputMethodService() {
 
             val mainText = TextView(this).apply {
                 text = if (value == spec.normal && spec.display.isNotEmpty()) spec.display else value
-                textSize = if (keys.size >= 12) 15f else 18f
+                textSize = if (keys.size >= 12) 17f else 20f
                 typeface = when (fontStyleIndex) {
                     1 -> Typeface.create("serif", Typeface.BOLD)
                     2 -> Typeface.create("monospace", Typeface.BOLD)
@@ -1450,9 +1440,14 @@ class KeyboardService : InputMethodService() {
                 val hint = TextView(this).apply {
                     text = longPressOutput
                     textSize = 10f
-                    setTextColor(theme.accent)
-                    gravity = Gravity.BOTTOM or Gravity.END
-                    setPadding(0, 0, dp(4), dp(3))
+                    setTextColor(Color.rgb(255, 226, 120))
+                    gravity = Gravity.CENTER
+                    setPadding(dp(3), dp(1), dp(3), dp(1))
+                    background = GradientDrawable().apply {
+                        setColor(Color.rgb(17, 49, 83))
+                        cornerRadius = dp(5).toFloat()
+                        setStroke(dp(1), Color.rgb(224, 178, 62))
+                    }
                 }
 
                 frame.addView(
