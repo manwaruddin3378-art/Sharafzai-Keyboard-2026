@@ -2018,10 +2018,6 @@ class KeyboardService : InputMethodService() {
     private val handler = Handler(Looper.getMainLooper())
 
     private fun commitKeyTap(spec: KeySpec, frame: View) {
-        val before = currentInputConnection?.getTextBeforeCursor(30, 0)?.toString().orEmpty()
-        val previous = before.trimEnd().lastOrNull()
-        val sentenceStart = before.isBlank() || previous == null ||
-            previous in listOf('.', '?', '!', '؟', '\n')
         val inputType = currentInputEditorInfo?.inputType
             ?: android.text.InputType.TYPE_CLASS_TEXT
         val inputClass = inputType and android.text.InputType.TYPE_MASK_CLASS
@@ -2038,6 +2034,13 @@ class KeyboardService : InputMethodService() {
         val shouldAutoCapitalize = language == 2 &&
             inputClass == android.text.InputType.TYPE_CLASS_TEXT &&
             !isSensitiveOrAddressField
+        // Read nearby editor text only when English sentence capitalization actually needs it.
+        val sentenceStart = if (shouldAutoCapitalize && !caps && !shifted) {
+            val before = currentInputConnection?.getTextBeforeCursor(30, 0)?.toString().orEmpty()
+            val previous = before.trimEnd().lastOrNull()
+            before.isBlank() || previous == null ||
+                previous in listOf('.', '?', '!', '؟', '\n')
+        } else false
         val output = when {
             shifted && spec.shifted.isNotEmpty() -> spec.shifted
             shouldAutoCapitalize && (caps || shifted || sentenceStart) -> spec.normal.uppercase()
@@ -2647,6 +2650,22 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addCurrentWordToDictionary() {
+        val editorType = currentInputEditorInfo?.inputType ?: 0
+        val inputClass = editorType and android.text.InputType.TYPE_MASK_CLASS
+        val variation = editorType and android.text.InputType.TYPE_MASK_VARIATION
+        val restrictedField = inputClass != android.text.InputType.TYPE_CLASS_TEXT ||
+            variation in setOf(
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+                android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            )
+        if (restrictedField) {
+            Toast.makeText(this, "په دې ځانګړې خانه کې کلمه قاموس ته نه شي اضافه کېدای.", Toast.LENGTH_LONG).show()
+            return
+        }
         val before = currentInputConnection
             ?.getTextBeforeCursor(80, 0)
             ?.toString().orEmpty()
