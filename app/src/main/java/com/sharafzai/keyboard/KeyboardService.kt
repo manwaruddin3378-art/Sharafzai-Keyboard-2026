@@ -715,7 +715,6 @@ class KeyboardService : InputMethodService() {
         addSpecial(topTools, "🌐", 1f, 32) { showOfflineTranslationPicker() }
         addSpecial(topTools, "📖", 1f, 32) { showDictionaryHome() }
         addSpecial(topTools, "🔎", 1f, 32) { showUniversalSearchDialog() }
-        addSpecial(topTools, "🧮", 1f, 32) { showCalculatorDialog() }
         addSpecial(topTools, "🎙", 1f, 32) {
             if (isRestrictedEditorField()) {
                 Toast.makeText(this, "په پټنوم او ځانګړو خانو کې غږیز لیکل بند دي.", Toast.LENGTH_SHORT).show()
@@ -3053,62 +3052,6 @@ class KeyboardService : InputMethodService() {
         return (value * density * compactScale).toInt()
     }
 
-
-    private fun showCalculatorDialog() {
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(8), dp(16), dp(4))
-        }
-        val expression = EditText(this).apply {
-            hint = "بېلګه: (125 + 75) ÷ 4"
-            setSingleLine(true)
-            textSize = 18f
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-        }
-        val resultView = TextView(this).apply {
-            text = "پایله: —"
-            textSize = 20f
-            gravity = Gravity.CENTER
-            setPadding(dp(8), dp(12), dp(8), dp(12))
-            setTextColor(theme.accent)
-        }
-        content.addView(expression)
-        content.addView(resultView)
-        var latestResult: String? = null
-        val dialog = ImeDialogBuilder()
-            .setTitle("د سندس آفلاین حسابګر")
-            .setMessage("جمع، تفریق، ضرب، تقسیم، پاتې شونی، توان او قوسونه؛ ټول حسابونه په موبایل کې ترسره کېږي.")
-            .setView(content)
-            .setPositiveButton("حساب", null)
-            .setNeutralButton("پایله ولیکئ", null)
-            .setNegativeButton("بند", null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val calculated = KeyboardCalculator.evaluate(expression.text.toString())
-                latestResult = calculated
-                if (calculated == null) {
-                    resultView.text = "ناسم عبارت یا د صفر پر وېش"
-                    Toast.makeText(this, "حساب سم ولیکئ؛ پر صفر وېش نه منل کېږي.", Toast.LENGTH_SHORT).show()
-                } else {
-                    resultView.text = "پایله: $calculated"
-                }
-            }
-            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                val value = latestResult
-                if (value == null) {
-                    Toast.makeText(this, "لومړی حساب وکړئ.", Toast.LENGTH_SHORT).show()
-                } else {
-                    currentInputConnection?.commitText(value, 1)
-                    updateSuggestions()
-                    dialog.dismiss()
-                }
-            }
-        }
-        attachDialogToIme(dialog)
-        dialog.show()
-    }
 
     private fun showEmailSetup() {
         val input = EditText(this).apply {
