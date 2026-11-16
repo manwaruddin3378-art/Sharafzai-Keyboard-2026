@@ -2,7 +2,7 @@ name: Build Sundus App (test APK)
 
 # Keep only the newest validation run active for each branch.
 concurrency:
-  group: sundus-${{ github.ref }}-${{ github.sha }}
+  group: sundus-${{ github.ref }}
   cancel-in-progress: true
 
 on:

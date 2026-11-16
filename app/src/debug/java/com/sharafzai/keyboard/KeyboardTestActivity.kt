@@ -2,9 +2,11 @@ package com.sharafzai.keyboard
 
 import android.app.Activity
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
+import android.util.Log
 import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 
@@ -33,47 +35,39 @@ class KeyboardTestActivity : Activity() {
         }
         setContentView(editor)
         editor.requestFocus()
+        Log.e("SUNDUS_TEST_ACTIVITY", "onCreate editor attached=${editor.isAttachedToWindow}")
     }
 
     override fun onResume() {
         super.onResume()
-        editor.postDelayed({
-            if (!isFinishing && editor.isAttachedToWindow) {
-                editor.requestFocus()
-                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                manager.restartInput(editor)
-                manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
-                if (android.os.Build.VERSION.SDK_INT >= 30) {
-                    window.insetsController?.show(WindowInsets.Type.ime())
-                }
-            }
-        }, 500)
+        editor.postDelayed({ requestKeyboardForTest() }, 500)
     }
 
     /**
-     * Request the IME only after this Activity owns window focus.
-     * Calling showSoftInput from onCreate/post can race Android's input
-     * connection setup; API 34 then rejects it because the view is not served.
+     * Explicitly re-establish the editor connection after the test taps the field
+     * and after Android switches the selected input method.
      */
+    fun requestKeyboardForTest() {
+        if (isFinishing || !::editor.isInitialized || !editor.isAttachedToWindow) return
+        editor.requestFocus()
+        val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        manager.restartInput(editor)
+        val accepted = manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
+        if (Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.show(WindowInsets.Type.ime())
+        }
+        Log.e(
+            "SUNDUS_TEST_ACTIVITY",
+            "requestKeyboard windowFocus=${hasWindowFocus()} editorFocus=${editor.hasFocus()} active=${manager.isActive(editor)} accepted=${accepted}"
+        )
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        android.util.Log.e("SUNDUS_TEST_ACTIVITY", "windowFocus=" + hasFocus + " initialized=" + ::editor.isInitialized)
+        Log.e("SUNDUS_TEST_ACTIVITY", "windowFocus=${hasFocus} initialized=${::editor.isInitialized}")
         if (!hasFocus || !::editor.isInitialized) return
-
-        // Emulator boot and InputMethodManager binding can be slow on CI.
-        // Retry after the editor is attached and the window has an input connection.
-        val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        listOf(250L, 750L, 1_500L, 3_000L).forEach { delay ->
-            editor.postDelayed({
-                if (!isFinishing && editor.hasFocus() && editor.isAttachedToWindow) {
-                    editor.requestFocus()
-                    manager.restartInput(editor)
-                    manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
-                    if (android.os.Build.VERSION.SDK_INT >= 30) {
-                        window.insetsController?.show(WindowInsets.Type.ime())
-                    }
-                }
-            }, delay)
+        listOf(100L, 500L, 1_000L, 2_000L).forEach { delay ->
+            editor.postDelayed({ requestKeyboardForTest() }, delay)
         }
     }
 }

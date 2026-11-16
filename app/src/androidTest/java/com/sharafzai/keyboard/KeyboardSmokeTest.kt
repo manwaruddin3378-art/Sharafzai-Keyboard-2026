@@ -21,32 +21,54 @@ class KeyboardSmokeTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
 
+        // Enable the IME first, but do not select it until a real editor window has focus.
         val enableResult = device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
-        val setResult = device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
-        Log.e("SUNDUS_IME_DIAG", "enable=[" + enableResult + "] set=[" + setResult + "] list=[" + device.executeShellCommand("ime list -s") + "] default=[" + device.executeShellCommand("settings get secure default_input_method") + "]")
+        Log.e("SUNDUS_IME_DIAG", "enable=[" + enableResult + "]")
         device.wakeUp()
         runCatching { device.executeShellCommand("wm dismiss-keyguard") }
-        runCatching { device.executeShellCommand("input keyevent 82") }
+
         val launchIntent = Intent(instrumentation.targetContext, KeyboardTestActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val activity = instrumentation.startActivitySync(launchIntent) as KeyboardTestActivity
         var editor: EditText? = null
         instrumentation.runOnMainSync {
             editor = activity.findViewById(android.R.id.edit)
             editor?.requestFocus()
-            editor?.performClick()
         }
         assertNotNull("Test editor view was not created", editor)
         val activeEditor = editor!!
-        // Select the IME only after the editor Activity owns window focus. Selecting it
-        // before launch can leave Android bound to the previous IME on API 34.
-        val focusedSetResult = device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
-        Log.e("SUNDUS_IME_DIAG", "post-focus ime set=[" + focusedSetResult + "] default=[" + device.executeShellCommand("settings get secure default_input_method") + "]")
+
+        // A real UIAutomator tap gives the EditText's window an actual input focus;
+        // performClick() alone does not dispatch a touch/focus transition.
+        val editorNode = device.wait(
+            Until.findObject(By.desc("keyboard-test-editor")),
+            15_000
+        )
+        assertNotNull("Test editor was not visible to the accessibility tree", editorNode)
+        editorNode!!.click()
+        device.waitForIdle()
+
+        var focusState = ""
+        instrumentation.runOnMainSync {
+            activeEditor.requestFocus()
+            activity.requestKeyboardForTest()
+            focusState = "windowFocus=${activity.hasWindowFocus()} editorFocus=${activeEditor.hasFocus()} attached=${activeEditor.isAttachedToWindow}"
+        }
+        val setResult = device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
+        Log.e(
+            "SUNDUS_IME_DIAG",
+            "post-tap state=[${focusState}] set=[${setResult}] default=[${device.executeShellCommand("settings get secure default_input_method")}]"
+        )
+        instrumentation.runOnMainSync {
+            activity.requestKeyboardForTest()
+        }
+        device.waitForIdle()
 
         val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 30_000)
         if (!keyboardAppeared) {
-            Log.e("SUNDUS_IME_DIAG", "input_method=[" + device.executeShellCommand("dumpsys input_method | grep -E 'mCurMethodId|mCurId|mInputShown|mShowRequested|mCurFocusedWindow|mImeWindowVis'") + "]")
-            Log.e("SUNDUS_IME_DIAG", "window=[" + device.executeShellCommand("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'") + "]")
+            Log.e("SUNDUS_IME_DIAG", "activity_state=[${focusState}]")
+            Log.e("SUNDUS_IME_DIAG", "input_method=[${device.executeShellCommand("dumpsys input_method")}]")
+            Log.e("SUNDUS_IME_DIAG", "windows=[${device.executeShellCommand("dumpsys window windows")}]")
         }
         assertTrue("SUNDUS keyboard did not appear", keyboardAppeared)
 
