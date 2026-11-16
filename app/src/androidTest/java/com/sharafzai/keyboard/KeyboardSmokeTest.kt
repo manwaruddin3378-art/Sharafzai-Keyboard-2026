@@ -83,7 +83,7 @@ class KeyboardSmokeTest {
         }
         device.waitForIdle()
 
-        val keyboardAppeared = device.wait(Until.hasObject(By.text("فاصله")), 30_000)
+        val keyboardAppeared = device.wait(Until.hasObject(By.text("سندس")), 30_000)
         if (!keyboardAppeared) {
             Log.e("SUNDUS_IME_DIAG", "activity_state=[${focusState}]")
             Log.e("SUNDUS_IME_DIAG", "input_method=[${device.executeShellCommand("dumpsys input_method")}]")
@@ -113,7 +113,7 @@ class KeyboardSmokeTest {
         backspace.click()
         assertEquals("Backspace did not delete the remaining character", "", activeEditor.text.toString())
 
-        val spaceKey = device.wait(Until.findObject(By.text("فاصله")), 3_000)
+        val spaceKey = device.wait(Until.findObject(By.text("سندس")), 3_000)
         assertNotNull("Space key was not found", spaceKey)
         spaceKey!!.click()
         assertEquals("Space key did not insert a space", " ", activeEditor.text.toString())
