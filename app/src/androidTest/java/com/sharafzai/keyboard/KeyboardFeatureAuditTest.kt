@@ -5,6 +5,7 @@ import android.app.Instrumentation
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.widget.EditText
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -45,10 +46,12 @@ class KeyboardFeatureAuditTest {
         }
         assertNotNull("Keyboard test editor view was not created", editor)
         val activeEditor = editor!!
-        assertTrue(
-            "SUNDUS keyboard did not appear",
-            device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
-        )
+        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
+        if (!keyboardAppeared) {
+            Log.e("SUNDUS_IME_DIAG", "input_method=[" + device.executeShellCommand("dumpsys input_method | grep -E 'mCurMethodId|mCurId|mInputShown|mShowRequested|mCurFocusedWindow|mImeWindowVis'") + "]")
+            Log.e("SUNDUS_IME_DIAG", "window=[" + device.executeShellCommand("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'") + "]")
+        }
+        assertTrue("SUNDUS keyboard did not appear", keyboardAppeared)
         return activeEditor
     }
 
@@ -63,8 +66,9 @@ class KeyboardFeatureAuditTest {
     fun keyboardPanelsLanguagesAndCoreActionsAreReachable() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
-        device.executeShellCommand("ime enable $packageName/.KeyboardService")
-        device.executeShellCommand("ime set $packageName/.KeyboardService")
+        val enableResult = device.executeShellCommand("ime enable $packageName/.KeyboardService")
+        val setResult = device.executeShellCommand("ime set $packageName/.KeyboardService")
+        Log.e("SUNDUS_IME_DIAG", "enable=[" + enableResult + "] set=[" + setResult + "] list=[" + device.executeShellCommand("ime list -s") + "] default=[" + device.executeShellCommand("settings get secure default_input_method") + "]")
         val editor = launchEditor(instrumentation, device)
 
         // All four language layouts insert their expected characters.
