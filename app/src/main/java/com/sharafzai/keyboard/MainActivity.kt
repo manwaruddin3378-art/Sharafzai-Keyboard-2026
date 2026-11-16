@@ -15,6 +15,8 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ImageView
+import android.widget.FrameLayout
+import android.graphics.drawable.GradientDrawable
 import android.widget.Toast
 
 class MainActivity : Activity() {
@@ -26,12 +28,20 @@ class MainActivity : Activity() {
             setPadding(24, 28, 24, 28)
             setBackgroundColor(Color.rgb(20, 25, 35))
         }
-        root.addView(ImageView(this).apply {
+        val logoFrame = FrameLayout(this)
+        logoFrame.addView(ImageView(this).apply {
             setImageResource(R.drawable.sundus_brand)
             scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = true
             contentDescription = "SUNDUS – سندس"
-        }, LinearLayout.LayoutParams(dp(118), dp(78)))
+        }, FrameLayout.LayoutParams(-1, -1))
+        logoFrame.addView(View(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.argb(78, 255, 255, 255), Color.TRANSPARENT)
+            )
+        }, FrameLayout.LayoutParams(-1, -1))
+        root.addView(logoFrame, LinearLayout.LayoutParams(dp(118), dp(78)))
         root.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"
             textSize = 23f
