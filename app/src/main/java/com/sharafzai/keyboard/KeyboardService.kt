@@ -972,7 +972,7 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(centerZone, "SUNDUS • سندس", 1f, 44) { expandAutoTextAndSpace() }
+        addSpecial(centerZone, "سندس", 1f, 44) { expandAutoTextAndSpace() }
 
         val rightZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -2656,7 +2656,7 @@ class KeyboardService : InputMethodService() {
             } else roundedBackground(theme.special, dp(12))
             if (label.contains("SUNDUS") || label == "سندس") {
                 setTextColor(Color.rgb(255, 218, 116))
-                textSize = 15f
+                textSize = 17f
                 typeface = Typeface.create("serif", Typeface.BOLD)
             }
             elevation = dp(4).toFloat()
