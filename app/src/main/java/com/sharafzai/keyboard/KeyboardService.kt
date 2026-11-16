@@ -683,7 +683,7 @@ class KeyboardService : InputMethodService() {
     @Suppress("DEPRECATION")
     private fun buildDateTimeParts(): Pair<String, String> {
         val now = java.util.Date()
-        val clock = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault()).format(now)
+        val clock = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US).format(now)
         val gregorian = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(now)
         if (Build.VERSION.SDK_INT >= 24) {
             val millis = now.time
