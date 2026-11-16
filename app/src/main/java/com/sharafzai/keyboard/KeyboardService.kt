@@ -547,17 +547,48 @@ class KeyboardService : InputMethodService() {
                         .start()
                 }
                 .start()
-            floatingDhikrHandler.postDelayed(this, 4300L)
+            floatingDhikrHandler.postDelayed(this, dhikrIntervalMs())
         }
     }
 
+    private fun dhikrPreferences() = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+
+    private fun dhikrIntervalMs(): Long =
+        dhikrPreferences().getInt("dhikrIntervalMs", 4300).coerceIn(2500, 12000).toLong()
+
+    private fun dhikrFontSize(): Float =
+        dhikrPreferences().getInt("dhikrFontSize", 23).coerceIn(16, 32).toFloat()
+
+    private fun dhikrYOffset(): Int {
+        val extra = when (dhikrPreferences().getInt("dhikrPosition", 0).coerceIn(0, 2)) {
+            1 -> dp(42)
+            2 -> dp(82)
+            else -> dp(5)
+        }
+        return statusBarHeight() + extra
+    }
+
     private fun startDhikrOverlayIfAllowed() {
+        if (!dhikrPreferences().getBoolean("dhikrEnabled", true)) {
+            stopDhikrOverlay()
+            return
+        }
         if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) return
-        if (floatingDhikrView?.isAttachedToWindow == true) return
         val manager = getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+        val attached = floatingDhikrView
+        if (attached?.isAttachedToWindow == true) {
+            attached.textSize = dhikrFontSize()
+            (attached.layoutParams as? android.view.WindowManager.LayoutParams)?.let { params ->
+                params.y = dhikrYOffset()
+                runCatching { manager.updateViewLayout(attached, params) }
+            }
+            floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
+            floatingDhikrHandler.postDelayed(floatingDhikrTicker, dhikrIntervalMs())
+            return
+        }
         val text = TextView(this).apply {
             text = adhkar[floatingDhikrIndex]
-            textSize = 23f
+            textSize = dhikrFontSize()
             gravity = Gravity.CENTER
             maxLines = 2
             includeFontPadding = false
@@ -586,7 +617,7 @@ class KeyboardService : InputMethodService() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = statusBarHeight() + dp(5)
+            y = dhikrYOffset()
             horizontalMargin = 0f
             verticalMargin = 0f
         }
@@ -594,7 +625,7 @@ class KeyboardService : InputMethodService() {
             manager.addView(text, params)
             floatingDhikrView = text
             floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
-            floatingDhikrHandler.postDelayed(floatingDhikrTicker, 4300L)
+            floatingDhikrHandler.postDelayed(floatingDhikrTicker, dhikrIntervalMs())
         }.onFailure {
             Log.w("SUNDUS_DHIKR", "Could not show floating dhikr overlay", it)
             floatingDhikrView = null
