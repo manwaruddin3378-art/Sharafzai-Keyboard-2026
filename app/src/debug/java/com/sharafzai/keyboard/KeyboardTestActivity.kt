@@ -14,12 +14,18 @@ class KeyboardTestActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        window.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
         editor = EditText(this).apply {
             id = android.R.id.edit
             contentDescription = "keyboard-test-editor"
             hint = "SUNDUS emulator test"
             textSize = 20f
+            isFocusable = true
+            isFocusableInTouchMode = true
+            showSoftInputOnFocus = true
             setSingleLine(false)
             if (intent.getBooleanExtra("privateEditor", false)) {
                 imeOptions = imeOptions or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
@@ -29,6 +35,21 @@ class KeyboardTestActivity : Activity() {
         editor.requestFocus()
     }
 
+    override fun onResume() {
+        super.onResume()
+        editor.postDelayed({
+            if (!isFinishing && editor.isAttachedToWindow) {
+                editor.requestFocus()
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.restartInput(editor)
+                manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
+                if (android.os.Build.VERSION.SDK_INT >= 30) {
+                    window.insetsController?.show(WindowInsets.Type.ime())
+                }
+            }
+        }, 500)
+    }
+
     /**
      * Request the IME only after this Activity owns window focus.
      * Calling showSoftInput from onCreate/post can race Android's input
@@ -36,6 +57,7 @@ class KeyboardTestActivity : Activity() {
      */
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        android.util.Log.e("SUNDUS_TEST_ACTIVITY", "windowFocus=" + hasFocus + " initialized=" + ::editor.isInitialized)
         if (!hasFocus || !::editor.isInitialized) return
 
         // Emulator boot and InputMethodManager binding can be slow on CI.
@@ -46,7 +68,7 @@ class KeyboardTestActivity : Activity() {
                 if (!isFinishing && editor.hasFocus() && editor.isAttachedToWindow) {
                     editor.requestFocus()
                     manager.restartInput(editor)
-                    manager.showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+                    manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
                     if (android.os.Build.VERSION.SDK_INT >= 30) {
                         window.insetsController?.show(WindowInsets.Type.ime())
                     }
