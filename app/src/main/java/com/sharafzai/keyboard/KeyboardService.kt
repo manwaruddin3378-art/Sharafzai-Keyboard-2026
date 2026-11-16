@@ -33,6 +33,7 @@ import android.widget.Toast
 import android.widget.PopupWindow
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 
 class KeyboardService : InputMethodService() {
 
@@ -138,6 +139,7 @@ class KeyboardService : InputMethodService() {
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
+        Log.e("SUNDUS_IME_LIFECYCLE", "KeyboardService onCreate started")
         super.onCreate()
 
         val prefs = getSharedPreferences(
@@ -172,9 +174,11 @@ class KeyboardService : InputMethodService() {
         } else {
             registerReceiver(voiceReceiver, voiceFilter)
         }
+        Log.e("SUNDUS_IME_LIFECYCLE", "KeyboardService onCreate completed")
     }
 
     override fun onDestroy() {
+        Log.e("SUNDUS_IME_LIFECYCLE", "KeyboardService onDestroy")
         handler.removeCallbacksAndMessages(null)
         runCatching { unregisterReceiver(voiceReceiver) }
         super.onDestroy()
@@ -419,7 +423,10 @@ class KeyboardService : InputMethodService() {
     )
 
     override fun onCreateInputView(): View {
-        return buildKeyboard()
+        Log.e("SUNDUS_IME_LIFECYCLE", "onCreateInputView started")
+        val view = buildKeyboard()
+        Log.e("SUNDUS_IME_LIFECYCLE", "onCreateInputView completed")
+        return view
     }
 
     // Keep the IME docked above the app content, including landscape mode.
@@ -429,6 +436,7 @@ class KeyboardService : InputMethodService() {
         info: EditorInfo,
         restarting: Boolean
     ) {
+        Log.e("SUNDUS_IME_LIFECYCLE", "onStartInputView restarting=$restarting inputType=${info.inputType}")
         super.onStartInputView(info, restarting)
         if (pendingVoiceText.isNotBlank()) {
             if (isRestrictedEditorField()) {
