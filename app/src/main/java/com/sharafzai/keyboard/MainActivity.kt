@@ -14,6 +14,7 @@ import android.graphics.Typeface
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ImageView
 import android.widget.Toast
 
 class MainActivity : Activity() {
