@@ -44,7 +44,7 @@ class KeyboardSmokeTest {
         // even though the Activity and editor are rendered and attached.
         var tapX = -1
         var tapY = -1
-        repeat(40) {
+        for (attempt in 0 until 40) {
             instrumentation.waitForIdleSync()
             instrumentation.runOnMainSync {
                 // The hosted emulator can report window focus late even after the
