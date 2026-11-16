@@ -1,18 +1,20 @@
 package com.sharafzai.keyboard
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
-import android.content.Context
 import android.widget.EditText
 
 /** Debug-only host activity used by the emulator keyboard smoke test. */
 class KeyboardTestActivity : Activity() {
+    private lateinit var editor: EditText
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
-        val editor = EditText(this).apply {
+        editor = EditText(this).apply {
             id = android.R.id.edit
             contentDescription = "keyboard-test-editor"
             hint = "SUNDUS emulator test"
@@ -24,11 +26,22 @@ class KeyboardTestActivity : Activity() {
         }
         setContentView(editor)
         editor.requestFocus()
-        // Explicitly request the selected IME: on API 34, a focused EditText alone
-        // may not bring up the keyboard in an instrumentation-launched Activity.
+    }
+
+    /**
+     * Request the IME only after this Activity owns window focus.
+     * Calling showSoftInput from onCreate/post can race Android's input
+     * connection setup; API 34 then rejects it because the view is not served.
+     */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus || !::editor.isInitialized) return
+
         editor.post {
-            (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-                .showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+            if (!isFinishing && editor.hasFocus() && editor.isAttachedToWindow) {
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+            }
         }
     }
 }
