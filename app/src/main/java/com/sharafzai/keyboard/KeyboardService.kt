@@ -65,6 +65,15 @@ class KeyboardService : InputMethodService() {
     private var hapticEnabled = true
     private var soundEnabled = false
     private var pendingVoiceText = ""
+    private val dhikrSettingsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
+                startDhikrOverlayIfAllowed()
+            } else {
+                stopDhikrOverlay()
+            }
+        }
+    }
     private val voiceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val recognizedText = intent
@@ -177,6 +186,16 @@ class KeyboardService : InputMethodService() {
         } else {
             registerReceiver(voiceReceiver, voiceFilter)
         }
+        val dhikrFilter = IntentFilter("com.sharafzai.keyboard.ACTION_DHIKR_SETTINGS_CHANGED")
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(dhikrSettingsReceiver, dhikrFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(dhikrSettingsReceiver, dhikrFilter)
+        }
+        // Upgrade the earlier short rotation interval to the requested ten-second default.
+        if (prefs.getInt("dhikrIntervalMs", 10000) == 4300) {
+            prefs.edit().putInt("dhikrIntervalMs", 10000).apply()
+        }
         startDhikrOverlayIfAllowed()
         Log.e("SUNDUS_IME_LIFECYCLE", "KeyboardService onCreate completed")
     }
@@ -187,6 +206,7 @@ class KeyboardService : InputMethodService() {
         dateTimeHandler.removeCallbacksAndMessages(null)
         stopDhikrOverlay()
         runCatching { unregisterReceiver(voiceReceiver) }
+        runCatching { unregisterReceiver(dhikrSettingsReceiver) }
         super.onDestroy()
     }
 
@@ -549,8 +569,9 @@ class KeyboardService : InputMethodService() {
                         floatingDhikrFonts[floatingDhikrIndex % floatingDhikrFonts.size],
                         if (floatingDhikrIndex % 3 == 0) Typeface.BOLD else Typeface.NORMAL
                     )
-                    view.setTextColor(dhikrColors[floatingDhikrIndex % dhikrColors.size])
-                    view.textSize = if (floatingDhikrIndex % 4 == 0) 24f else 22f
+                    view.setTextColor(Color.BLACK)
+                    view.setShadowLayer(dp(3).toFloat(), 0f, 0f, Color.WHITE)
+                    view.textSize = dhikrFontSize()
                     view.translationX = -direction * dp(90).toFloat()
                     view.scaleX = if (floatingDhikrIndex % 2 == 0) 0.92f else 1.06f
                     view.alpha = 0f
@@ -569,10 +590,10 @@ class KeyboardService : InputMethodService() {
     private fun dhikrPreferences() = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
 
     private fun dhikrIntervalMs(): Long =
-        dhikrPreferences().getInt("dhikrIntervalMs", 4300).coerceIn(2500, 12000).toLong()
+        dhikrPreferences().getInt("dhikrIntervalMs", 10000).coerceIn(2500, 20000).toLong()
 
     private fun dhikrFontSize(): Float =
-        dhikrPreferences().getInt("dhikrFontSize", 23).coerceIn(16, 32).toFloat()
+        dhikrPreferences().getInt("dhikrFontSize", 18).coerceIn(16, 32).toFloat()
 
     private fun dhikrYOffset(): Int {
         val extra = when (dhikrPreferences().getInt("dhikrPosition", 0).coerceIn(0, 2)) {
@@ -609,8 +630,8 @@ class KeyboardService : InputMethodService() {
             includeFontPadding = false
             setPadding(dp(10), dp(3), dp(10), dp(3))
             typeface = Typeface.create("serif", Typeface.BOLD)
-            setTextColor(dhikrColors[floatingDhikrIndex % dhikrColors.size])
-            setShadowLayer(dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
+            setTextColor(Color.BLACK)
+            setShadowLayer(dp(3).toFloat(), 0f, 0f, Color.WHITE)
             // Deliberately no background, card, panel, or backdrop: only the dhikr text is visible.
             setBackgroundColor(Color.TRANSPARENT)
             isClickable = false
@@ -723,7 +744,13 @@ class KeyboardService : InputMethodService() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = "SUNDUS logo"
         }
-        brandRow.addView(brandLogo, LinearLayout.LayoutParams(dp(42), dp(25)))
+        brandLogo.setColorFilter(android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(floatArrayOf(
+            1.06f, 0f, 0f, 0f, 7f,
+            0f, 1.06f, 0f, 0f, 7f,
+            0f, 0f, 1.06f, 0f, 7f,
+            0f, 0f, 0f, 1f, 0f
+        ))))
+        brandRow.addView(brandLogo, LinearLayout.LayoutParams(dp(48), dp(29)))
         brandRow.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"
             textSize = 13f
@@ -742,22 +769,23 @@ class KeyboardService : InputMethodService() {
         val (clockText, datesText) = buildDateTimeParts()
         val clockView = TextView(this).apply {
             text = clockText
-            textSize = 10.5f
+            textSize = 12f
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             maxLines = 1
-            setTextColor(Color.BLACK)
-            typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
+            setTextColor(Color.rgb(255, 236, 170))
+            typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
+            setShadowLayer(dp(2).toFloat(), 0f, 0f, Color.WHITE)
             setPadding(dp(3), 0, dp(6), 0)
         }
         val datesView = TextView(this).apply {
             text = datesText
-            textSize = 7.5f
+            textSize = 9f
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
             maxLines = 1
             isSingleLine = true
             ellipsize = android.text.TextUtils.TruncateAt.END
             setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
         }
         clockTimeView = clockView
         dateTimeView = datesView
@@ -944,7 +972,7 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(centerZone, "فاصله", 1f, 44) { expandAutoTextAndSpace() }
+        addSpecial(centerZone, "SUNDUS • سندس", 1f, 44) { expandAutoTextAndSpace() }
 
         val rightZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -2617,7 +2645,7 @@ class KeyboardService : InputMethodService() {
             minimumWidth = 0
             minimumHeight = 0
             setPadding(0, 0, 0, 0)
-            background = if (label.contains("SUNDUS")) {
+            background = if (label.contains("SUNDUS") || label == "سندس") {
                 GradientDrawable(
                     GradientDrawable.Orientation.LEFT_RIGHT,
                     intArrayOf(Color.rgb(3, 47, 91), Color.rgb(2, 101, 132), Color.rgb(3, 47, 91))
@@ -2626,7 +2654,7 @@ class KeyboardService : InputMethodService() {
                     setStroke(dp(2), Color.rgb(226, 181, 67))
                 }
             } else roundedBackground(theme.special, dp(12))
-            if (label.contains("SUNDUS")) {
+            if (label.contains("SUNDUS") || label == "سندس") {
                 setTextColor(Color.rgb(255, 218, 116))
                 textSize = 15f
                 typeface = Typeface.create("serif", Typeface.BOLD)
@@ -2635,7 +2663,7 @@ class KeyboardService : InputMethodService() {
             letterSpacing = 0.01f
         }
 
-        if (label == "Space" || label.contains("SUNDUS")) {
+        if (label == "Space" || label.contains("SUNDUS") || label == "سندس") {
             var downX = 0f
             button.setOnTouchListener { view, event ->
                 when (event.action) {
