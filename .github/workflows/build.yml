@@ -93,7 +93,7 @@ jobs:
         run: echo "Release signing is waiting for the private keystore secrets." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run keyboard smoke test on Android emulator
-        timeout-minutes: 20
+        timeout-minutes: 35
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -101,7 +101,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 1200
           disable-animations: false
           script: |
             set -eux
@@ -115,6 +115,8 @@ jobs:
             adb shell dumpsys package com.sharafzai.keyboard | grep -A8 -B4 'KeyboardService' || true
             adb shell cmd package query-services -a android.view.InputMethod || true
             adb shell ime list -a
+            # The hosted emulator may expose a hardware keyboard; force the soft IME to show.
+            adb shell settings put secure show_ime_with_hard_keyboard 1
 
             gradle --stop
             timeout 600s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sharafzai.keyboard.KeyboardSmokeTest
