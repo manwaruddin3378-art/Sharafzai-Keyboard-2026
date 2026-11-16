@@ -98,13 +98,30 @@ jobs:
           target: default
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 1536 -cores 2 -no-metrics
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2 -no-metrics
           emulator-boot-timeout: 900
           disable-animations: false
           script: |
             set -eux
             adb start-server
             timeout 180s adb wait-for-device
+
+            # Wait until Android properties and package services are responsive.
+            # ADB may report an attached emulator before the framework has finished booting.
+            for attempt in $(seq 1 90); do
+              SDK_LEVEL="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r' || true)"
+              BOOT_STATE="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+              if [ "$SDK_LEVEL" = "30" ] && [ "$BOOT_STATE" = "1" ]; then
+                echo "Emulator ready: API $SDK_LEVEL"
+                break
+              fi
+              echo "Waiting for responsive Android framework (attempt $attempt, sdk=$SDK_LEVEL, boot=$BOOT_STATE)"
+              sleep 5
+            done
+            test "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" = "30"
+            test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+            adb shell pm list packages >/dev/null
+            adb devices -l
 
             # Disable the hosted emulator's package-verifier wait, which can time out
             # and reject a valid locally-built APK before instrumentation starts.
