@@ -653,7 +653,7 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = false
             symbolsPanelVisible = false
             settingsPanelVisible = false
-            phrasePanelVisible = true
+            phrasePanelVisible = false
             showPhraseWindow()
         }
         addSpecial(toolsRow, "📋", 1f, 34) {
@@ -769,7 +769,7 @@ class KeyboardService : InputMethodService() {
             currentInputConnection?.commitText(". ", 1)
             updateSuggestions()
         }
-        addSpecial(rightZone, "⌫", 1.35f, 44) { deletePreviousCharacter() }
+        addSpecial(rightZone, "⌫", 1.65f, 44) { deletePreviousCharacter() }
         addSpecial(rightZone, "↵", 1.0f, 44) { performEnterAction() }
 
         bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 0.72f))
@@ -2417,7 +2417,11 @@ class KeyboardService : InputMethodService() {
     ) {
         val button = Button(this).apply {
             text = label
-            textSize = 12f
+            textSize = if (label == "⌫") 18f else 12f
+            if (label == "⌫") {
+                contentDescription = "Backspace - د مخکني توري پاکول"
+                typeface = Typeface.DEFAULT_BOLD
+            }
             isAllCaps = false
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(45, 52, 62))
