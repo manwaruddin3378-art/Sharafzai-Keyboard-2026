@@ -37,11 +37,18 @@ class KeyboardTestActivity : Activity() {
         super.onWindowFocusChanged(hasFocus)
         if (!hasFocus || !::editor.isInitialized) return
 
-        editor.post {
-            if (!isFinishing && editor.hasFocus() && editor.isAttachedToWindow) {
-                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                manager.showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
-            }
+        // Emulator boot and InputMethodManager binding can be slow on CI.
+        // Retry after the editor is attached and the window has an input connection.
+        val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        listOf(250L, 750L, 1_500L, 3_000L).forEach { delay ->
+            editor.postDelayed({
+                if (!isFinishing && editor.hasFocus() && editor.isAttachedToWindow) {
+                    editor.requestFocus()
+                    manager.restartInput(editor)
+                    manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
+                }
+            }, delay)
         }
     }
+}
 }
