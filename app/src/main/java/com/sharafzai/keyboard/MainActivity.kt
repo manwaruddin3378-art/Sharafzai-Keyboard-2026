@@ -102,13 +102,26 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
+    override fun onResume() {
+        super.onResume()
+        syncDhikrService()
+    }
+
+    private fun syncDhikrService() {
+        val intent = Intent(this, DhikrOverlayService::class.java)
+        val enabled = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getBoolean("dhikrEnabled", true)
+        val permission = Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(this)
+        if (enabled && permission) runCatching { startService(intent) }
+        else stopService(intent)
+    }
+
     private fun showDhikrSettings() {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val enabled = prefs.getBoolean("dhikrEnabled", true)
         val size = prefs.getInt("dhikrFontSize", 18).coerceIn(16, 32)
         val interval = prefs.getInt("dhikrIntervalMs", 10000).coerceIn(2500, 20000)
         val position = prefs.getInt("dhikrPosition", 0).coerceIn(0, 2)
-        val sizeLabel = when (size) { 18 -> "وړه"; 23 -> "منځنۍ"; 28 -> "لویه"; else -> "$size sp" }
+        val sizeLabel = when (size) { 18 -> "وړه"; 22 -> "منځنۍ"; 26 -> "لویه"; else -> "$size sp" }
         val speedLabel = when (interval) { 5000 -> "۵ ثانیې"; 10000 -> "۱۰ ثانیې"; 15000 -> "۱۵ ثانیې"; else -> "${interval / 1000} ثانیې" }
         val positionLabel = listOf("د سکرین په سر", "د ساعت لاندې", "لږ ښکته")[position]
         val options = arrayOf(
@@ -123,7 +136,7 @@ class MainActivity : Activity() {
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> prefs.edit().putBoolean("dhikrEnabled", !enabled).apply()
-                    1 -> prefs.edit().putInt("dhikrFontSize", when (size) { 18 -> 23; 23 -> 28; else -> 18 }).apply()
+                    1 -> prefs.edit().putInt("dhikrFontSize", when (size) { 18 -> 22; 22 -> 26; else -> 18 }).apply()
                     2 -> prefs.edit().putInt("dhikrIntervalMs", when (interval) { 5000 -> 10000; 10000 -> 15000; else -> 5000 }).apply()
                     3 -> prefs.edit().putInt("dhikrPosition", (position + 1) % 3).apply()
                     4 -> {
@@ -147,7 +160,8 @@ class MainActivity : Activity() {
     }
 
     private fun notifyDhikrSettingsChanged() {
-        sendBroadcast(Intent("com.sharafzai.keyboard.ACTION_DHIKR_SETTINGS_CHANGED").setPackage(packageName))
+        sendBroadcast(Intent(DhikrOverlayService.ACTION_SETTINGS_CHANGED).setPackage(packageName))
+        syncDhikrService()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
