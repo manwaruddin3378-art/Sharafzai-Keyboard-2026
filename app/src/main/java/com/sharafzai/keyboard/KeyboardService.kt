@@ -1712,6 +1712,23 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addSymbolsPanel(parent: LinearLayout) {
+        // The 123 key opens a real numeric-and-symbol layer. Respect the
+        // selected language and the native/English digit setting here too.
+        val nativeNumberRow = when (language) {
+            0 -> pashtoNumbers
+            1 -> arabicNumbers
+            2 -> englishNumbers
+            3 -> dariNumbers
+            else -> dariNumbers
+        }
+        val westernDigits = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        val numberRow = if (nativeDigitsEnabled || language == 2) nativeNumberRow else {
+            nativeNumberRow.mapIndexed { index, spec ->
+                if (index < 10) spec.copy(normal = westernDigits[index]) else spec
+            }
+        }
+        addKeyRow(parent, numberRow, 35)
+
         val tabs = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -1723,11 +1740,6 @@ class KeyboardService : InputMethodService() {
             }
         }
         parent.addView(tabs, rowParams(36))
-
-        // The 123 key opens a true numbers-and-symbols layer: digits first,
-        // followed by the existing symbol categories.
-        val numberKeys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
-        addKeyRow(parent, numberKeys.map { k(it) }, 35)
 
         val keys = when (symbolsCategory) {
             1 -> listOf(
@@ -2596,6 +2608,8 @@ class KeyboardService : InputMethodService() {
     ) {
         val button = Button(this).apply {
             text = label
+            if (label == "123") contentDescription = "Numbers and symbols"
+            if (label == "ABC") contentDescription = "Return to letters"
             textSize = if (label == "⌫") 18f else 12f
             if (label == "⌫") {
                 contentDescription = "Backspace - د مخکني توري پاکول"
