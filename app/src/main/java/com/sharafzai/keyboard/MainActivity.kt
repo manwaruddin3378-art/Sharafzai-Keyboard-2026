@@ -67,7 +67,7 @@ class MainActivity : Activity() {
                         startActivity(
                             Intent(
                                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                Uri.parse("package:$packageName")
+                                Uri.parse("package:${this@MainActivity.packageName}")
                             )
                         )
                     }.onFailure {
