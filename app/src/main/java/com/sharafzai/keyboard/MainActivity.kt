@@ -31,10 +31,10 @@ class MainActivity : Activity() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             adjustViewBounds = true
             contentDescription = "SUNDUS – سندس"
-        }, LinearLayout.LayoutParams(dp(150), dp(104)))
+        }, LinearLayout.LayoutParams(dp(118), dp(78)))
         root.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"
-            textSize = 28f
+            textSize = 23f
             gravity = Gravity.CENTER
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
