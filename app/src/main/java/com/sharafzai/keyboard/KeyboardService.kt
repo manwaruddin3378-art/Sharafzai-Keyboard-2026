@@ -531,6 +531,9 @@ class KeyboardService : InputMethodService() {
                     dhikrIndex = (dhikrIndex + 1) % adhkar.size
                     view.text = adhkar[dhikrIndex]
                     view.setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
+                    view.typeface = Typeface.create("serif", Typeface.BOLD)
+                    view.textSize = 19f
+                    view.setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.argb(190, 0, 0, 0))
                     val base = dhikrColors[dhikrIndex % dhikrColors.size]
                     val darker = Color.rgb(
                         (Color.red(base) * 0.30f).toInt(),
@@ -540,7 +543,10 @@ class KeyboardService : InputMethodService() {
                     view.background = GradientDrawable(
                         GradientDrawable.Orientation.LEFT_RIGHT,
                         intArrayOf(darker, Color.rgb(7, 35, 62), darker)
-                    ).apply { cornerRadius = dp(9).toFloat() }
+                    ).apply {
+                        cornerRadius = dp(12).toFloat()
+                        setStroke(dp(1), Color.argb(150, 255, 214, 125))
+                    }
                     view.translationX = incoming
                     view.alpha = 0f
                     view.animate()
@@ -566,18 +572,24 @@ class KeyboardService : InputMethodService() {
 
         val dhikrStrip = TextView(this).apply {
             text = adhkar[dhikrIndex]
-            textSize = 18f
+            textSize = 19f
             gravity = Gravity.CENTER
+            maxLines = 2
+            textScaleX = 0.96f
             setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, dp(3), 0, dp(3))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.argb(190, 0, 0, 0))
+            setPadding(dp(8), dp(3), dp(8), dp(3))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(5, 43, 59), Color.rgb(20, 48, 92), Color.rgb(5, 43, 59))
-            ).apply { cornerRadius = dp(9).toFloat() }
+                intArrayOf(Color.rgb(5, 35, 57), Color.rgb(18, 48, 88), Color.rgb(5, 35, 57))
+            ).apply {
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), Color.argb(150, 255, 214, 125))
+            }
         }
         dhikrView = dhikrStrip
-        root.addView(dhikrStrip, rowParams(34))
+        root.addView(dhikrStrip, rowParams(42))
         handler.removeCallbacks(dhikrTicker)
         handler.postDelayed(dhikrTicker, 3500)
         val languageStrip = LinearLayout(this).apply {
@@ -672,11 +684,6 @@ class KeyboardService : InputMethodService() {
 
         if (settingsPanelVisible) {
             addSettingsPanel(root)
-        }
-
-        val bottom = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
         }
 
         // Balanced bottom row: compact Space, usable punctuation and a dedicated Backspace.
