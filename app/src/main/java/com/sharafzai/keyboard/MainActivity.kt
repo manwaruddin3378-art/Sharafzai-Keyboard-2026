@@ -134,7 +134,7 @@ class MainActivity : Activity() {
         val position = prefs.getInt("dhikrPosition", 0).coerceIn(0, 2)
         val sizeLabel = when (size) { 18 -> "وړه"; 22 -> "منځنۍ"; 26 -> "لویه"; else -> "$size sp" }
         val speedLabel = when (interval) { 5000 -> "۵ ثانیې"; 10000 -> "۱۰ ثانیې"; 15000 -> "۱۵ ثانیې"; else -> "${interval / 1000} ثانیې" }
-        val positionLabel = listOf("د سکرین په سر", "د ساعت لاندې", "لږ ښکته")[position]
+        val positionLabel = listOf("پورته ښي لوری", "پورته چپ لوری", "ښي او چپ ته په نوبت")[position]
         val options = arrayOf(
             if (enabled) "اذکار: فعال دي (د بندولو لپاره ټک)" else "اذکار: بند دي (د فعالولو لپاره ټک)",
             "د لیک اندازه: $sizeLabel",
