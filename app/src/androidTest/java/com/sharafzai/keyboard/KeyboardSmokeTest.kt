@@ -117,5 +117,40 @@ class KeyboardSmokeTest {
         assertNotNull("Space key was not found", spaceKey)
         spaceKey!!.click()
         assertEquals("Space key did not insert a space", " ", activeEditor.text.toString())
+
+        // Emoji panel must open, insert an emoji, and remain deletable by Backspace.
+        val emojiTool = device.wait(Until.findObject(By.text("😀")), 3_000)
+        assertNotNull("Emoji access button was not found", emojiTool)
+        emojiTool!!.click()
+        val emojiKey = device.wait(Until.findObject(By.text("😃")), 3_000)
+        assertNotNull("Emoji panel did not open", emojiKey)
+        emojiKey!!.click()
+        assertEquals("Emoji key did not insert", " 😃", activeEditor.text.toString())
+        backspace.click()
+        assertEquals("Backspace did not remove emoji", " ", activeEditor.text.toString())
+
+        // Quick phrases open as a single dialog, not as a duplicate keyboard panel.
+        val phrasesTool = device.wait(Until.findObject(By.text("جملې")), 3_000)
+        assertNotNull("Quick phrases button was not found", phrasesTool)
+        phrasesTool!!.click()
+        assertTrue("Quick phrases dialog did not open",
+            device.wait(Until.hasObject(By.text("د سندس چټکې جملې")), 3_000))
+        val closePhrase = device.wait(Until.findObject(By.text("بند")), 3_000)
+        assertNotNull("Quick phrases dialog close button was not found", closePhrase)
+        closePhrase!!.click()
+
+        val clipboardTool = device.wait(Until.findObject(By.text("📋")), 3_000)
+        assertNotNull("Clipboard button was not found", clipboardTool)
+        clipboardTool!!.click()
+        assertNotNull("Clipboard panel did not open", device.wait(Until.findObject(By.text("کاپي")), 3_000))
+        val clipboardClose = device.wait(Until.findObject(By.text("بندول")), 3_000)
+        assertNotNull("Clipboard close button was not found", clipboardClose)
+        clipboardClose!!.click()
+
+        val settingsTool = device.wait(Until.findObject(By.text("⚙")), 3_000)
+        assertNotNull("Settings button was not found", settingsTool)
+        settingsTool!!.click()
+        assertTrue("Settings panel did not open",
+            device.wait(Until.hasObject(By.text("د سندس کیبورډ تنظیمات")), 3_000))
     }
 }
