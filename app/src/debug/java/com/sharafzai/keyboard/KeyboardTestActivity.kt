@@ -51,4 +51,3 @@ class KeyboardTestActivity : Activity() {
         }
     }
 }
-}
