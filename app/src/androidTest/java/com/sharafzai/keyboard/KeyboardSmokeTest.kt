@@ -2,6 +2,7 @@ package com.sharafzai.keyboard
 
 import android.content.Intent
 import android.widget.EditText
+import android.os.SystemClock
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -38,14 +39,29 @@ class KeyboardSmokeTest {
         assertNotNull("Test editor view was not created", editor)
         val activeEditor = editor!!
 
-        // A real UIAutomator tap gives the EditText's window an actual input focus;
-        // performClick() alone does not dispatch a touch/focus transition.
-        val editorNode = device.wait(
-            Until.findObject(By.desc("keyboard-test-editor")),
-            15_000
+        // Use a real coordinate tap rather than an accessibility-node lookup.
+        // Some API 30 emulator images omit EditText nodes from UiAutomator's tree
+        // even though the Activity and editor are rendered and attached.
+        var tapX = -1
+        var tapY = -1
+        repeat(40) {
+            instrumentation.waitForIdleSync()
+            instrumentation.runOnMainSync {
+                if (activeEditor.isAttachedToWindow && activity.hasWindowFocus()) {
+                    val location = IntArray(2)
+                    activeEditor.getLocationOnScreen(location)
+                    tapX = location[0] + activeEditor.width / 2
+                    tapY = location[1] + activeEditor.height / 2
+                }
+            }
+            if (tapX >= 0 && tapY >= 0) return@repeat
+            SystemClock.sleep(250)
+        }
+        assertTrue(
+            "Test editor did not attach to a focused window",
+            tapX >= 0 && tapY >= 0
         )
-        assertNotNull("Test editor was not visible to the accessibility tree", editorNode)
-        editorNode!!.click()
+        assertTrue("Could not tap the test editor", device.click(tapX, tapY))
         device.waitForIdle()
 
         var focusState = ""
