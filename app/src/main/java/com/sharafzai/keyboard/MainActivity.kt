@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.net.Uri
+import android.os.Build
 import android.view.Gravity
 import android.view.inputmethod.InputMethodManager
 import android.graphics.Color
@@ -55,6 +57,28 @@ class MainActivity : Activity() {
             }
         }
         root.addView(choose, LinearLayout.LayoutParams(-1, dp(54)))
+
+        val dhikrPermission = Button(this).apply {
+            text = "۳ ـ د سکرین پر سر د اذکارو اجازه"
+            isAllCaps = false
+            setOnClickListener {
+                if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this@MainActivity)) {
+                    runCatching {
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:$packageName")
+                            )
+                        )
+                    }.onFailure {
+                        Toast.makeText(this@MainActivity, "د اذکارو د ښودلو اجازه پرانیستل نه شوه", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(this@MainActivity, "د اذکارو د ښودلو اجازه فعاله ده؛ کیبورډ یو ځل پرانیزئ.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        root.addView(dhikrPermission, LinearLayout.LayoutParams(-1, dp(54)))
         root.addView(TextView(this).apply {
             text = "د مفتي محمد انوارالدين شرفزي لخوا\n\nسندس یوازې د کیبورډ اپلیکیشن دی. اعلانونه او د انټرنېټ اجازه نه لري. بشپړ لیکل شوی متن او د کلیپ‌بورډ تاریخچه نه ساتي. که اتومات زده کړه فعاله وي، یوازې بشپړې شوې کلمې د وړاندیزونو لپاره په همدې موبایل کې خوندي کوي؛ دا اختیار د قاموس له برخې بندولای شئ. شخصي کلمې او چټکې جملې هم په موبایل کې ساتل کېږي."
             textSize = 14f
