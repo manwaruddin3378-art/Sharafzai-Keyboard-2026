@@ -105,7 +105,7 @@ class MainActivity : Activity() {
     private fun showDhikrSettings() {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val enabled = prefs.getBoolean("dhikrEnabled", true)
-        val size = prefs.getInt("dhikrFontSize", 23).coerceIn(16, 32)
+        val size = prefs.getInt("dhikrFontSize", 18).coerceIn(16, 32)
         val interval = prefs.getInt("dhikrIntervalMs", 4300).coerceIn(2500, 12000)
         val position = prefs.getInt("dhikrPosition", 0).coerceIn(0, 2)
         val sizeLabel = when (size) { 18 -> "وړه"; 23 -> "منځنۍ"; 28 -> "لویه"; else -> "$size sp" }
