@@ -622,59 +622,6 @@ class KeyboardService : InputMethodService() {
         Color.rgb(177, 255, 190), Color.rgb(255, 174, 210),
         Color.rgb(211, 190, 255), Color.rgb(255, 195, 139)
     )
-    private var dhikrIndex = 0
-    private var dhikrEnterFromRight = true
-    private val dhikrTicker = object : Runnable {
-        override fun run() {
-            val view = dhikrView
-            if (view == null || !view.isAttachedToWindow) {
-                handler.postDelayed(this, 3500)
-                return
-            }
-            // Slide the current remembrance away, then bring the next one in
-            // from the opposite side with its own contrasting text/background colors.
-            val width = view.width.toFloat().coerceAtLeast(dp(80).toFloat())
-            val outgoing = if (dhikrEnterFromRight) -width else width
-            val incoming = if (dhikrEnterFromRight) width else -width
-            view.animate().cancel()
-            view.animate()
-                .alpha(0f)
-                .translationX(outgoing)
-                .setDuration(260L)
-                .withEndAction {
-                    dhikrIndex = (dhikrIndex + 1) % adhkar.size
-                    view.text = adhkar[dhikrIndex]
-                    view.setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
-                    view.typeface = Typeface.create("serif", Typeface.BOLD)
-                    view.textSize = 19f
-                    view.setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.argb(190, 0, 0, 0))
-                    val base = dhikrColors[dhikrIndex % dhikrColors.size]
-                    val darker = Color.rgb(
-                        (Color.red(base) * 0.30f).toInt(),
-                        (Color.green(base) * 0.30f).toInt(),
-                        (Color.blue(base) * 0.30f).toInt()
-                    )
-                    view.background = GradientDrawable(
-                        GradientDrawable.Orientation.LEFT_RIGHT,
-                        intArrayOf(darker, Color.rgb(7, 35, 62), darker)
-                    ).apply {
-                        cornerRadius = dp(12).toFloat()
-                        setStroke(dp(1), Color.argb(150, 255, 214, 125))
-                    }
-                    view.translationX = incoming
-                    view.alpha = 0f
-                    view.animate()
-                        .alpha(1f)
-                        .translationX(0f)
-                        .setDuration(420L)
-                        .start()
-                    dhikrEnterFromRight = !dhikrEnterFromRight
-                }
-                .start()
-            handler.postDelayed(this, 3500)
-        }
-    }
-    private var dhikrView: TextView? = null
     private var dateTimeView: TextView? = null
     private val dateTimeHandler = Handler(Looper.getMainLooper())
     private val dateTimeTicker = object : Runnable {
@@ -685,7 +632,7 @@ class KeyboardService : InputMethodService() {
     }
 
     @Suppress("DEPRECATION")
-    private fun buildDateTimeText(): String {
+    private fun buildDateTimeParts(): Pair<String, String> {
         val now = java.util.Date()
         val clock = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(now)
         val gregorian = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(now)
@@ -704,9 +651,9 @@ class KeyboardService : InputMethodService() {
                     calendar.get(android.icu.util.Calendar.MONTH) + 1,
                     calendar.get(android.icu.util.Calendar.YEAR)
                 )
-            return "🕒 $clock   |   قمري ${dateOf(hijri)}   |   شمسي ${dateOf(persian)}   |   میلادي $gregorian"
+            return clock to ("قمري " + dateOf(hijri) + "  •  شمسي " + dateOf(persian) + "  •  میلادي " + gregorian)
         }
-        return "🕒 $clock   |   قمري —   |   شمسي —   |   میلادي $gregorian"
+        return clock to ("قمري —  •  شمسي —  •  میلادي " + gregorian)
     }
 
     private fun buildKeyboard(): View {
@@ -717,44 +664,38 @@ class KeyboardService : InputMethodService() {
             background = FloralPatternDrawable(theme.background)
         }
 
-        val dhikrStrip = TextView(this).apply {
-            text = adhkar[dhikrIndex]
-            textSize = 19f
-            gravity = Gravity.CENTER
-            maxLines = 2
-            textScaleX = 0.96f
-            setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
-            typeface = Typeface.create("serif", Typeface.BOLD)
-            setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.argb(190, 0, 0, 0))
-            setPadding(dp(8), dp(3), dp(8), dp(3))
-            background = GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(5, 35, 57), Color.rgb(18, 48, 88), Color.rgb(5, 35, 57))
-            ).apply {
-                cornerRadius = dp(12).toFloat()
-                setStroke(dp(1), Color.argb(150, 255, 214, 125))
-            }
+        val dateTimeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(5), 0, dp(5), 0)
         }
-        dhikrView = dhikrStrip
-        root.addView(dhikrStrip, rowParams(42))
-
-        val dateTimeStrip = TextView(this).apply {
-            text = buildDateTimeText()
-            textSize = 10.5f
-            gravity = Gravity.CENTER
+        val (clockText, datesText) = buildDateTimeParts()
+        val clockView = TextView(this).apply {
+            text = clockText
+            textSize = 13f
+            gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            maxLines = 1
+            setTextColor(theme.accent)
+            typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
+            setPadding(dp(3), 0, dp(6), 0)
+        }
+        val datesView = TextView(this).apply {
+            text = datesText
+            textSize = 8.5f
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
             maxLines = 1
             isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
             setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            setPadding(dp(2), 0, dp(2), 0)
         }
-        dateTimeView = dateTimeStrip
-        root.addView(dateTimeStrip, rowParams(25))
+        dateTimeView = datesView
+        dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(27), 0.24f))
+        dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(27), 0.76f))
+        root.addView(dateTimeRow, rowParams(27))
         dateTimeHandler.removeCallbacks(dateTimeTicker)
         dateTimeHandler.postDelayed(dateTimeTicker, 60_000L)
 
-        handler.removeCallbacks(dhikrTicker)
-        handler.postDelayed(dhikrTicker, 3500)
         val languageStrip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
