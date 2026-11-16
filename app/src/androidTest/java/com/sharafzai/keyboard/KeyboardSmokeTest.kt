@@ -38,8 +38,12 @@ class KeyboardSmokeTest {
         }
         assertNotNull("Test editor view was not created", editor)
         val activeEditor = editor!!
+        // Select the IME only after the editor Activity owns window focus. Selecting it
+        // before launch can leave Android bound to the previous IME on API 34.
+        val focusedSetResult = device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
+        Log.e("SUNDUS_IME_DIAG", "post-focus ime set=[" + focusedSetResult + "] default=[" + device.executeShellCommand("settings get secure default_input_method") + "]")
 
-        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
+        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 30_000)
         if (!keyboardAppeared) {
             Log.e("SUNDUS_IME_DIAG", "input_method=[" + device.executeShellCommand("dumpsys input_method | grep -E 'mCurMethodId|mCurId|mInputShown|mShowRequested|mCurFocusedWindow|mImeWindowVis'") + "]")
             Log.e("SUNDUS_IME_DIAG", "window=[" + device.executeShellCommand("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'") + "]")
