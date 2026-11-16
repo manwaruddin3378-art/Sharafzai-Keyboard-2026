@@ -1724,6 +1724,11 @@ class KeyboardService : InputMethodService() {
         }
         parent.addView(tabs, rowParams(36))
 
+        // The 123 key opens a true numbers-and-symbols layer: digits first,
+        // followed by the existing symbol categories.
+        val numberKeys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        addKeyRow(parent, numberKeys.map { k(it) }, 35)
+
         val keys = when (symbolsCategory) {
             1 -> listOf(
                 "َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ْ", "ّ",
