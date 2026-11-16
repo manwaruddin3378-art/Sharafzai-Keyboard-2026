@@ -520,6 +520,21 @@ class KeyboardService : InputMethodService() {
         override fun run() {
             val view = floatingDhikrView
             if (view == null || !view.isAttachedToWindow) return
+            if (!dhikrPreferences().getBoolean("dhikrEnabled", true)) {
+                stopDhikrOverlay()
+                return
+            }
+            view.textSize = dhikrFontSize()
+            (view.layoutParams as? android.view.WindowManager.LayoutParams)?.let { params ->
+                val newY = dhikrYOffset()
+                if (params.y != newY) {
+                    params.y = newY
+                    runCatching {
+                        (getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager)
+                            .updateViewLayout(view, params)
+                    }
+                }
+            }
             val next = (floatingDhikrIndex + 1) % adhkar.size
             val direction = if (next % 2 == 0) -1f else 1f
             view.animate().cancel()
@@ -697,6 +712,27 @@ class KeyboardService : InputMethodService() {
             setPadding(dp(3), dp(4), dp(3), dp(4))
             background = FloralPatternDrawable(theme.background)
         }
+
+        val brandRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(4), 0, dp(4), 0)
+        }
+        val brandLogo = ImageView(this).apply {
+            setImageResource(R.drawable.sundus_brand)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = "SUNDUS logo"
+        }
+        brandRow.addView(brandLogo, LinearLayout.LayoutParams(dp(42), dp(25)))
+        brandRow.addView(TextView(this).apply {
+            text = "SUNDUS  •  سندس"
+            textSize = 13f
+            gravity = Gravity.CENTER_VERTICAL
+            setTextColor(Color.rgb(255, 218, 116))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            setPadding(dp(5), 0, dp(5), 0)
+        }, LinearLayout.LayoutParams(-2, dp(25)))
+        root.addView(brandRow, rowParams(27))
 
         val dateTimeRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
