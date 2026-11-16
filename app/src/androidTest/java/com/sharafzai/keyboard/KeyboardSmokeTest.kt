@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class KeyboardSmokeTest {
     @Test
-    fun keyboardStartsTypesInTwoLanguagesAndOpensDictionaryDialog() {
+    fun keyboardStartsTypesInTwoLanguagesAndBackspaceWorks() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
 
@@ -83,7 +83,7 @@ class KeyboardSmokeTest {
         }
         device.waitForIdle()
 
-        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 30_000)
+        val keyboardAppeared = device.wait(Until.hasObject(By.text("فاصله")), 30_000)
         if (!keyboardAppeared) {
             Log.e("SUNDUS_IME_DIAG", "activity_state=[${focusState}]")
             Log.e("SUNDUS_IME_DIAG", "input_method=[${device.executeShellCommand("dumpsys input_method")}]")
@@ -105,13 +105,17 @@ class KeyboardSmokeTest {
         englishKey!!.click()
         assertEquals("English key did not insert text", "ضq", activeEditor.text.toString())
 
-        val dictionaryButton = device.wait(Until.findObject(By.text("📖")), 3_000)
-        assertNotNull("Dictionary toolbar button was not found", dictionaryButton)
-        dictionaryButton!!.click()
+        val backspace = device.wait(Until.findObject(By.text("⌫")), 3_000)
+        assertNotNull("Backspace key was not found", backspace)
+        backspace!!.click()
+        assertEquals("Backspace did not delete the previous character", "ض", activeEditor.text.toString())
 
-        assertTrue(
-            "Dictionary dialog did not appear above the keyboard",
-            device.wait(Until.hasObject(By.text("قاموس او لټون")), 5_000)
-        )
+        backspace.click()
+        assertEquals("Backspace did not delete the remaining character", "", activeEditor.text.toString())
+
+        val spaceKey = device.wait(Until.findObject(By.text("فاصله")), 3_000)
+        assertNotNull("Space key was not found", spaceKey)
+        spaceKey!!.click()
+        assertEquals("Space key did not insert a space", " ", activeEditor.text.toString())
     }
 }
