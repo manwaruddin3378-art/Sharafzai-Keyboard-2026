@@ -46,7 +46,11 @@ class KeyboardFeatureAuditTest {
         }
         assertNotNull("Keyboard test editor view was not created", editor)
         val activeEditor = editor!!
-        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
+        // Re-select after the test Activity is focused; an earlier ime set while the
+        // launcher owns focus may update settings without binding the new service.
+        val focusedSetResult = device.executeShellCommand("ime set $packageName/.KeyboardService")
+        Log.e("SUNDUS_IME_DIAG", "post-focus ime set=[" + focusedSetResult + "] default=[" + device.executeShellCommand("settings get secure default_input_method") + "]")
+        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 30_000)
         if (!keyboardAppeared) {
             Log.e("SUNDUS_IME_DIAG", "input_method=[" + device.executeShellCommand("dumpsys input_method | grep -E 'mCurMethodId|mCurId|mInputShown|mShowRequested|mCurFocusedWindow|mImeWindowVis'") + "]")
             Log.e("SUNDUS_IME_DIAG", "window=[" + device.executeShellCommand("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'") + "]")
