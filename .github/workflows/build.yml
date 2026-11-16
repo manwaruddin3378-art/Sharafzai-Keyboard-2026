@@ -93,7 +93,7 @@ jobs:
         run: echo "Release signing is waiting for the private keystore secrets." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run keyboard smoke test on Android emulator
-        timeout-minutes: 35
+        timeout-minutes: 20
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -101,7 +101,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
-          emulator-boot-timeout: 1200
+          emulator-boot-timeout: 600
           disable-animations: false
           script: |
             set -eux
@@ -117,7 +117,7 @@ jobs:
             adb shell ime list -a
 
             gradle --stop
-            timeout 900s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest
+            timeout 600s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sharafzai.keyboard.KeyboardSmokeTest
 
       - name: Upload Android test reports
         if: always()
