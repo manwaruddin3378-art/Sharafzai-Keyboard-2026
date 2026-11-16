@@ -110,7 +110,9 @@ class KeyboardSmokeTest {
         backspace!!.click()
         assertEquals("Backspace did not delete the previous character", "ض", activeEditor.text.toString())
 
-        backspace.click()
+        val backspaceAgain = device.wait(Until.findObject(By.text("⌫")), 3_000)
+        assertNotNull("Backspace key disappeared after the first deletion", backspaceAgain)
+        backspaceAgain!!.click()
         assertEquals("Backspace did not delete the remaining character", "", activeEditor.text.toString())
 
         val spaceKey = device.wait(Until.findObject(By.text("سندس")), 3_000)
@@ -126,7 +128,9 @@ class KeyboardSmokeTest {
         assertNotNull("Emoji panel did not open", emojiKey)
         emojiKey!!.click()
         assertEquals("Emoji key did not insert", " 😃", activeEditor.text.toString())
-        backspace.click()
+        val emojiBackspace = device.wait(Until.findObject(By.text("⌫")), 3_000)
+        assertNotNull("Backspace key was not available after emoji insertion", emojiBackspace)
+        emojiBackspace!!.click()
         assertEquals("Backspace did not remove emoji", " ", activeEditor.text.toString())
 
         // Quick phrases open as a single dialog, not as a duplicate keyboard panel.
