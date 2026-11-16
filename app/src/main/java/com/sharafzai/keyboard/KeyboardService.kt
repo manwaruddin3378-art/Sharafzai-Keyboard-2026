@@ -698,7 +698,15 @@ class KeyboardService : InputMethodService() {
             0f, 0f, 1.08f, 0f, 13f,
             0f, 0f, 0f, 1f, 0f
         ))))
-        brandRow.addView(brandLogo, LinearLayout.LayoutParams(dp(48), dp(29)))
+        val brandLogoFrame = FrameLayout(this)
+        brandLogoFrame.addView(brandLogo, FrameLayout.LayoutParams(-1, -1))
+        brandLogoFrame.addView(View(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.argb(78, 255, 255, 255), Color.TRANSPARENT)
+            )
+        }, FrameLayout.LayoutParams(-1, -1))
+        brandRow.addView(brandLogoFrame, LinearLayout.LayoutParams(dp(48), dp(29)))
         brandRow.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"
             textSize = 13f
