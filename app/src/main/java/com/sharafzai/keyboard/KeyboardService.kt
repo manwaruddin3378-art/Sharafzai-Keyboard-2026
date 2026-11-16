@@ -622,11 +622,14 @@ class KeyboardService : InputMethodService() {
         Color.rgb(177, 255, 190), Color.rgb(255, 174, 210),
         Color.rgb(211, 190, 255), Color.rgb(255, 195, 139)
     )
+    private var clockTimeView: TextView? = null
     private var dateTimeView: TextView? = null
     private val dateTimeHandler = Handler(Looper.getMainLooper())
     private val dateTimeTicker = object : Runnable {
         override fun run() {
-            dateTimeView?.text = buildDateTimeText()
+            val (clock, dates) = buildDateTimeParts()
+            clockTimeView?.text = clock
+            dateTimeView?.text = dates
             dateTimeHandler.postDelayed(this, 60_000L)
         }
     }
@@ -689,6 +692,7 @@ class KeyboardService : InputMethodService() {
             setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         }
+        clockTimeView = clockView
         dateTimeView = datesView
         dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(27), 0.24f))
         dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(27), 0.76f))
