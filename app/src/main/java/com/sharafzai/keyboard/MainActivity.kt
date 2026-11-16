@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.net.Uri
 import android.os.Build
 import android.view.Gravity
+import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.graphics.Color
 import android.graphics.Typeface
