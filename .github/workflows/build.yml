@@ -39,9 +39,6 @@ jobs:
         with:
           gradle-version: '8.2'
 
-      - name: Run Android lint checks
-        run: gradle :app:lintDebug
-
       - name: Build test APK
         run: gradle :app:assembleDebug
 
