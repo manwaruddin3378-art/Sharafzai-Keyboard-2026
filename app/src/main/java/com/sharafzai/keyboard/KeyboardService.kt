@@ -683,7 +683,7 @@ class KeyboardService : InputMethodService() {
     @Suppress("DEPRECATION")
     private fun buildDateTimeParts(): Pair<String, String> {
         val now = java.util.Date()
-        val clock = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(now)
+        val clock = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault()).format(now)
         val gregorian = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(now)
         if (Build.VERSION.SDK_INT >= 24) {
             val millis = now.time
@@ -742,16 +742,16 @@ class KeyboardService : InputMethodService() {
         val (clockText, datesText) = buildDateTimeParts()
         val clockView = TextView(this).apply {
             text = clockText
-            textSize = 13f
+            textSize = 10.5f
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             maxLines = 1
-            setTextColor(theme.accent)
+            setTextColor(Color.BLACK)
             typeface = Typeface.create("sans-serif-bold", Typeface.BOLD)
             setPadding(dp(3), 0, dp(6), 0)
         }
         val datesView = TextView(this).apply {
             text = datesText
-            textSize = 8.5f
+            textSize = 7.5f
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
             maxLines = 1
             isSingleLine = true
@@ -761,9 +761,9 @@ class KeyboardService : InputMethodService() {
         }
         clockTimeView = clockView
         dateTimeView = datesView
-        dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(27), 0.24f))
-        dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(27), 0.76f))
-        root.addView(dateTimeRow, rowParams(27))
+        dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(24), 0.24f))
+        dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(24), 0.76f))
+        root.addView(dateTimeRow, rowParams(24))
         dateTimeHandler.removeCallbacks(dateTimeTicker)
         dateTimeHandler.postDelayed(dateTimeTicker, 60_000L)
 
