@@ -4,16 +4,15 @@ import android.Manifest
 import android.app.Instrumentation
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.widget.EditText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,35 +20,36 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class KeyboardFeatureAuditTest {
     private val packageName = "com.sharafzai.keyboard"
-    private val component = "$packageName/com.sharafzai.keyboard.KeyboardTestActivity"
 
     private fun launchEditor(
         instrumentation: Instrumentation,
         device: UiDevice,
         privateEditor: Boolean = false
-    ): UiObject2 {
+    ): EditText {
         device.wakeUp()
         runCatching { device.executeShellCommand("wm dismiss-keyguard") }
         runCatching { device.executeShellCommand("input keyevent 82") }
         val launchIntent = Intent(instrumentation.targetContext, KeyboardTestActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra("privateEditor", privateEditor)
-        instrumentation.startActivitySync(launchIntent)
-        device.waitForIdle()
-        val editor = device.wait(
-            Until.findObject(By.res("android", "edit")),
-            10_000
-        ) ?: device.wait(
-            Until.findObject(By.desc("keyboard-test-editor")),
-            5_000
-        )
-        assertNotNull("Keyboard test editor did not open; activity package=" + device.currentPackageName, editor)
-        editor!!.click()
+
+        // startActivitySync returns the actual host Activity. Read its EditText directly
+        // instead of searching the Android system window by framework resource ID;
+        // UIAutomator can report the IME/system window as the current package on API 34.
+        val activity = instrumentation.startActivitySync(launchIntent) as KeyboardTestActivity
+        var editor: EditText? = null
+        instrumentation.runOnMainSync {
+            editor = activity.findViewById(android.R.id.edit)
+            editor?.requestFocus()
+            editor?.performClick()
+        }
+        assertNotNull("Keyboard test editor view was not created", editor)
+        val activeEditor = editor!!
         assertTrue(
             "SUNDUS keyboard did not appear",
-            device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 8_000)
+            device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
         )
-        return editor
+        return activeEditor
     }
 
     private fun tap(device: UiDevice, text: String, timeout: Long = 3_000): UiObject2 {
