@@ -47,18 +47,21 @@ class KeyboardSmokeTest {
         repeat(40) {
             instrumentation.waitForIdleSync()
             instrumentation.runOnMainSync {
-                if (activeEditor.isAttachedToWindow && activity.hasWindowFocus()) {
+                // The hosted emulator can report window focus late even after the
+                // Activity's editor is attached. Obtain its real screen bounds first;
+                // the subsequent UiDevice tap brings the app window to the foreground.
+                if (activeEditor.isAttachedToWindow && activeEditor.width > 0 && activeEditor.height > 0) {
                     val location = IntArray(2)
                     activeEditor.getLocationOnScreen(location)
                     tapX = location[0] + activeEditor.width / 2
                     tapY = location[1] + activeEditor.height / 2
                 }
             }
-            if (tapX >= 0 && tapY >= 0) return@repeat
+            if (tapX >= 0 && tapY >= 0) break
             SystemClock.sleep(250)
         }
         assertTrue(
-            "Test editor did not attach to a focused window",
+            "Test editor did not attach with measurable screen bounds",
             tapX >= 0 && tapY >= 0
         )
         assertTrue("Could not tap the test editor", device.click(tapX, tapY))
