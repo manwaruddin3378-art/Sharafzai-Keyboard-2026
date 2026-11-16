@@ -106,18 +106,8 @@ jobs:
             adb start-server
             timeout 180s adb wait-for-device
 
-            # Wait until Android properties and package services are responsive.
-            # ADB may report an attached emulator before the framework has finished booting.
-            for attempt in $(seq 1 90); do
-              SDK_LEVEL="$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r' || true)"
-              BOOT_STATE="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
-              if [ "$SDK_LEVEL" = "30" ] && [ "$BOOT_STATE" = "1" ]; then
-                echo "Emulator ready: API $SDK_LEVEL"
-                break
-              fi
-              echo "Waiting for responsive Android framework (attempt $attempt, sdk=$SDK_LEVEL, boot=$BOOT_STATE)"
-              sleep 5
-            done
+            # Wait inside the emulator shell so the host runner does not split a loop.
+            timeout 120s adb shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 2; done'
             test "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" = "30"
             test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
             adb shell pm list packages >/dev/null
