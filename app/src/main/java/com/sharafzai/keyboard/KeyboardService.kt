@@ -184,6 +184,7 @@ class KeyboardService : InputMethodService() {
     override fun onDestroy() {
         Log.e("SUNDUS_IME_LIFECYCLE", "KeyboardService onDestroy")
         handler.removeCallbacksAndMessages(null)
+        dateTimeHandler.removeCallbacksAndMessages(null)
         stopDhikrOverlay()
         runCatching { unregisterReceiver(voiceReceiver) }
         super.onDestroy()
@@ -674,6 +675,39 @@ class KeyboardService : InputMethodService() {
         }
     }
     private var dhikrView: TextView? = null
+    private var dateTimeView: TextView? = null
+    private val dateTimeHandler = Handler(Looper.getMainLooper())
+    private val dateTimeTicker = object : Runnable {
+        override fun run() {
+            dateTimeView?.text = buildDateTimeText()
+            dateTimeHandler.postDelayed(this, 60_000L)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun buildDateTimeText(): String {
+        val now = java.util.Date()
+        val clock = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(now)
+        val gregorian = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(now)
+        if (Build.VERSION.SDK_INT >= 24) {
+            val millis = now.time
+            val persian = android.icu.util.Calendar.getInstance(
+                android.icu.util.ULocale("en_US@calendar=persian")
+            ).apply { timeInMillis = millis }
+            val hijri = android.icu.util.Calendar.getInstance(
+                android.icu.util.ULocale("en_US@calendar=islamic-umalqura")
+            ).apply { timeInMillis = millis }
+            fun dateOf(calendar: android.icu.util.Calendar): String =
+                "%02d/%02d/%04d".format(
+                    java.util.Locale.US,
+                    calendar.get(android.icu.util.Calendar.DATE),
+                    calendar.get(android.icu.util.Calendar.MONTH) + 1,
+                    calendar.get(android.icu.util.Calendar.YEAR)
+                )
+            return "🕒 $clock   |   قمري ${dateOf(hijri)}   |   شمسي ${dateOf(persian)}   |   میلادي $gregorian"
+        }
+        return "🕒 $clock   |   قمري —   |   شمسي —   |   میلادي $gregorian"
+    }
 
     private fun buildKeyboard(): View {
         glideKeys.clear()
@@ -703,6 +737,22 @@ class KeyboardService : InputMethodService() {
         }
         dhikrView = dhikrStrip
         root.addView(dhikrStrip, rowParams(42))
+
+        val dateTimeStrip = TextView(this).apply {
+            text = buildDateTimeText()
+            textSize = 10.5f
+            gravity = Gravity.CENTER
+            maxLines = 1
+            isSingleLine = true
+            setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setPadding(dp(2), 0, dp(2), 0)
+        }
+        dateTimeView = dateTimeStrip
+        root.addView(dateTimeStrip, rowParams(25))
+        dateTimeHandler.removeCallbacks(dateTimeTicker)
+        dateTimeHandler.postDelayed(dateTimeTicker, 60_000L)
+
         handler.removeCallbacks(dhikrTicker)
         handler.postDelayed(dhikrTicker, 3500)
         val languageStrip = LinearLayout(this).apply {
@@ -788,6 +838,7 @@ class KeyboardService : InputMethodService() {
         addSpecial(toolsRow, "لټون", 1f, 34) { showUniversalSearchDialog() }
         addSpecial(toolsRow, "ژباړه", 1f, 34) { showOfflineTranslationPicker() }
         addSpecial(toolsRow, "قاموس", 1f, 34) { showDictionaryHome() }
+        addSpecial(toolsRow, "🎨 رنګونه", 1.15f, 34) { showThemePicker() }
         root.addView(toolsRow, rowParams(36))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
