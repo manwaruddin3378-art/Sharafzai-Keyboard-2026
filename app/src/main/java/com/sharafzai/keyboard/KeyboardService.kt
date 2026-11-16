@@ -566,7 +566,7 @@ class KeyboardService : InputMethodService() {
 
         val dhikrStrip = TextView(this).apply {
             text = adhkar[dhikrIndex]
-            textSize = 15f
+            textSize = 18f
             gravity = Gravity.CENTER
             setTextColor(dhikrColors[dhikrIndex % dhikrColors.size])
             typeface = Typeface.DEFAULT_BOLD
@@ -577,102 +577,9 @@ class KeyboardService : InputMethodService() {
             ).apply { cornerRadius = dp(9).toFloat() }
         }
         dhikrView = dhikrStrip
-        root.addView(dhikrStrip, rowParams(27))
+        root.addView(dhikrStrip, rowParams(34))
         handler.removeCallbacks(dhikrTicker)
         handler.postDelayed(dhikrTicker, 3500)
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(5), 0, dp(5), 0)
-            background = GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(3, 74, 91), Color.rgb(8, 35, 75))
-            ).apply { cornerRadius = dp(11).toFloat() }
-        }
-
-        val brandLogo = TextView(this).apply {
-            text = "☾\nسندس\nSUNDUS"
-            textSize = 9f
-            gravity = Gravity.CENTER
-            setTextColor(Color.rgb(255, 218, 116))
-            typeface = Typeface.create("serif", Typeface.BOLD)
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(Color.rgb(4, 31, 48), Color.rgb(1, 15, 31))
-            ).apply {
-                shape = GradientDrawable.OVAL
-                setStroke(dp(2), Color.rgb(226, 181, 67))
-            }
-            contentDescription = "SUNDUS سندس"
-        }
-        header.addView(brandLogo, LinearLayout.LayoutParams(dp(52), dp(50)))
-
-        val title = TextView(this).apply {
-            text = when (language) {
-                0 -> "🌙 SUNDUS  |  پښتو"
-                1 -> "🌙 SUNDUS  |  العربية"
-                2 -> "🌙 SUNDUS  |  ENGLISH"
-                3 -> "🌙 SUNDUS  |  دری"
-                else -> "🌙 SUNDUS  |  دری"
-            }
-            textSize = 14f
-            letterSpacing = 0.03f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-        }
-
-        header.addView(
-            title,
-            LinearLayout.LayoutParams(0, dp(29), 1f)
-        )
-
-        addSpecial(header, "🌐", 0.75f, 29) {
-            val languageNames = arrayOf("پښتو", "دري", "عربي", "English")
-            val ids = intArrayOf(0, 3, 1, 2)
-            val selected = ids.indexOf(language).coerceAtLeast(0)
-            ImeDialogBuilder()
-                .setTitle("د کیبورډ ژبه وټاکئ")
-                .setSingleChoiceItems(languageNames, selected) { dialog, which ->
-                    language = ids[which]
-                    shifted = false
-                    caps = false
-                    lastShiftTapAt = 0L
-                    saveSettings()
-                    dialog.dismiss()
-                    refreshKeyboard()
-                }
-                .setNegativeButton("بند", null)
-                .show()
-        }
-        addSpecial(header, "😊", 0.75f, 29) {
-            emojiPanelVisible = !emojiPanelVisible
-            symbolsPanelVisible = false
-            phrasePanelVisible = false
-            settingsPanelVisible = false
-            clipboardPanelVisible = false
-            refreshKeyboard()
-        }
-        addSpecial(header, "☪\nجملې", 0.9f, 34) {
-            emojiPanelVisible = false
-            symbolsPanelVisible = false
-            settingsPanelVisible = false
-            clipboardPanelVisible = false
-            showPhraseWindow()
-        }
-        addSpecial(header, "🎨", 0.75f, 29) { showThemePicker() }
-        addSpecial(header, "⚙", 0.75f, 29) {
-            settingsPanelVisible = !settingsPanelVisible
-            if (settingsPanelVisible) {
-                emojiPanelVisible = false
-                symbolsPanelVisible = false
-                clipboardPanelVisible = false
-                phrasePanelVisible = false
-            }
-            refreshKeyboard()
-        }
-        root.addView(header, rowParams(40))
-
         val languageStrip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -705,42 +612,12 @@ class KeyboardService : InputMethodService() {
         }
 
 
-        val topTools = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        addSpecial(topTools, "📋", 1f, 32) {
-            clipboardPanelVisible = !clipboardPanelVisible
-            if (clipboardPanelVisible) {
-                emojiPanelVisible = false
-                symbolsPanelVisible = false
-                settingsPanelVisible = false
-                phrasePanelVisible = false
-            }
-            refreshKeyboard()
-        }
-        addSpecial(topTools, "⭐ متن", 1f, 32) { showAutoTextEditor() }
-        addSpecial(topTools, "🌐", 1f, 32) { showOfflineTranslationPicker() }
-        addSpecial(topTools, "📖", 1f, 32) { showDictionaryHome() }
-        addSpecial(topTools, "🔎", 1f, 32) { showUniversalSearchDialog() }
-        addSpecial(topTools, "🎙", 1f, 32) {
-            if (isRestrictedEditorField()) {
-                Toast.makeText(this, "په پټنوم او ځانګړو خانو کې غږیز لیکل بند دي.", Toast.LENGTH_SHORT).show()
-            } else {
-                startActivity(Intent(this, VoiceInputActivity::class.java)
-                    .putExtra("language", language)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-        }
-        addSpecial(topTools, "🎨", 1f, 32) { showThemePicker() }
-
         suggestionContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             setBackgroundColor(theme.suggestion)
         }
 
-        root.addView(topTools, rowParams(32))
         root.addView(languageStrip, rowParams(30))
 
         root.addView(suggestionContainer, rowParams(26))
@@ -802,7 +679,12 @@ class KeyboardService : InputMethodService() {
             gravity = Gravity.CENTER
         }
 
-        // Three equal visual zones keep the SUNDUS space key exactly centered.
+        // Balanced bottom row: compact Space, usable punctuation and a dedicated Backspace.
+        val bottom = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
         val leftZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -823,26 +705,26 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(centerZone, "✦ SUNDUS | سندس ✦", 1f, 44) { expandAutoTextAndSpace() }
+        addSpecial(centerZone, "فاصله", 1f, 44) { expandAutoTextAndSpace() }
 
         val rightZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(rightZone, "⌄", 0.8f, 44) { requestHideSelf(0) }
-        addSpecial(rightZone, if (language == 2) "," else "،", 0.55f, 44) {
+        addSpecial(rightZone, if (language == 2) "," else "،", 0.8f, 44) {
             currentInputConnection?.commitText(if (language == 2) ", " else "، ", 1)
             updateSuggestions()
         }
-        addSpecial(rightZone, ".", 0.55f, 44) {
+        addSpecial(rightZone, ".", 0.8f, 44) {
             currentInputConnection?.commitText(". ", 1)
             updateSuggestions()
         }
-        addSpecial(rightZone, "↵", 0.8f, 44) { performEnterAction() }
+        addSpecial(rightZone, "⌫", 1.35f, 44) { deletePreviousCharacter() }
+        addSpecial(rightZone, "↵", 1.0f, 44) { performEnterAction() }
 
-        bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 1f))
-        bottom.addView(centerZone, LinearLayout.LayoutParams(0, dp(46), 2.4f))
-        bottom.addView(rightZone, LinearLayout.LayoutParams(0, dp(46), 1f))
+        bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 0.72f))
+        bottom.addView(centerZone, LinearLayout.LayoutParams(0, dp(46), 1.18f))
+        bottom.addView(rightZone, LinearLayout.LayoutParams(0, dp(46), 2.10f))
         root.addView(bottom, rowParams(46))
 
         return root
