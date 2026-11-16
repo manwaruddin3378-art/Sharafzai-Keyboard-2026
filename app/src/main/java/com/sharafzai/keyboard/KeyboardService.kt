@@ -634,6 +634,49 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(26))
 
+        // Restore direct access to the keyboard tools. These controls call the
+        // existing, offline-capable panels and dialogs instead of dead toolbar icons.
+        val toolsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        addSpecial(toolsRow, "😀", 1f, 34) {
+            symbolsPanelVisible = false
+            clipboardPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = false
+            emojiPanelVisible = !emojiPanelVisible
+            refreshKeyboard()
+        }
+        addSpecial(toolsRow, "جملې", 1f, 34) {
+            emojiPanelVisible = false
+            clipboardPanelVisible = false
+            symbolsPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = true
+            showPhraseWindow()
+        }
+        addSpecial(toolsRow, "📋", 1f, 34) {
+            emojiPanelVisible = false
+            symbolsPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = false
+            clipboardPanelVisible = !clipboardPanelVisible
+            refreshKeyboard()
+        }
+        addSpecial(toolsRow, "⚙", 1f, 34) {
+            emojiPanelVisible = false
+            clipboardPanelVisible = false
+            symbolsPanelVisible = false
+            phrasePanelVisible = false
+            settingsPanelVisible = !settingsPanelVisible
+            refreshKeyboard()
+        }
+        addSpecial(toolsRow, "لټون", 1f, 34) { showUniversalSearchDialog() }
+        addSpecial(toolsRow, "ژباړه", 1f, 34) { showOfflineTranslationPicker() }
+        addSpecial(toolsRow, "قاموس", 1f, 34) { showDictionaryHome() }
+        root.addView(toolsRow, rowParams(36))
+
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
