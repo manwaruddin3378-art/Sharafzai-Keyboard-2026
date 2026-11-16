@@ -93,12 +93,13 @@ jobs:
         timeout-minutes: 35
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          target: google_apis
+          # Android 11 uses a lighter system image and is more stable on hosted runners without KVM.
+          api-level: 30
+          target: default
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2
-          emulator-boot-timeout: 1200
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 1536 -cores 2 -no-metrics
+          emulator-boot-timeout: 900
           disable-animations: false
           script: |
             set -eux
