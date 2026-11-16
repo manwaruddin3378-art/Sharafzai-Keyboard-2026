@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import android.view.WindowManager
+import android.view.WindowInsets
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 
@@ -45,7 +46,10 @@ class KeyboardTestActivity : Activity() {
                 if (!isFinishing && editor.hasFocus() && editor.isAttachedToWindow) {
                     editor.requestFocus()
                     manager.restartInput(editor)
-                    manager.showSoftInput(editor, InputMethodManager.SHOW_FORCED)
+                    manager.showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+                    if (android.os.Build.VERSION.SDK_INT >= 30) {
+                        window.insetsController?.show(WindowInsets.Type.ime())
+                    }
                 }
             }, delay)
         }
