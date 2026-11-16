@@ -59,6 +59,12 @@ class DhikrOverlayService : Service() {
                 .withEndAction {
                     index = (index + 1) % adhkar.size
                     view.text = adhkar[index]
+                    val position = prefs.getInt("dhikrPosition", 0).coerceIn(0, 2)
+                    view.gravity = Gravity.CENTER_VERTICAL or when (position) {
+                        0 -> Gravity.END
+                        1 -> Gravity.START
+                        else -> if (index % 2 == 0) Gravity.END else Gravity.START
+                    }
                     view.translationX = -direction * travel
                     view.rotationY = -direction * 24f
                     view.scaleX = 0.94f
@@ -121,10 +127,15 @@ class DhikrOverlayService : Service() {
         val view = TextView(this).apply {
             text = adhkar[index]
             textSize = prefs.getInt("dhikrFontSize", 18).coerceIn(16, 32).toFloat()
-            gravity = Gravity.CENTER
+            val position = prefs.getInt("dhikrPosition", 0).coerceIn(0, 2)
+            gravity = Gravity.CENTER_VERTICAL or when (position) {
+                0 -> Gravity.END
+                1 -> Gravity.START
+                else -> Gravity.END
+            }
             maxLines = 2
             includeFontPadding = false
-            setPadding(dp(10), dp(3), dp(10), dp(3))
+            setPadding(dp(18), dp(3), dp(18), dp(3))
             typeface = Typeface.create("serif", Typeface.BOLD)
             setTextColor(Color.BLACK)
             setShadowLayer(dp(4).toFloat(), 0f, 0f, Color.WHITE)
