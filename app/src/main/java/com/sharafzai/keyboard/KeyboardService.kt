@@ -605,66 +605,14 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun startDhikrOverlayIfAllowed() {
-        if (!dhikrPreferences().getBoolean("dhikrEnabled", true)) {
-            stopDhikrOverlay()
-            return
-        }
-        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) return
-        val manager = getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
-        val attached = floatingDhikrView
-        if (attached?.isAttachedToWindow == true) {
-            attached.textSize = dhikrFontSize()
-            (attached.layoutParams as? android.view.WindowManager.LayoutParams)?.let { params ->
-                params.y = dhikrYOffset()
-                runCatching { manager.updateViewLayout(attached, params) }
-            }
-            floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
-            floatingDhikrHandler.postDelayed(floatingDhikrTicker, dhikrIntervalMs())
-            return
-        }
-        val text = TextView(this).apply {
-            text = adhkar[floatingDhikrIndex]
-            textSize = dhikrFontSize()
-            gravity = Gravity.CENTER
-            maxLines = 2
-            includeFontPadding = false
-            setPadding(dp(10), dp(3), dp(10), dp(3))
-            typeface = Typeface.create("serif", Typeface.BOLD)
-            setTextColor(Color.BLACK)
-            setShadowLayer(dp(3).toFloat(), 0f, 0f, Color.WHITE)
-            // Deliberately no background, card, panel, or backdrop: only the dhikr text is visible.
-            setBackgroundColor(Color.TRANSPARENT)
-            isClickable = false
-            isFocusable = false
-        }
-        val windowType = if (Build.VERSION.SDK_INT >= 26) {
-            android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        val intent = Intent(this, DhikrOverlayService::class.java)
+        val enabled = dhikrPreferences().getBoolean("dhikrEnabled", true)
+        val permission = Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(this)
+        if (enabled && permission) {
+            runCatching { startService(intent) }
+                .onFailure { Log.w("SUNDUS_DHIKR", "Could not start adhkar service", it) }
         } else {
-            @Suppress("DEPRECATION")
-            android.view.WindowManager.LayoutParams.TYPE_PHONE
-        }
-        val params = android.view.WindowManager.LayoutParams(
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-            android.view.WindowManager.LayoutParams.WRAP_CONTENT,
-            windowType,
-            android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = dhikrYOffset()
-            horizontalMargin = 0f
-            verticalMargin = 0f
-        }
-        runCatching {
-            manager.addView(text, params)
-            floatingDhikrView = text
-            floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
-            floatingDhikrHandler.postDelayed(floatingDhikrTicker, dhikrIntervalMs())
-        }.onFailure {
-            Log.w("SUNDUS_DHIKR", "Could not show floating dhikr overlay", it)
-            floatingDhikrView = null
+            runCatching { stopService(intent) }
         }
     }
 
@@ -745,9 +693,9 @@ class KeyboardService : InputMethodService() {
             contentDescription = "SUNDUS logo"
         }
         brandLogo.setColorFilter(android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(floatArrayOf(
-            1.06f, 0f, 0f, 0f, 7f,
-            0f, 1.06f, 0f, 0f, 7f,
-            0f, 0f, 1.06f, 0f, 7f,
+            1.08f, 0f, 0f, 0f, 13f,
+            0f, 1.08f, 0f, 0f, 13f,
+            0f, 0f, 1.08f, 0f, 13f,
             0f, 0f, 0f, 1f, 0f
         ))))
         brandRow.addView(brandLogo, LinearLayout.LayoutParams(dp(48), dp(29)))
@@ -769,28 +717,29 @@ class KeyboardService : InputMethodService() {
         val (clockText, datesText) = buildDateTimeParts()
         val clockView = TextView(this).apply {
             text = clockText
-            textSize = 12f
+            textSize = 13.5f
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
             maxLines = 1
-            setTextColor(Color.rgb(255, 236, 170))
+            setTextColor(Color.rgb(255, 248, 205))
             typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
             setShadowLayer(dp(2).toFloat(), 0f, 0f, Color.WHITE)
             setPadding(dp(3), 0, dp(6), 0)
         }
         val datesView = TextView(this).apply {
             text = datesText
-            textSize = 9f
+            textSize = 10.5f
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
             maxLines = 1
             isSingleLine = true
             ellipsize = android.text.TextUtils.TruncateAt.END
             setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(38, 45, 55))
-            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
+            setShadowLayer(dp(1).toFloat(), 0f, 0f, Color.WHITE)
         }
         clockTimeView = clockView
         dateTimeView = datesView
-        dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(24), 0.24f))
-        dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(24), 0.76f))
+        dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(24), 0.28f))
+        dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(24), 0.72f))
         root.addView(dateTimeRow, rowParams(24))
         dateTimeHandler.removeCallbacks(dateTimeTicker)
         dateTimeHandler.postDelayed(dateTimeTicker, 60_000L)
@@ -2655,8 +2604,8 @@ class KeyboardService : InputMethodService() {
                 }
             } else roundedBackground(theme.special, dp(12))
             if (label.contains("SUNDUS") || label == "سندس") {
-                setTextColor(Color.rgb(255, 218, 116))
-                textSize = 17f
+                setTextColor(Color.rgb(255, 226, 145))
+                textSize = 19f
                 typeface = Typeface.create("serif", Typeface.BOLD)
             }
             elevation = dp(4).toFloat()
