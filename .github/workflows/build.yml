@@ -105,9 +105,15 @@ jobs:
             adb start-server
             timeout 180s adb wait-for-device
 
+            # Disable the hosted emulator's package-verifier wait, which can time out
+            # and reject a valid locally-built APK before instrumentation starts.
+            adb shell settings put global package_verifier_enable 0
+            adb shell settings put global verifier_verify_adb_installs 0
+            adb shell settings put global package_verifier_timeout 0
+
             # Install the actual keyboard APK explicitly before instrumentation.
             # This verifies that PackageManager registers the IME service before tests.
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install --no-streaming -r app/build/outputs/apk/debug/app-debug.apk
             adb shell pm path com.sharafzai.keyboard
             adb shell dumpsys package com.sharafzai.keyboard | grep -A8 -B4 'KeyboardService' || true
             adb shell cmd package query-services -a android.view.InputMethod || true
