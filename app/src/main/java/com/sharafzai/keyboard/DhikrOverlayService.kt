@@ -46,13 +46,31 @@ class DhikrOverlayService : Service() {
                 stopSelf()
                 return
             }
-            index = (index + 1) % adhkar.size
+            // Slide the current dhikr out to one side, then bring the next one
+            // in from the opposite side with a restrained 3D depth effect.
+            val travel = resources.displayMetrics.widthPixels.toFloat() + dp(48)
+            val direction = if (index % 2 == 0) 1f else -1f
             view.animate().cancel()
-            view.animate().alpha(0f).setDuration(250L).withEndAction {
-                view.text = adhkar[index]
-                view.alpha = 0f
-                view.animate().alpha(1f).setDuration(350L).start()
-            }.start()
+            view.animate()
+                .alpha(0f)
+                .translationX(direction * travel)
+                .rotationY(direction * 24f)
+                .setDuration(520L)
+                .withEndAction {
+                    index = (index + 1) % adhkar.size
+                    view.text = adhkar[index]
+                    view.translationX = -direction * travel
+                    view.rotationY = -direction * 24f
+                    view.scaleX = 0.94f
+                    view.alpha = 0.92f
+                    view.animate()
+                        .alpha(1f)
+                        .translationX(0f)
+                        .rotationY(0f)
+                        .scaleX(1f)
+                        .setDuration(760L)
+                        .start()
+                }.start()
             handler.postDelayed(this, prefs.getInt("dhikrIntervalMs", 10000).coerceIn(2500, 20000).toLong())
         }
     }
