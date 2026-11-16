@@ -2,6 +2,7 @@ package com.sharafzai.keyboard
 
 import android.content.Intent
 import android.widget.EditText
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -20,8 +21,9 @@ class KeyboardSmokeTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
 
-        device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
-        device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
+        val enableResult = device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
+        val setResult = device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
+        Log.e("SUNDUS_IME_DIAG", "enable=[" + enableResult + "] set=[" + setResult + "] list=[" + device.executeShellCommand("ime list -s") + "] default=[" + device.executeShellCommand("settings get secure default_input_method") + "]")
         device.wakeUp()
         runCatching { device.executeShellCommand("wm dismiss-keyguard") }
         runCatching { device.executeShellCommand("input keyevent 82") }
@@ -37,10 +39,12 @@ class KeyboardSmokeTest {
         assertNotNull("Test editor view was not created", editor)
         val activeEditor = editor!!
 
-        assertTrue(
-            "SUNDUS keyboard did not appear",
-            device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
-        )
+        val keyboardAppeared = device.wait(Until.hasObject(By.text("✦ SUNDUS | سندس ✦")), 15_000)
+        if (!keyboardAppeared) {
+            Log.e("SUNDUS_IME_DIAG", "input_method=[" + device.executeShellCommand("dumpsys input_method | grep -E 'mCurMethodId|mCurId|mInputShown|mShowRequested|mCurFocusedWindow|mImeWindowVis'") + "]")
+            Log.e("SUNDUS_IME_DIAG", "window=[" + device.executeShellCommand("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'") + "]")
+        }
+        assertTrue("SUNDUS keyboard did not appear", keyboardAppeared)
 
         val pashtoKey = device.wait(Until.findObject(By.text("ض")), 3_000)
         assertNotNull("Pashto key was not found", pashtoKey)
