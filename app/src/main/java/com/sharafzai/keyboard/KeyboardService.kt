@@ -612,31 +612,91 @@ class KeyboardService : InputMethodService() {
         Color.rgb(177, 255, 190), Color.rgb(255, 174, 210),
         Color.rgb(211, 190, 255), Color.rgb(255, 195, 139)
     )
-    private var clockTimeView: TextView? = null
     private var dateTimeView: TextView? = null
     private val dateTimeHandler = Handler(Looper.getMainLooper())
     private val dateTimeTicker = object : Runnable {
         override fun run() {
-            val (clock, dates) = buildDateTimeParts()
-            clockTimeView?.text = clock
-            dateTimeView?.text = dates
+            dateTimeView?.text = buildDateTimeParts()
+            rootClockView?.invalidate()
             dateTimeHandler.postDelayed(this, 60_000L)
+        }
+    }
+    private var rootClockView: ClassicClockView? = null
+
+    private inner class ClassicClockView(context: Context) : View(context) {
+        private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val tz = java.util.TimeZone.getTimeZone("Asia/Kabul")
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            val side = minOf(width, height).toFloat()
+            if (side <= 0f) return
+            val cx = width / 2f
+            val cy = height / 2f
+            val radius = side * 0.46f
+            p.style = Paint.Style.FILL
+            p.color = Color.rgb(5, 31, 61)
+            canvas.drawCircle(cx, cy, radius, p)
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = dp(2).toFloat()
+            p.color = Color.rgb(226, 181, 67)
+            canvas.drawCircle(cx, cy, radius, p)
+            for (i in 0 until 60) {
+                val angle = Math.PI * i / 30.0 - Math.PI / 2.0
+                val major = i % 5 == 0
+                val outer = radius * 0.86f
+                val inner = radius * if (major) 0.69f else 0.78f
+                p.strokeWidth = dp(if (major) 1.5f else 0.7f).toFloat()
+                p.color = if (major) Color.rgb(255, 225, 151) else Color.rgb(190, 207, 220)
+                canvas.drawLine(
+                    cx + (inner * kotlin.math.cos(angle)).toFloat(),
+                    cy + (inner * kotlin.math.sin(angle)).toFloat(),
+                    cx + (outer * kotlin.math.cos(angle)).toFloat(),
+                    cy + (outer * kotlin.math.sin(angle)).toFloat(), p
+                )
+            }
+            val cal = java.util.Calendar.getInstance(tz)
+            val minute = cal.get(java.util.Calendar.MINUTE)
+            val hour = cal.get(java.util.Calendar.HOUR)
+            val second = cal.get(java.util.Calendar.SECOND)
+            fun hand(value: Float, length: Float, color: Int, stroke: Float) {
+                val angle = Math.PI * value / 30.0 - Math.PI / 2.0
+                p.color = color
+                p.strokeWidth = dp(stroke).toFloat()
+                p.strokeCap = Paint.Cap.ROUND
+                canvas.drawLine(cx, cy,
+                    cx + (length * kotlin.math.cos(angle)).toFloat(),
+                    cy + (length * kotlin.math.sin(angle)).toFloat(), p)
+            }
+            hand(hour * 5f + minute / 12f, radius * 0.48f, Color.rgb(255, 226, 158), 2.8f)
+            hand(minute.toFloat(), radius * 0.69f, Color.WHITE, 1.8f)
+            hand(second.toFloat(), radius * 0.76f, Color.rgb(67, 220, 207), 0.9f)
+            p.style = Paint.Style.FILL
+            p.color = Color.rgb(226, 181, 67)
+            canvas.drawCircle(cx, cy, dp(2.4f), p)
         }
     }
 
     @Suppress("DEPRECATION")
-    private fun buildDateTimeParts(): Pair<String, String> {
+    private fun buildDateTimeParts(): String {
+        val tz = java.util.TimeZone.getTimeZone("Asia/Kabul")
         val now = java.util.Date()
-        val clock = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US).format(now)
-        val gregorian = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(now)
+        val gregorian = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).apply {
+            timeZone = tz
+        }.format(now)
         if (Build.VERSION.SDK_INT >= 24) {
             val millis = now.time
             val persian = android.icu.util.Calendar.getInstance(
                 android.icu.util.ULocale("en_US@calendar=persian")
-            ).apply { timeInMillis = millis }
+            ).apply {
+                timeZone = android.icu.util.TimeZone.getTimeZone("Asia/Kabul")
+                timeInMillis = millis
+            }
             val hijri = android.icu.util.Calendar.getInstance(
                 android.icu.util.ULocale("en_US@calendar=islamic-umalqura")
-            ).apply { timeInMillis = millis }
+            ).apply {
+                timeZone = android.icu.util.TimeZone.getTimeZone("Asia/Kabul")
+                timeInMillis = millis
+            }
             fun dateOf(calendar: android.icu.util.Calendar): String =
                 "%02d/%02d/%04d".format(
                     java.util.Locale.US,
@@ -644,9 +704,9 @@ class KeyboardService : InputMethodService() {
                     calendar.get(android.icu.util.Calendar.MONTH) + 1,
                     calendar.get(android.icu.util.Calendar.YEAR)
                 )
-            return clock to ("قمري " + dateOf(hijri) + "  •  شمسي " + dateOf(persian) + "  •  میلادي " + gregorian)
+            return "قمري " + dateOf(hijri) + "  •  شمسي " + dateOf(persian) + "  •  میلادي " + gregorian
         }
-        return clock to ("قمري —  •  شمسي —  •  میلادي " + gregorian)
+        return "قمري —  •  شمسي —  •  میلادي " + gregorian
     }
 
     private fun buildKeyboard(): View {
@@ -691,11 +751,11 @@ class KeyboardService : InputMethodService() {
 
         val brandRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(4), 0, dp(4), 0)
         }
         val brandLogo = TextView(this).apply {
-            text = "سندس\nSUNDUS"
+            text = "سندس\\nSUNDUS"
             textSize = 9.5f
             gravity = Gravity.CENTER
             maxLines = 2
@@ -731,28 +791,21 @@ class KeyboardService : InputMethodService() {
             typeface = Typeface.create("serif", Typeface.BOLD)
             setPadding(dp(5), 0, dp(5), 0)
         }, LinearLayout.LayoutParams(-2, dp(25)))
-        root.addView(brandRow, rowParams(44))
+        brandRow.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+        val analogClock = ClassicClockView(this).apply {
+            contentDescription = "کلاسیک ساعت"
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        }
+        rootClockView = analogClock
+        brandRow.addView(analogClock, LinearLayout.LayoutParams(dp(50), dp(50)).apply {
+            setMargins(dp(3), dp(1), dp(1), dp(1))
+        })
+        root.addView(brandRow, rowParams(52))
 
-        val dateTimeRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(5), 0, dp(5), 0)
-        }
-        val (clockText, datesText) = buildDateTimeParts()
-        val clockView = TextView(this).apply {
-            text = clockText
-            textSize = 13.5f
-            gravity = Gravity.CENTER_VERTICAL or Gravity.START
-            maxLines = 1
-            setTextColor(Color.rgb(255, 248, 205))
-            typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
-            setShadowLayer(dp(2).toFloat(), 0f, 0f, Color.WHITE)
-            setPadding(dp(3), 0, dp(6), 0)
-        }
         val datesView = TextView(this).apply {
-            text = datesText
+            text = buildDateTimeParts()
             textSize = 10.5f
-            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            gravity = Gravity.CENTER
             maxLines = 1
             isSingleLine = true
             ellipsize = android.text.TextUtils.TruncateAt.END
@@ -760,13 +813,10 @@ class KeyboardService : InputMethodService() {
             typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
             setShadowLayer(dp(1).toFloat(), 0f, 0f, Color.WHITE)
         }
-        clockTimeView = clockView
         dateTimeView = datesView
-        dateTimeRow.addView(clockView, LinearLayout.LayoutParams(0, dp(24), 0.28f))
-        dateTimeRow.addView(datesView, LinearLayout.LayoutParams(0, dp(24), 0.72f))
-        root.addView(dateTimeRow, rowParams(24))
+        root.addView(datesView, rowParams(22))
         dateTimeHandler.removeCallbacks(dateTimeTicker)
-        dateTimeHandler.postDelayed(dateTimeTicker, 60_000L)
+        dateTimeHandler.postDelayed(dateTimeTicker, 1_000L)
 
         val languageStrip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
