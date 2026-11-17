@@ -730,7 +730,7 @@ class KeyboardService : InputMethodService() {
             typeface = Typeface.create("serif", Typeface.BOLD)
             setPadding(dp(5), 0, dp(5), 0)
         }, LinearLayout.LayoutParams(-2, dp(25)))
-        root.addView(brandRow, rowParams(27))
+        root.addView(brandRow, rowParams(44))
 
         val dateTimeRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
