@@ -67,11 +67,8 @@ class KeyboardService : InputMethodService() {
     private var pendingVoiceText = ""
     private val dhikrSettingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
-                startDhikrOverlayIfAllowed()
-            } else {
-                stopDhikrOverlay()
-            }
+            stopDhikrOverlay()
+            if (isInputViewShown) refreshKeyboard()
         }
     }
     private val voiceReceiver = object : BroadcastReceiver() {
@@ -545,39 +542,29 @@ class KeyboardService : InputMethodService() {
                 return
             }
             view.textSize = dhikrFontSize()
-            (view.layoutParams as? android.view.WindowManager.LayoutParams)?.let { params ->
-                val newY = dhikrYOffset()
-                if (params.y != newY) {
-                    params.y = newY
-                    runCatching {
-                        (getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager)
-                            .updateViewLayout(view, params)
-                    }
-                }
-            }
             val next = (floatingDhikrIndex + 1) % adhkar.size
             val direction = if (next % 2 == 0) -1f else 1f
             view.animate().cancel()
             view.animate()
                 .alpha(0f)
                 .translationX(direction * dp(90))
+                .rotationY(direction * 18f)
                 .setDuration(420L)
                 .withEndAction {
                     floatingDhikrIndex = next
                     view.text = adhkar[floatingDhikrIndex]
-                    view.typeface = Typeface.create(
-                        floatingDhikrFonts[floatingDhikrIndex % floatingDhikrFonts.size],
-                        if (floatingDhikrIndex % 3 == 0) Typeface.BOLD else Typeface.NORMAL
-                    )
-                    view.setTextColor(Color.BLACK)
-                    view.setShadowLayer(dp(3).toFloat(), 0f, 0f, Color.WHITE)
-                    view.textSize = dhikrFontSize()
+                    view.typeface = Typeface.create("serif", Typeface.BOLD)
+                    view.setTextColor(Color.rgb(255, 246, 218))
+                    view.setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+                    view.textSize = dhikrFontSize().coerceAtMost(24f)
                     view.translationX = -direction * dp(90).toFloat()
-                    view.scaleX = if (floatingDhikrIndex % 2 == 0) 0.92f else 1.06f
+                    view.rotationY = -direction * 18f
+                    view.scaleX = 0.96f
                     view.alpha = 0f
                     view.animate()
                         .alpha(1f)
                         .translationX(0f)
+                        .rotationY(0f)
                         .scaleX(1f)
                         .setDuration(620L)
                         .start()
@@ -605,15 +592,8 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun startDhikrOverlayIfAllowed() {
-        val intent = Intent(this, DhikrOverlayService::class.java)
-        val enabled = dhikrPreferences().getBoolean("dhikrEnabled", true)
-        val permission = Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(this)
-        if (enabled && permission) {
-            runCatching { startService(intent) }
-                .onFailure { Log.w("SUNDUS_DHIKR", "Could not start adhkar service", it) }
-        } else {
-            runCatching { stopService(intent) }
-        }
+        // Adhkar are rendered inside the keyboard itself; never draw over other apps.
+        runCatching { stopService(Intent(this, DhikrOverlayService::class.java)) }
     }
 
     private fun statusBarHeight(): Int {
@@ -623,13 +603,9 @@ class KeyboardService : InputMethodService() {
 
     private fun stopDhikrOverlay() {
         floatingDhikrHandler.removeCallbacksAndMessages(null)
-        floatingDhikrView?.let { view ->
-            runCatching {
-                (getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager)
-                    .removeView(view)
-            }
-        }
+        floatingDhikrView?.animate()?.cancel()
         floatingDhikrView = null
+        runCatching { stopService(Intent(this, DhikrOverlayService::class.java)) }
     }
 
     private val dhikrColors = listOf(
@@ -680,6 +656,36 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(3), dp(4), dp(3), dp(4))
             background = FloralPatternDrawable(theme.background)
+        }
+
+        if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
+            val dhikrView = TextView(this).apply {
+                text = adhkar[floatingDhikrIndex % adhkar.size]
+                textSize = dhikrFontSize().coerceAtMost(24f)
+                gravity = Gravity.CENTER
+                maxLines = 2
+                includeFontPadding = false
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(dp(12), dp(3), dp(12), dp(3))
+                typeface = Typeface.create("serif", Typeface.BOLD)
+                setTextColor(Color.rgb(255, 246, 218))
+                setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.LEFT_RIGHT,
+                    intArrayOf(Color.rgb(3, 24, 55), Color.rgb(5, 67, 92), Color.rgb(3, 24, 55))
+                ).apply {
+                    cornerRadius = dp(13).toFloat()
+                    setStroke(dp(1), Color.rgb(220, 178, 82))
+                }
+                elevation = dp(3).toFloat()
+            }
+            floatingDhikrView = dhikrView
+            root.addView(dhikrView, rowParams(42))
+            floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
+            floatingDhikrHandler.postDelayed(floatingDhikrTicker, dhikrIntervalMs())
+        } else {
+            floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
+            floatingDhikrView = null
         }
 
         val brandRow = LinearLayout(this).apply {
