@@ -618,7 +618,7 @@ class KeyboardService : InputMethodService() {
         override fun run() {
             dateTimeView?.text = buildDateTimeParts()
             rootClockView?.invalidate()
-            dateTimeHandler.postDelayed(this, 60_000L)
+            dateTimeHandler.postDelayed(this, 1_000L)
         }
     }
     private var rootClockView: ClassicClockView? = null
@@ -872,6 +872,7 @@ class KeyboardService : InputMethodService() {
         if (quickActionsVisible) {
             addSpecial(quickToolsRow, "🎨 رنګونه", 1.1f, 34) {
                 quickActionsVisible = false
+                refreshKeyboard()
                 showThemePicker()
             }
             addSpecial(quickToolsRow, "جملې", 1f, 34) {
@@ -880,8 +881,8 @@ class KeyboardService : InputMethodService() {
                 clipboardPanelVisible = false
                 symbolsPanelVisible = false
                 settingsPanelVisible = false
-                showPhraseWindow()
                 refreshKeyboard()
+                showPhraseWindow()
             }
             addSpecial(quickToolsRow, "😀 ایموجي", 1f, 34) {
                 quickActionsVisible = false
