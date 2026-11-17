@@ -684,13 +684,19 @@ class KeyboardService : InputMethodService() {
 
         val brandRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
             setPadding(dp(4), 0, dp(4), 0)
         }
         val brandLogo = ImageView(this).apply {
             setImageResource(R.drawable.sundus_brand)
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
             contentDescription = "SUNDUS logo"
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.rgb(5, 34, 72))
+                setStroke(dp(1), Color.rgb(226, 181, 67))
+            }
+            clipToOutline = true
         }
         brandLogo.setColorFilter(android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(floatArrayOf(
             1.08f, 0f, 0f, 0f, 13f,
@@ -698,7 +704,14 @@ class KeyboardService : InputMethodService() {
             0f, 0f, 1.08f, 0f, 13f,
             0f, 0f, 0f, 1f, 0f
         ))))
-        val brandLogoFrame = FrameLayout(this)
+        val brandLogoFrame = FrameLayout(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.rgb(5, 34, 72))
+                setStroke(dp(2), Color.rgb(226, 181, 67))
+            }
+            clipToOutline = true
+        }
         brandLogoFrame.addView(brandLogo, FrameLayout.LayoutParams(-1, -1))
         brandLogoFrame.addView(View(this).apply {
             background = GradientDrawable(
@@ -706,7 +719,9 @@ class KeyboardService : InputMethodService() {
                 intArrayOf(Color.argb(78, 255, 255, 255), Color.TRANSPARENT)
             )
         }, FrameLayout.LayoutParams(-1, -1))
-        brandRow.addView(brandLogoFrame, LinearLayout.LayoutParams(dp(48), dp(29)))
+        brandRow.addView(brandLogoFrame, LinearLayout.LayoutParams(dp(42), dp(42)).apply {
+            setMargins(0, dp(1), dp(7), dp(1))
+        })
         brandRow.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"
             textSize = 13f
@@ -794,13 +809,23 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(26))
 
-        // Restore direct access to the keyboard tools. These controls call the
-        // existing, offline-capable panels and dialogs instead of dead toolbar icons.
+        // Keep the four primary tools in their own full-width row so each has
+        // a usable touch target; quick panels remain in a separate compact row.
         val toolsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(toolsRow, "😀", 1f, 34) {
+        addSpecial(toolsRow, "لټون", 1f, 34) { showUniversalSearchDialog() }
+        addSpecial(toolsRow, "ژباړه", 1f, 34) { showOfflineTranslationPicker() }
+        addSpecial(toolsRow, "قاموس", 1f, 34) { showDictionaryHome() }
+        addSpecial(toolsRow, "🎨 رنګونه", 1f, 34) { showThemePicker() }
+        root.addView(toolsRow, rowParams(36))
+
+        val quickToolsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        addSpecial(quickToolsRow, "😀", 1f, 32) {
             symbolsPanelVisible = false
             clipboardPanelVisible = false
             settingsPanelVisible = false
@@ -808,7 +833,7 @@ class KeyboardService : InputMethodService() {
             emojiPanelVisible = !emojiPanelVisible
             refreshKeyboard()
         }
-        addSpecial(toolsRow, "جملې", 1f, 34) {
+        addSpecial(quickToolsRow, "جملې", 1f, 32) {
             emojiPanelVisible = false
             clipboardPanelVisible = false
             symbolsPanelVisible = false
@@ -816,7 +841,7 @@ class KeyboardService : InputMethodService() {
             phrasePanelVisible = false
             showPhraseWindow()
         }
-        addSpecial(toolsRow, "📋", 1f, 34) {
+        addSpecial(quickToolsRow, "📋", 1f, 32) {
             emojiPanelVisible = false
             symbolsPanelVisible = false
             settingsPanelVisible = false
@@ -824,7 +849,7 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = !clipboardPanelVisible
             refreshKeyboard()
         }
-        addSpecial(toolsRow, "⚙", 1f, 34) {
+        addSpecial(quickToolsRow, "⚙", 1f, 32) {
             emojiPanelVisible = false
             clipboardPanelVisible = false
             symbolsPanelVisible = false
@@ -832,11 +857,7 @@ class KeyboardService : InputMethodService() {
             settingsPanelVisible = !settingsPanelVisible
             refreshKeyboard()
         }
-        addSpecial(toolsRow, "لټون", 1f, 34) { showUniversalSearchDialog() }
-        addSpecial(toolsRow, "ژباړه", 1f, 34) { showOfflineTranslationPicker() }
-        addSpecial(toolsRow, "قاموس", 1f, 34) { showDictionaryHome() }
-        addSpecial(toolsRow, "🎨 رنګونه", 1.15f, 34) { showThemePicker() }
-        root.addView(toolsRow, rowParams(36))
+        root.addView(quickToolsRow, rowParams(34))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
@@ -960,14 +981,16 @@ class KeyboardService : InputMethodService() {
     private fun attachDialogToIme(dialog: AlertDialog): AlertDialog {
         val dialogWindow = dialog.window ?: return dialog
         val imeWindow = this@KeyboardService.window?.window
-        val imeToken = imeWindow?.attributes?.token
-            ?: imeWindow?.decorView?.windowToken
+        val imeToken = imeWindow?.decorView?.windowToken
+            ?: imeWindow?.attributes?.token
         val params = dialogWindow.attributes
-        params.type = android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
         if (imeToken != null) {
+            params.type = android.view.WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
             params.token = imeToken
         } else {
-            android.util.Log.w("SundusIME", "IME window token is not available; dialog may not attach")
+            // Keep Android's default application-dialog type rather than forcing an
+            // attached-dialog window with a null token (which cannot be displayed).
+            Log.e("SundusIME", "IME window token is unavailable while preparing a tool dialog")
         }
         dialogWindow.attributes = params
         dialogWindow.setSoftInputMode(
@@ -2732,7 +2755,13 @@ class KeyboardService : InputMethodService() {
         } else {
             button.setOnClickListener {
                 performKeyFeedback(it)
-                action()
+                if (label in setOf("لټون", "ژباړه", "قاموس", "🎨 رنګونه")) {
+                    Log.i("SUNDUS_TOOL", "Toolbar action tapped: $label")
+                }
+                runCatching { action() }.onFailure { error ->
+                    Log.e("SUNDUS_TOOL", "Toolbar action failed: $label", error)
+                    Toast.makeText(this, "د «$label» برخه پرانیستل نه شوه؛ بیا هڅه وکړئ.", Toast.LENGTH_LONG).show()
+                }
             }
         }
 
