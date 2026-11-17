@@ -645,7 +645,7 @@ class KeyboardService : InputMethodService() {
                 val major = i % 5 == 0
                 val outer = radius * 0.86f
                 val inner = radius * if (major) 0.69f else 0.78f
-                p.strokeWidth = dp(if (major) 1.5f else 0.7f).toFloat()
+                p.strokeWidth = dp(if (major) 2 else 1).toFloat()
                 p.color = if (major) Color.rgb(255, 225, 151) else Color.rgb(190, 207, 220)
                 canvas.drawLine(
                     cx + (inner * kotlin.math.cos(angle)).toFloat(),
@@ -672,7 +672,7 @@ class KeyboardService : InputMethodService() {
             hand(second.toFloat(), radius * 0.76f, Color.rgb(67, 220, 207), 0.9f)
             p.style = Paint.Style.FILL
             p.color = Color.rgb(226, 181, 67)
-            canvas.drawCircle(cx, cy, dp(2.4f), p)
+            canvas.drawCircle(cx, cy, dp(2).toFloat(), p)
         }
     }
 
