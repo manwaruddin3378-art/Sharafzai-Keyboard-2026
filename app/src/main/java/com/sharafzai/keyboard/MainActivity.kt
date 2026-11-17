@@ -76,27 +76,14 @@ class MainActivity : Activity() {
         }
         root.addView(choose, LinearLayout.LayoutParams(-1, dp(54)))
 
-        val dhikrPermission = Button(this).apply {
-            text = "۳ ـ د سکرین پر سر د اذکارو اجازه"
-            isAllCaps = false
-            setOnClickListener {
-                if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this@MainActivity)) {
-                    runCatching {
-                        startActivity(
-                            Intent(
-                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                Uri.parse("package:${this@MainActivity.packageName}")
-                            )
-                        )
-                    }.onFailure {
-                        Toast.makeText(this@MainActivity, "د اذکارو د ښودلو اجازه پرانیستل نه شوه", Toast.LENGTH_LONG).show()
-                    }
-                } else {
-                    Toast.makeText(this@MainActivity, "د اذکارو د ښودلو اجازه فعاله ده؛ کیبورډ یو ځل پرانیزئ.", Toast.LENGTH_LONG).show()
-                }
-            }
+        val dhikrInfo = TextView(this).apply {
+            text = "۳ ـ اذکار به د سندس کیبورډ په پورتنۍ برخه کې ښکاري؛ د سکرین جلا اجازې ته اړتیا نشته."
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(Color.LTGRAY)
+            setPadding(dp(8), dp(8), dp(8), dp(8))
         }
-        root.addView(dhikrPermission, LinearLayout.LayoutParams(-1, dp(54)))
+        root.addView(dhikrInfo, LinearLayout.LayoutParams(-1, dp(54)))
         val dhikrOptions = Button(this).apply {
             text = "۴ ـ د اذکارو تنظیمات او انتخابونه"
             isAllCaps = false
@@ -119,11 +106,8 @@ class MainActivity : Activity() {
     }
 
     private fun syncDhikrService() {
-        val intent = Intent(this, DhikrOverlayService::class.java)
-        val enabled = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getBoolean("dhikrEnabled", true)
-        val permission = Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(this)
-        if (enabled && permission) runCatching { startService(intent) }
-        else stopService(intent)
+        // The adhkar ticker is part of the keyboard view, not a system overlay.
+        runCatching { stopService(Intent(this, DhikrOverlayService::class.java)) }
     }
 
     private fun showDhikrSettings() {
@@ -131,16 +115,12 @@ class MainActivity : Activity() {
         val enabled = prefs.getBoolean("dhikrEnabled", true)
         val size = prefs.getInt("dhikrFontSize", 18).coerceIn(16, 32)
         val interval = prefs.getInt("dhikrIntervalMs", 10000).coerceIn(2500, 20000)
-        val position = prefs.getInt("dhikrPosition", 0).coerceIn(0, 2)
         val sizeLabel = when (size) { 18 -> "وړه"; 22 -> "منځنۍ"; 26 -> "لویه"; else -> "$size sp" }
         val speedLabel = when (interval) { 5000 -> "۵ ثانیې"; 10000 -> "۱۰ ثانیې"; 15000 -> "۱۵ ثانیې"; else -> "${interval / 1000} ثانیې" }
-        val positionLabel = listOf("پورته ښي لوری", "پورته چپ لوری", "ښي او چپ ته په نوبت")[position]
         val options = arrayOf(
             if (enabled) "اذکار: فعال دي (د بندولو لپاره ټک)" else "اذکار: بند دي (د فعالولو لپاره ټک)",
             "د لیک اندازه: $sizeLabel",
-            "د ذکر د بدلېدو وخت: $speedLabel",
-            "د ښودلو ځای: $positionLabel",
-            "د سکرین پر سر د ښودلو اجازه"
+            "د ذکر د بدلېدو وخت: $speedLabel"
         )
         val dialog = android.app.AlertDialog.Builder(this)
             .setTitle("د SUNDUS اذکار – تنظیمات")
@@ -149,19 +129,6 @@ class MainActivity : Activity() {
                     0 -> prefs.edit().putBoolean("dhikrEnabled", !enabled).apply()
                     1 -> prefs.edit().putInt("dhikrFontSize", when (size) { 18 -> 22; 22 -> 26; else -> 18 }).apply()
                     2 -> prefs.edit().putInt("dhikrIntervalMs", when (interval) { 5000 -> 10000; 10000 -> 15000; else -> 5000 }).apply()
-                    3 -> prefs.edit().putInt("dhikrPosition", (position + 1) % 3).apply()
-                    4 -> {
-                        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) {
-                            runCatching {
-                                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-                            }.onFailure {
-                                Toast.makeText(this, "د اذکارو اجازه پرانیستل نه شوه", Toast.LENGTH_LONG).show()
-                            }
-                        } else {
-                            Toast.makeText(this, "د اذکارو د ښودلو اجازه فعاله ده.", Toast.LENGTH_SHORT).show()
-                        }
-                        return@setItems
-                    }
                 }
                 notifyDhikrSettingsChanged()
                 window.decorView.post { showDhikrSettings() }
