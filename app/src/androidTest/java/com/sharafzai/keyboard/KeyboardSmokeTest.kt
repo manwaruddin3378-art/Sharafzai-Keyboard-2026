@@ -64,15 +64,30 @@ class KeyboardSmokeTest {
             "Test editor did not attach with measurable screen bounds",
             tapX >= 0 && tapY >= 0
         )
-        assertTrue("Could not tap the test editor", device.click(tapX, tapY))
+        // Wait until Android has actually drawn the Activity before tapping.
+        // The earlier test tapped immediately after attachment, while the launcher
+        // still owned focus; the IME then remained bound to the previous app.
+        val editorVisible = device.wait(Until.hasObject(By.desc("keyboard-test-editor")), 15_000)
+        assertTrue("Test editor did not become visible", editorVisible)
+        assertTrue("Could not tap the visible test editor", device.click(tapX, tapY))
         device.waitForIdle()
 
         var focusState = ""
-        instrumentation.runOnMainSync {
-            activeEditor.requestFocus()
-            activity.requestKeyboardForTest()
-            focusState = "windowFocus=${activity.hasWindowFocus()} editorFocus=${activeEditor.hasFocus()} attached=${activeEditor.isAttachedToWindow}"
+        var windowFocused = false
+        for (attempt in 0 until 40) {
+            instrumentation.runOnMainSync {
+                activeEditor.requestFocus()
+                windowFocused = activity.hasWindowFocus() && activeEditor.hasFocus()
+                focusState = "windowFocus=${activity.hasWindowFocus()} editorFocus=${activeEditor.hasFocus()} attached=${activeEditor.isAttachedToWindow}"
+                if (windowFocused) activity.requestKeyboardForTest()
+            }
+            if (windowFocused) break
+            // A second tap after first draw brings the Activity in front on slower
+            // hosted emulators; do not select the IME while another window is focused.
+            device.click(tapX, tapY)
+            SystemClock.sleep(250)
         }
+        assertTrue("Test Activity never received window focus: $focusState", windowFocused)
         val setResult = device.executeShellCommand("ime set com.sharafzai.keyboard/.KeyboardService")
         Log.e(
             "SUNDUS_IME_DIAG",
