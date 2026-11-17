@@ -47,6 +47,7 @@ class KeyboardService : InputMethodService() {
     private var keySizeLevel = 1
     private var suggestionContainer: LinearLayout? = null
     private var emojiPanelVisible = false
+    private var quickActionsVisible = false
     private var symbolsPanelVisible = false
     private var settingsPanelVisible = false
     private var phrasePanelVisible = false
@@ -575,8 +576,7 @@ class KeyboardService : InputMethodService() {
 
     private fun dhikrPreferences() = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
 
-    private fun dhikrIntervalMs(): Long =
-        dhikrPreferences().getInt("dhikrIntervalMs", 10000).coerceIn(2500, 20000).toLong()
+    private fun dhikrIntervalMs(): Long = 5_000L
 
     private fun dhikrFontSize(): Float =
         dhikrPreferences().getInt("dhikrFontSize", 18).coerceIn(16, 32).toFloat()
@@ -717,36 +717,34 @@ class KeyboardService : InputMethodService() {
             background = FloralPatternDrawable(theme.background)
         }
 
-        if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
-            val dhikrView = TextView(this).apply {
-                text = adhkar[floatingDhikrIndex % adhkar.size]
-                textSize = dhikrFontSize().coerceAtMost(24f)
-                gravity = Gravity.CENTER
-                maxLines = 2
-                includeFontPadding = false
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setPadding(dp(12), dp(3), dp(12), dp(3))
-                typeface = Typeface.create("serif", Typeface.BOLD)
-                setTextColor(Color.rgb(255, 246, 218))
-                setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
-                background = GradientDrawable(
-                    GradientDrawable.Orientation.LEFT_RIGHT,
-                    intArrayOf(Color.rgb(3, 24, 55), Color.rgb(5, 67, 92), Color.rgb(3, 24, 55))
-                ).apply {
-                    cornerRadius = dp(13).toFloat()
-                    setStroke(dp(1), Color.rgb(220, 178, 82))
-                }
-                elevation = dp(3).toFloat()
+        val dhikrView = TextView(this).apply {
+            text = adhkar[floatingDhikrIndex % adhkar.size]
+            textSize = dhikrFontSize().coerceAtMost(20f)
+            gravity = Gravity.CENTER
+            maxLines = 2
+            includeFontPadding = false
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(dp(7), dp(3), dp(7), dp(3))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            setTextColor(Color.rgb(255, 246, 218))
+            setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.rgb(3, 24, 55), Color.rgb(5, 67, 92), Color.rgb(3, 24, 55))
+            ).apply {
+                cornerRadius = dp(13).toFloat()
+                setStroke(dp(1), Color.rgb(220, 178, 82))
             }
-            dhikrView.contentDescription = "اذکار"
-            dhikrView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
-            floatingDhikrView = dhikrView
-            root.addView(dhikrView, rowParams(42))
+            elevation = dp(3).toFloat()
+        }
+        dhikrView.contentDescription = "اذکار"
+        dhikrView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        floatingDhikrView = if (dhikrPreferences().getBoolean("dhikrEnabled", true)) dhikrView else null
+        if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
             floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
             floatingDhikrHandler.postDelayed(floatingDhikrTicker, dhikrIntervalMs())
         } else {
             floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)
-            floatingDhikrView = null
         }
 
         val brandRow = LinearLayout(this).apply {
@@ -785,13 +783,19 @@ class KeyboardService : InputMethodService() {
         })
         brandRow.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"
-            textSize = 13f
+            textSize = 12f
             gravity = Gravity.CENTER_VERTICAL
             setTextColor(Color.rgb(255, 218, 116))
             typeface = Typeface.create("serif", Typeface.BOLD)
-            setPadding(dp(5), 0, dp(5), 0)
+            setPadding(dp(3), 0, dp(4), 0)
         }, LinearLayout.LayoutParams(-2, dp(25)))
-        brandRow.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+        if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
+            brandRow.addView(dhikrView, LinearLayout.LayoutParams(0, dp(42), 1f).apply {
+                setMargins(dp(3), 0, dp(3), 0)
+            })
+        } else {
+            brandRow.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+        }
         val analogClock = ClassicClockView(this).apply {
             contentDescription = "کلاسیک ساعت"
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
@@ -800,7 +804,7 @@ class KeyboardService : InputMethodService() {
         brandRow.addView(analogClock, LinearLayout.LayoutParams(dp(50), dp(50)).apply {
             setMargins(dp(3), dp(1), dp(1), dp(1))
         })
-        root.addView(brandRow, rowParams(52))
+        root.addView(brandRow, rowParams(54))
 
         val datesView = TextView(this).apply {
             text = buildDateTimeParts()
@@ -860,55 +864,59 @@ class KeyboardService : InputMethodService() {
 
         root.addView(suggestionContainer, rowParams(26))
 
-        // Keep the four primary tools in their own full-width row so each has
-        // a usable touch target; quick panels remain in a separate compact row.
-        val toolsRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        addSpecial(toolsRow, "لټون", 1f, 40) { showUniversalSearchDialog() }
-        addSpecial(toolsRow, "ژباړه", 1f, 40) { showOfflineTranslationPicker() }
-        addSpecial(toolsRow, "قاموس", 1f, 40) { showDictionaryHome() }
-        addSpecial(toolsRow, "🎨 رنګونه", 1f, 40) { showThemePicker() }
-        root.addView(toolsRow, rowParams(42))
-
+        // Compact optional toolbar: hidden by default, expanded on demand.
         val quickToolsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(quickToolsRow, "😀", 1f, 38) {
-            symbolsPanelVisible = false
-            clipboardPanelVisible = false
-            settingsPanelVisible = false
-            phrasePanelVisible = false
-            emojiPanelVisible = !emojiPanelVisible
-            refreshKeyboard()
+        if (quickActionsVisible) {
+            addSpecial(quickToolsRow, "🎨 رنګونه", 1.1f, 34) {
+                quickActionsVisible = false
+                showThemePicker()
+            }
+            addSpecial(quickToolsRow, "جملې", 1f, 34) {
+                quickActionsVisible = false
+                emojiPanelVisible = false
+                clipboardPanelVisible = false
+                symbolsPanelVisible = false
+                settingsPanelVisible = false
+                showPhraseWindow()
+                refreshKeyboard()
+            }
+            addSpecial(quickToolsRow, "😀 ایموجي", 1f, 34) {
+                quickActionsVisible = false
+                symbolsPanelVisible = false
+                clipboardPanelVisible = false
+                settingsPanelVisible = false
+                phrasePanelVisible = false
+                emojiPanelVisible = !emojiPanelVisible
+                refreshKeyboard()
+            }
+            addSpecial(quickToolsRow, "📋", 0.75f, 34) {
+                quickActionsVisible = false
+                emojiPanelVisible = false
+                symbolsPanelVisible = false
+                settingsPanelVisible = false
+                phrasePanelVisible = false
+                clipboardPanelVisible = !clipboardPanelVisible
+                refreshKeyboard()
+            }
+            addSpecial(quickToolsRow, "⚙", 0.75f, 34) {
+                quickActionsVisible = false
+                emojiPanelVisible = false
+                clipboardPanelVisible = false
+                symbolsPanelVisible = false
+                phrasePanelVisible = false
+                settingsPanelVisible = !settingsPanelVisible
+                refreshKeyboard()
+            }
+        } else {
+            addSpecial(quickToolsRow, "•••", 1f, 28) {
+                quickActionsVisible = true
+                refreshKeyboard()
+            }
         }
-        addSpecial(quickToolsRow, "جملې", 1f, 38) {
-            emojiPanelVisible = false
-            clipboardPanelVisible = false
-            symbolsPanelVisible = false
-            settingsPanelVisible = false
-            phrasePanelVisible = false
-            showPhraseWindow()
-        }
-        addSpecial(quickToolsRow, "📋", 1f, 38) {
-            emojiPanelVisible = false
-            symbolsPanelVisible = false
-            settingsPanelVisible = false
-            phrasePanelVisible = false
-            clipboardPanelVisible = !clipboardPanelVisible
-            refreshKeyboard()
-        }
-        addSpecial(quickToolsRow, "⚙", 1f, 38) {
-            emojiPanelVisible = false
-            clipboardPanelVisible = false
-            symbolsPanelVisible = false
-            phrasePanelVisible = false
-            settingsPanelVisible = !settingsPanelVisible
-            refreshKeyboard()
-        }
-        root.addView(quickToolsRow, rowParams(40))
+        root.addView(quickToolsRow, rowParams(if (quickActionsVisible) 36 else 28))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
