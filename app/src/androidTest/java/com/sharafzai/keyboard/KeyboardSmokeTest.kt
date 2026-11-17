@@ -120,15 +120,33 @@ class KeyboardSmokeTest {
         englishKey!!.click()
         assertEquals("English key did not insert text", "ضq", activeEditor.text.toString())
 
+        // The 123 layer must insert real digits without losing the English layout.
+        val numbersKey = device.wait(Until.findObject(By.text("123")), 3_000)
+        assertNotNull("123 key was not found", numbersKey)
+        numbersKey!!.click()
+        val digitOne = device.wait(Until.findObject(By.text("1")), 3_000)
+        assertNotNull("English digit 1 was not available inside the 123 layer", digitOne)
+        digitOne!!.click()
+        assertEquals("123 layer did not insert an English digit", "ضq1", activeEditor.text.toString())
+        val returnToLetters = device.wait(Until.findObject(By.text("ABC")), 3_000)
+        assertNotNull("ABC return key was not found", returnToLetters)
+        returnToLetters!!.click()
+        assertNotNull("English letters did not return after 123", device.wait(Until.findObject(By.text("q")), 3_000))
+
         val backspace = device.wait(Until.findObject(By.text("⌫")), 3_000)
         assertNotNull("Backspace key was not found", backspace)
         backspace!!.click()
-        assertEquals("Backspace did not delete the previous character", "ض", activeEditor.text.toString())
+        assertEquals("Backspace did not delete the inserted digit", "ضq", activeEditor.text.toString())
 
         val backspaceAgain = device.wait(Until.findObject(By.text("⌫")), 3_000)
         assertNotNull("Backspace key disappeared after the first deletion", backspaceAgain)
         backspaceAgain!!.click()
-        assertEquals("Backspace did not delete the remaining character", "", activeEditor.text.toString())
+        assertEquals("Backspace did not delete the English character", "ض", activeEditor.text.toString())
+
+        val backspaceThird = device.wait(Until.findObject(By.text("⌫")), 3_000)
+        assertNotNull("Backspace key disappeared after the second deletion", backspaceThird)
+        backspaceThird!!.click()
+        assertEquals("Backspace did not delete the Pashto character", "", activeEditor.text.toString())
 
         val spaceKey = device.wait(Until.findObject(By.text("سندس")), 3_000)
         assertNotNull("Space key was not found", spaceKey)
@@ -157,6 +175,31 @@ class KeyboardSmokeTest {
         val closePhrase = device.wait(Until.findObject(By.text("بند")), 3_000)
         assertNotNull("Quick phrases dialog close button was not found", closePhrase)
         closePhrase!!.click()
+
+        // Primary toolbar actions must open their real offline tools from the IME.
+        val colorsTool = device.wait(Until.findObject(By.text("🎨 رنګونه")), 3_000)
+        assertNotNull("Colors button was not found", colorsTool)
+        colorsTool!!.click()
+        assertTrue("Colors picker did not open", device.wait(Until.hasObject(By.text("د سندس رنګونه")), 3_000))
+        device.wait(Until.findObject(By.text("بند")), 3_000)!!.click()
+
+        val dictionaryTool = device.wait(Until.findObject(By.text("قاموس")), 3_000)
+        assertNotNull("Dictionary button was not found", dictionaryTool)
+        dictionaryTool!!.click()
+        assertTrue("Dictionary home did not open", device.wait(Until.hasObject(By.text("قاموس او لټون")), 3_000))
+        device.wait(Until.findObject(By.text("بند")), 3_000)!!.click()
+
+        val translationTool = device.wait(Until.findObject(By.text("ژباړه")), 3_000)
+        assertNotNull("Translation button was not found", translationTool)
+        translationTool!!.click()
+        assertTrue("Translation language picker did not open", device.wait(Until.hasObject(By.text("د ژباړې هدف ژبه وټاکئ")), 3_000))
+        device.wait(Until.findObject(By.text("بند")), 3_000)!!.click()
+
+        val searchTool = device.wait(Until.findObject(By.text("لټون")), 3_000)
+        assertNotNull("Search button was not found", searchTool)
+        searchTool!!.click()
+        assertTrue("Offline search dialog did not open", device.wait(Until.hasObject(By.text("د سندس آفلاین لټون")), 3_000))
+        device.wait(Until.findObject(By.text("بند")), 3_000)!!.click()
 
         val clipboardTool = device.wait(Until.findObject(By.text("📋")), 3_000)
         assertNotNull("Clipboard button was not found", clipboardTool)
