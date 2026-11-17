@@ -109,7 +109,8 @@ class KeyboardSmokeTest {
         assertNotNull("Adhkar ticker is not visible above the keyboard", dhikr)
         val logo = device.wait(Until.findObject(By.textContains("SUNDUS")), 3_000)
         assertNotNull("SUNDUS logo is not visible", logo)
-        assertTrue("Adhkar must appear above the logo", dhikr!!.visibleBounds.top < logo!!.visibleBounds.top)
+        Log.e("SUNDUS_DHIKR_BOUNDS", "dhikr=${dhikr!!.visibleBounds} logo=${logo!!.visibleBounds}")
+        assertTrue("Adhkar must appear above the logo: dhikr=${dhikr!!.visibleBounds}, logo=${logo!!.visibleBounds}", dhikr!!.visibleBounds.top < logo!!.visibleBounds.top)
 
         val pashtoKey = device.wait(Until.findObject(By.text("ض")), 3_000)
         assertNotNull("Pashto key was not found", pashtoKey)
