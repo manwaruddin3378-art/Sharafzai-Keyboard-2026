@@ -661,7 +661,7 @@ class KeyboardService : InputMethodService() {
             fun hand(value: Float, length: Float, color: Int, stroke: Float) {
                 val angle = Math.PI * value / 30.0 - Math.PI / 2.0
                 p.color = color
-                p.strokeWidth = dp(stroke).toFloat()
+                p.strokeWidth = stroke * resources.displayMetrics.density
                 p.strokeCap = Paint.Cap.ROUND
                 canvas.drawLine(cx, cy,
                     cx + (length * kotlin.math.cos(angle)).toFloat(),
