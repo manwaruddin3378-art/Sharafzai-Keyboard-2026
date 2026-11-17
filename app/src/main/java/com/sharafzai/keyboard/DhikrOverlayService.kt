@@ -137,9 +137,16 @@ class DhikrOverlayService : Service() {
             includeFontPadding = false
             setPadding(dp(18), dp(3), dp(18), dp(3))
             typeface = Typeface.create("serif", Typeface.BOLD)
-            setTextColor(Color.BLACK)
-            setShadowLayer(dp(4).toFloat(), 0f, 0f, Color.WHITE)
-            setBackgroundColor(Color.TRANSPARENT)
+            setTextColor(Color.rgb(255, 246, 218))
+            setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+            background = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.argb(226, 3, 24, 55), Color.argb(218, 5, 67, 92), Color.argb(226, 3, 24, 55))
+            ).apply {
+                cornerRadius = dp(16).toFloat()
+                setStroke(dp(1), Color.argb(210, 220, 178, 82))
+            }
+            elevation = dp(6).toFloat()
             isClickable = false
             isFocusable = false
         }
