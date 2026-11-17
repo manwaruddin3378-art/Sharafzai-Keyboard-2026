@@ -2279,7 +2279,21 @@ class KeyboardService : InputMethodService() {
             shouldAutoCapitalize && (caps || shifted || sentenceStart) -> spec.normal.uppercase()
             else -> spec.normal
         }
-        currentInputConnection?.commitText(output, 1)
+        // Replacing the IME input view after a language switch can briefly leave
+        // Android's InputConnection unavailable on some devices. Retry only when
+        // the immediate commit was not accepted, so characters are never duplicated.
+        val connection = currentInputConnection
+        val committed = connection != null &&
+            runCatching { connection.commitText(output, 1) }.getOrDefault(false)
+        if (!committed) {
+            handler.postDelayed({
+                val retryConnection = currentInputConnection
+                if (retryConnection != null) {
+                    runCatching { retryConnection.commitText(output, 1) }
+                    updateSuggestions()
+                }
+            }, 80L)
+        }
         if (hapticEnabled) frame.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
         if (soundEnabled) {
             (getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager)
