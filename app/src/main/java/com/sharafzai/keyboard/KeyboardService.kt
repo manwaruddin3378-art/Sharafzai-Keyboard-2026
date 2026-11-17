@@ -678,6 +678,8 @@ class KeyboardService : InputMethodService() {
                 }
                 elevation = dp(3).toFloat()
             }
+            dhikrView.contentDescription = "اذکار"
+            dhikrView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             floatingDhikrView = dhikrView
             root.addView(dhikrView, rowParams(42))
             floatingDhikrHandler.removeCallbacks(floatingDhikrTicker)

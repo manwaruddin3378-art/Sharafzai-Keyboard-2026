@@ -105,7 +105,7 @@ class KeyboardSmokeTest {
         assertTrue("SUNDUS keyboard did not appear", keyboardAppeared)
 
         // Adhkar must render inside the keyboard, above its logo and keys.
-        val dhikr = device.wait(Until.findObject(By.textContains("سُبْحَانَ اللَّهِ")), 3_000)
+        val dhikr = device.wait(Until.findObject(By.desc("اذکار")), 3_000)
         assertNotNull("Adhkar ticker is not visible above the keyboard", dhikr)
         val logo = device.wait(Until.findObject(By.textContains("SUNDUS")), 3_000)
         assertNotNull("SUNDUS logo is not visible", logo)
