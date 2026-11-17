@@ -8,15 +8,12 @@ import android.provider.Settings
 import android.net.Uri
 import android.os.Build
 import android.view.Gravity
-import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.ImageView
-import android.widget.FrameLayout
 import android.graphics.drawable.GradientDrawable
 import android.widget.Toast
 
@@ -29,19 +26,23 @@ class MainActivity : Activity() {
             setPadding(24, 28, 24, 28)
             setBackgroundColor(Color.rgb(20, 25, 35))
         }
-        val logoFrame = FrameLayout(this)
-        logoFrame.addView(ImageView(this).apply {
-            setImageResource(R.drawable.sundus_brand)
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            adjustViewBounds = true
-            contentDescription = "SUNDUS – سندس"
-        }, FrameLayout.LayoutParams(-1, -1))
-        logoFrame.addView(View(this).apply {
+        val logoFrame = TextView(this).apply {
+            text = "سندس\nSUNDUS"
+            textSize = 22f
+            gravity = Gravity.CENTER
+            maxLines = 2
+            includeFontPadding = false
+            setTextColor(Color.rgb(255, 222, 145))
+            typeface = Typeface.create("serif", Typeface.BOLD)
             background = GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.argb(78, 255, 255, 255), Color.TRANSPARENT)
-            )
-        }, FrameLayout.LayoutParams(-1, -1))
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.rgb(8, 76, 99), Color.rgb(3, 24, 55))
+            ).apply {
+                shape = GradientDrawable.OVAL
+                setStroke(dp(2), Color.rgb(226, 181, 67))
+            }
+            contentDescription = "SUNDUS – سندس"
+        }
         root.addView(logoFrame, LinearLayout.LayoutParams(dp(118), dp(78)))
         root.addView(TextView(this).apply {
             text = "SUNDUS  •  سندس"

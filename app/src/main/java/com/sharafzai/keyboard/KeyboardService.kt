@@ -26,7 +26,6 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.ImageView
 import android.widget.EditText
 import android.app.AlertDialog
 import android.widget.Toast
@@ -693,23 +692,23 @@ class KeyboardService : InputMethodService() {
             gravity = Gravity.START or Gravity.CENTER_VERTICAL
             setPadding(dp(4), 0, dp(4), 0)
         }
-        val brandLogo = ImageView(this).apply {
-            setImageResource(R.drawable.sundus_brand)
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            contentDescription = "SUNDUS logo"
-            background = GradientDrawable().apply {
+        val brandLogo = TextView(this).apply {
+            text = "سندس\nSUNDUS"
+            textSize = 9.5f
+            gravity = Gravity.CENTER
+            maxLines = 2
+            includeFontPadding = false
+            setTextColor(Color.rgb(255, 222, 145))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.rgb(8, 76, 99), Color.rgb(3, 24, 55))
+            ).apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.rgb(5, 34, 72))
-                setStroke(dp(1), Color.rgb(226, 181, 67))
+                setStroke(dp(2), Color.rgb(226, 181, 67))
             }
-            clipToOutline = true
+            contentDescription = "SUNDUS – سندس"
         }
-        brandLogo.setColorFilter(android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(floatArrayOf(
-            1.08f, 0f, 0f, 0f, 13f,
-            0f, 1.08f, 0f, 0f, 13f,
-            0f, 0f, 1.08f, 0f, 13f,
-            0f, 0f, 0f, 1f, 0f
-        ))))
         val brandLogoFrame = FrameLayout(this).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
@@ -719,12 +718,6 @@ class KeyboardService : InputMethodService() {
             clipToOutline = true
         }
         brandLogoFrame.addView(brandLogo, FrameLayout.LayoutParams(-1, -1))
-        brandLogoFrame.addView(View(this).apply {
-            background = GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.argb(78, 255, 255, 255), Color.TRANSPARENT)
-            )
-        }, FrameLayout.LayoutParams(-1, -1))
         brandRow.addView(brandLogoFrame, LinearLayout.LayoutParams(dp(42), dp(42)).apply {
             setMargins(0, dp(1), dp(7), dp(1))
         })
@@ -821,17 +814,17 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(toolsRow, "لټون", 1f, 34) { showUniversalSearchDialog() }
-        addSpecial(toolsRow, "ژباړه", 1f, 34) { showOfflineTranslationPicker() }
-        addSpecial(toolsRow, "قاموس", 1f, 34) { showDictionaryHome() }
-        addSpecial(toolsRow, "🎨 رنګونه", 1f, 34) { showThemePicker() }
-        root.addView(toolsRow, rowParams(36))
+        addSpecial(toolsRow, "لټون", 1f, 40) { showUniversalSearchDialog() }
+        addSpecial(toolsRow, "ژباړه", 1f, 40) { showOfflineTranslationPicker() }
+        addSpecial(toolsRow, "قاموس", 1f, 40) { showDictionaryHome() }
+        addSpecial(toolsRow, "🎨 رنګونه", 1f, 40) { showThemePicker() }
+        root.addView(toolsRow, rowParams(42))
 
         val quickToolsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        addSpecial(quickToolsRow, "😀", 1f, 32) {
+        addSpecial(quickToolsRow, "😀", 1f, 38) {
             symbolsPanelVisible = false
             clipboardPanelVisible = false
             settingsPanelVisible = false
@@ -839,7 +832,7 @@ class KeyboardService : InputMethodService() {
             emojiPanelVisible = !emojiPanelVisible
             refreshKeyboard()
         }
-        addSpecial(quickToolsRow, "جملې", 1f, 32) {
+        addSpecial(quickToolsRow, "جملې", 1f, 38) {
             emojiPanelVisible = false
             clipboardPanelVisible = false
             symbolsPanelVisible = false
@@ -847,7 +840,7 @@ class KeyboardService : InputMethodService() {
             phrasePanelVisible = false
             showPhraseWindow()
         }
-        addSpecial(quickToolsRow, "📋", 1f, 32) {
+        addSpecial(quickToolsRow, "📋", 1f, 38) {
             emojiPanelVisible = false
             symbolsPanelVisible = false
             settingsPanelVisible = false
@@ -855,7 +848,7 @@ class KeyboardService : InputMethodService() {
             clipboardPanelVisible = !clipboardPanelVisible
             refreshKeyboard()
         }
-        addSpecial(quickToolsRow, "⚙", 1f, 32) {
+        addSpecial(quickToolsRow, "⚙", 1f, 38) {
             emojiPanelVisible = false
             clipboardPanelVisible = false
             symbolsPanelVisible = false
@@ -863,7 +856,7 @@ class KeyboardService : InputMethodService() {
             settingsPanelVisible = !settingsPanelVisible
             refreshKeyboard()
         }
-        root.addView(quickToolsRow, rowParams(34))
+        root.addView(quickToolsRow, rowParams(40))
 
         if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {

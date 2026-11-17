@@ -96,13 +96,20 @@ class KeyboardSmokeTest {
         }
         device.waitForIdle()
 
-        val keyboardAppeared = device.wait(Until.hasObject(By.text("سندس")), 30_000)
+        val keyboardAppeared = device.wait(Until.hasObject(By.textContains("SUNDUS")), 30_000)
         if (!keyboardAppeared) {
             Log.e("SUNDUS_IME_DIAG", "activity_state=[${focusState}]")
             Log.e("SUNDUS_IME_DIAG", "input_method=[${device.executeShellCommand("dumpsys input_method")}]")
             Log.e("SUNDUS_IME_DIAG", "windows=[${device.executeShellCommand("dumpsys window windows")}]")
         }
         assertTrue("SUNDUS keyboard did not appear", keyboardAppeared)
+
+        // Adhkar must render inside the keyboard, above its logo and keys.
+        val dhikr = device.wait(Until.findObject(By.textContains("سُبْحَانَ اللَّهِ")), 3_000)
+        assertNotNull("Adhkar ticker is not visible above the keyboard", dhikr)
+        val logo = device.wait(Until.findObject(By.textContains("SUNDUS")), 3_000)
+        assertNotNull("SUNDUS logo is not visible", logo)
+        assertTrue("Adhkar must appear above the logo", dhikr!!.visibleBounds.top < logo!!.visibleBounds.top)
 
         val pashtoKey = device.wait(Until.findObject(By.text("ض")), 3_000)
         assertNotNull("Pashto key was not found", pashtoKey)
