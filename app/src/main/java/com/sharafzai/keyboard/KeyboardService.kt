@@ -753,7 +753,7 @@ class KeyboardService : InputMethodService() {
             setPadding(dp(4), 0, dp(4), 0)
         }
         val brandLogo = TextView(this).apply {
-            text = "سندس\\nSUNDUS"
+            text = "سندس\nSUNDUS"
             textSize = 9.5f
             gravity = Gravity.CENTER
             maxLines = 2
@@ -781,14 +781,6 @@ class KeyboardService : InputMethodService() {
         brandRow.addView(brandLogoFrame, LinearLayout.LayoutParams(dp(42), dp(42)).apply {
             setMargins(0, dp(1), dp(7), dp(1))
         })
-        brandRow.addView(TextView(this).apply {
-            text = "SUNDUS  •  سندس"
-            textSize = 12f
-            gravity = Gravity.CENTER_VERTICAL
-            setTextColor(Color.rgb(255, 218, 116))
-            typeface = Typeface.create("serif", Typeface.BOLD)
-            setPadding(dp(3), 0, dp(4), 0)
-        }, LinearLayout.LayoutParams(-2, dp(25)))
         if (dhikrPreferences().getBoolean("dhikrEnabled", true)) {
             brandRow.addView(dhikrView, LinearLayout.LayoutParams(0, dp(42), 1f).apply {
                 setMargins(dp(3), 0, dp(3), 0)
@@ -870,6 +862,10 @@ class KeyboardService : InputMethodService() {
             gravity = Gravity.CENTER
         }
         if (quickActionsVisible) {
+            addSpecial(quickToolsRow, "پټول", 0.75f, 34) {
+                quickActionsVisible = false
+                refreshKeyboard()
+            }
             addSpecial(quickToolsRow, "🎨 رنګونه", 1.1f, 34) {
                 quickActionsVisible = false
                 refreshKeyboard()
