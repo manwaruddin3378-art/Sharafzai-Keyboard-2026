@@ -955,7 +955,7 @@ class KeyboardService : InputMethodService() {
         }
 
         if (savedTextsPanelVisible) {
-            addClipboardPanel(root)
+            addSavedTextsPanel(root)
         }
 
         if (phrasePanelVisible) {
@@ -1888,7 +1888,7 @@ class KeyboardService : InputMethodService() {
         parent.addView(pageNav, rowParams(34))
     }
 
-    private fun addClipboardPanel(parent: LinearLayout) {
+    private fun addSavedTextsPanel(parent: LinearLayout) {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val favorites = prefs.getStringSet("clipboardFavorites", emptySet()).orEmpty()
 
@@ -1936,7 +1936,7 @@ class KeyboardService : InputMethodService() {
         favorites.toList().chunked(2).forEach { group ->
             val favoriteRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             group.forEach { item ->
-                addSpecial(favoriteRow, "📌 " + item.replace("\\n", " ").take(18), 1f, 36) {
+                addSpecial(favoriteRow, "📌 " + item.replace("\n", " ").take(18), 1f, 36) {
                     currentInputConnection?.commitText(item, 1)
                     updateSuggestions()
                 }
