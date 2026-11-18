@@ -86,14 +86,21 @@ class KeyboardService : InputMethodService() {
             phrasePanelVisible = false
             val mainHandler = Handler(Looper.getMainLooper())
             mainHandler.postDelayed({
+                // The editor Activity may have been the focused window while the
+                // IME was attached to its EditText. On return, explicitly re-show
+                // the IME window as well as requesting it from InputMethodManager.
                 requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                showWindow(true)
+                window?.window?.decorView?.visibility = View.VISIBLE
+                window?.window?.decorView?.requestLayout()
                 updateSuggestions()
                 Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 1; shown=$isInputViewShown")
             }, 500L)
             mainHandler.postDelayed({
-                if (!isInputViewShown) {
-                    requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-                }
+                requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                showWindow(true)
+                window?.window?.decorView?.visibility = View.VISIBLE
+                window?.window?.decorView?.requestLayout()
                 updateSuggestions()
                 Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 2; shown=$isInputViewShown")
             }, 1200L)
