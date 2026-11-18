@@ -160,6 +160,15 @@ class KeyboardSmokeTest {
         closeAutoText!!.click()
         device.waitForIdle()
 
+        // AutoText is now a standalone Activity; reopen the settings panel on return.
+        val quickToolsAfterAutoText = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools did not return after closing AutoText", quickToolsAfterAutoText)
+        quickToolsAfterAutoText!!.click()
+        val settingsAfterAutoText = device.wait(Until.findObject(By.text("⚙")), 3_000)
+        assertNotNull("Settings shortcut did not return after closing AutoText", settingsAfterAutoText)
+        settingsAfterAutoText!!.click()
+        assertNotNull("Settings panel did not reopen after AutoText", device.wait(Until.findObject(By.text("د سندس کیبورډ تنظیمات")), 3_000))
+
         val autoCorrectOff = device.wait(Until.findObject(By.text("اتومات بدلون: بند")), 3_000)
         if (autoCorrectOff != null) autoCorrectOff.click()
         assertNotNull("Auto-correction could not be enabled", device.wait(Until.findObject(By.text("اتومات بدلون: فعال")), 3_000))
