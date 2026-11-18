@@ -73,6 +73,22 @@ class KeyboardService : InputMethodService() {
             if (isInputViewShown) refreshKeyboard()
         }
     }
+    private val restoreKeyboardReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            quickActionsVisible = false
+            emojiPanelVisible = false
+            savedTextsPanelVisible = false
+            symbolsPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = false
+            Handler(Looper.getMainLooper()).postDelayed({
+                refreshKeyboard()
+                requestShowSelf(0)
+                updateSuggestions()
+            }, 220L)
+        }
+    }
+
     private val voiceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val recognizedText = intent
@@ -185,6 +201,12 @@ class KeyboardService : InputMethodService() {
         } else {
             registerReceiver(voiceReceiver, voiceFilter)
         }
+        val restoreFilter = IntentFilter("com.sharafzai.keyboard.ACTION_RESTORE_IME")
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(restoreKeyboardReceiver, restoreFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(restoreKeyboardReceiver, restoreFilter)
+        }
         val dhikrFilter = IntentFilter("com.sharafzai.keyboard.ACTION_DHIKR_SETTINGS_CHANGED")
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(dhikrSettingsReceiver, dhikrFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -206,6 +228,7 @@ class KeyboardService : InputMethodService() {
         stopDhikrOverlay()
         runCatching { unregisterReceiver(voiceReceiver) }
         runCatching { unregisterReceiver(dhikrSettingsReceiver) }
+        runCatching { unregisterReceiver(restoreKeyboardReceiver) }
         super.onDestroy()
     }
 
@@ -2104,62 +2127,10 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun showEditPhraseDialog(existingPhrase: String) {
-        val input = EditText(this).apply {
-            hint = "خپله جمله یا متن ولیکئ"
-            minLines = 3
-            setSingleLine(false)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
-                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            setText(existingPhrase)
-            setSelection(text.length)
-            setPadding(dp(12), dp(10), dp(12), dp(10))
-            isFocusableInTouchMode = true
-        }
-        val dialog = ImeDialogBuilder()
-            .setTitle("شخصي جمله اصلاح کړئ")
-            .setView(input)
-            .setNegativeButton("بند", null)
-            .setPositiveButton("بدلون خوندي کړئ", null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.window?.setSoftInputMode(
-                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
-                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-            )
-            dialog.window?.setLayout(
-                android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                android.view.WindowManager.LayoutParams.WRAP_CONTENT
-            )
-            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val updatedPhrase = input.text.toString().trim()
-                if (updatedPhrase.isEmpty()) {
-                    Toast.makeText(this, "جمله تشه نه شي پاتې کېدای", Toast.LENGTH_SHORT).show()
-                    input.requestFocus()
-                    return@setOnClickListener
-                }
-                val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
-                saved.remove(existingPhrase)
-                saved.add(updatedPhrase)
-                if (prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()) {
-                    phraseIndex = 0
-                    phraseCategory = 4
-                    dialog.dismiss()
-                    phraseDialog?.dismiss()
-                    Toast.makeText(this, "شخصي جمله اصلاح او خوندي شوه", Toast.LENGTH_SHORT).show()
-                    showPhraseWindow()
-                } else {
-                    Toast.makeText(this, "بدلون خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
-                }
-            }
-            input.requestFocus()
-            input.post {
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
-                imm?.showSoftInput(input, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-            }
-        }
-        dialog.show()
+        openKeyboardSettingsTextActivity(
+            KeyboardSettingsTextActivity.MODE_PHRASE_EDIT,
+            existingPhrase
+        )
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
