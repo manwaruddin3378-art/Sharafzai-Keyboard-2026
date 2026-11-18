@@ -89,6 +89,16 @@ jobs:
         if: ${{ env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEYSTORE_PASSWORD == '' }}
         run: echo "Release signing is waiting for the private keystore secrets." >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Enable Android emulator hardware acceleration
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo "KVM device is unavailable on this runner" >&2
+            exit 1
+          fi
+          sudo chmod 666 /dev/kvm
+          ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
       - name: Run keyboard smoke test on Android emulator
         timeout-minutes: 35
         uses: ReactiveCircus/android-emulator-runner@v2
@@ -98,7 +108,7 @@ jobs:
           target: default
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 2048 -cores 2 -no-metrics
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 4096 -cores 4 -no-metrics -accel on
           emulator-boot-timeout: 900
           disable-animations: false
           script: |
