@@ -1238,15 +1238,11 @@ class KeyboardService : InputMethodService() {
         }
         parent.addView(soundRow, rowParams(41))
 
-        val dictionaryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(dictionaryRow, "شخصي قاموس", 1.2f, 38) {
-            showPersonalDictionaryEditor()
-        }
-        addSpecial(dictionaryRow, "ایمیل تنظیم", 1.0f, 38) { showEmailSetup() }
-        addSpecial(dictionaryRow, "کلمه اضافه", 1.0f, 38) {
-            addCurrentWordToDictionary()
-        }
-        parent.addView(dictionaryRow, rowParams(41))
+        // Personal dictionary editor is temporarily removed because opening its
+        // standalone Activity can leave the Android IME window hidden on return.
+        val emailRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(emailRow, "ایمیل تنظیم", 1.0f, 38) { showEmailSetup() }
+        parent.addView(emailRow, rowParams(41))
 
         // One shared close control for the entire settings panel.
         val closeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -1291,18 +1287,11 @@ class KeyboardService : InputMethodService() {
         ImeDialogBuilder()
             .setTitle("قاموس او لټون")
             .setMessage("اتومات زده کړه یوازې بشپړې کلمې په همدې موبایل کې ساتي؛ بشپړ متن نه ذخیره کوي. اوسنی حالت: ${if (autoLearn) "فعاله" else "بنده"}")
-            .setItems(arrayOf("🔎 د کلمو لټون", "＋ نوې کلمه او مانا", "📖 شخصي قاموس اداره کول", if (autoLearn) "اتومات زده کړه بنده کړئ" else "اتومات زده کړه فعاله کړئ")) { _, which ->
-                when (which) {
-                    0 -> showDictionarySearchDialog()
-                    1 -> showAddDictionaryEntryDialog()
-                    2 -> showPersonalDictionaryEditor()
-                    3 -> {
-                        val enabled = !prefs.getBoolean("autoLearnWords", true)
-                        prefs.edit().putBoolean("autoLearnWords", enabled).commit()
-                        Toast.makeText(this, if (enabled) "اتومات زده کړه فعاله شوه" else "اتومات زده کړه بنده شوه", Toast.LENGTH_SHORT).show()
-                        showDictionaryHome()
-                    }
-                }
+            .setItems(arrayOf(if (autoLearn) "اتومات زده کړه بنده کړئ" else "اتومات زده کړه فعاله کړئ")) { _, _ ->
+                val enabled = !prefs.getBoolean("autoLearnWords", true)
+                prefs.edit().putBoolean("autoLearnWords", enabled).commit()
+                Toast.makeText(this, if (enabled) "اتومات زده کړه فعاله شوه" else "اتومات زده کړه بنده شوه", Toast.LENGTH_SHORT).show()
+                showDictionaryHome()
             }
             .setNegativeButton("بند", null)
             .show()
