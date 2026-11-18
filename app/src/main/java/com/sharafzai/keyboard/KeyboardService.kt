@@ -2343,10 +2343,15 @@ class KeyboardService : InputMethodService() {
         dialog.setOnDismissListener {
             if (phraseDialog === dialog) {
                 phraseDialog = null
-                // Rebuild the IME after an attached dialog closes. On some Android
-                // versions dismissing an IME-owned dialog detaches the keyboard view;
-                // restoring it here keeps the previously open toolbar/panel usable.
+                // Return to the normal letter keyboard after the IME-owned dialog closes.
+                // Keeping the saved-text panel open here can leave the IME window detached
+                // on some Android versions, so reset the transient panels and request the
+                // input view to be shown again.
+                savedTextsPanelVisible = false
+                phrasePanelVisible = false
+                quickActionsVisible = false
                 refreshKeyboard()
+                requestShowSelf(0)
             }
         }
         attachDialogToIme(dialog)
