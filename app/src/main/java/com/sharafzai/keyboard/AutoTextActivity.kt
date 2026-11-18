@@ -84,12 +84,15 @@ class AutoTextActivity : Activity() {
     private fun editor(old: Pair<String, String>?) {
         val root = base(if (old == null) "نوی AutoText لنډیز" else "AutoText اصلاح کړئ")
         val code = EditText(this).apply {
-            hint = "لنډ کوډ، لکه سلام"; setSingleLine(true); textSize = 17f; setText(old?.first.orEmpty())
+            hint = "لنډ کوډ، لکه سلام"; setSingleLine(true); textSize = 17f
+            setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE)
+            setPadding(dp(10), 0, dp(10), 0); setText(old?.first.orEmpty())
         }
         val expansion = EditText(this).apply {
             hint = "بشپړه جمله یا متن"; minLines = 3
             gravity = Gravity.TOP or Gravity.START; setSingleLine(false); textSize = 17f
-            setText(old?.second.orEmpty())
+            setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE)
+            setPadding(dp(10), dp(10), dp(10), dp(10)); setText(old?.second.orEmpty())
         }
         root.addView(code, LinearLayout.LayoutParams(-1, dp(54)))
         root.addView(expansion, LinearLayout.LayoutParams(-1, 0, 1f))
