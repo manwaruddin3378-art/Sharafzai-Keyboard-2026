@@ -170,8 +170,7 @@ class KeyboardSmokeTest {
         assertNotNull("Settings panel did not reopen after AutoText", device.wait(Until.findObject(By.text("د سندس کیبورډ تنظیمات")), 3_000))
 
         val autoCorrectOff = device.wait(Until.findObject(By.text("اتومات بدلون: بند")), 3_000)
-        if (autoCorrectOff != null) autoCorrectOff.click()
-        assertNotNull("Auto-correction could not be enabled", device.wait(Until.findObject(By.text("اتومات بدلون: فعال")), 3_000))
+        assertNotNull("Auto-correction should remain off for the independent AutoText test", autoCorrectOff)
         device.findObject(By.text("تنظیمات بندول")).click()
         device.waitForIdle()
         instrumentation.runOnMainSync {
@@ -289,6 +288,13 @@ class KeyboardSmokeTest {
         assertNotNull("New note was not saved and listed", device.wait(Until.findObject(By.textContains("SUNDUS note test")), 5_000))
         device.findObject(By.textContains("SUNDUS note test")).click()
         assertNotNull("Saved note body could not be opened", device.wait(Until.findObject(By.textContains("saved note body")), 3_000))
+        val shareNote = device.wait(Until.findObject(By.text("شریکول")), 3_000)
+        assertNotNull("Note share action was not displayed", shareNote)
+        shareNote!!.click()
+        assertNotNull("Android share chooser did not open for the note", device.wait(Until.findObject(By.text("نوټ له کوم اپ سره شریکوئ؟")), 5_000))
+        device.pressBack()
+        device.waitForIdle()
+        device.findObject(By.textContains("SUNDUS note test")).click()
         device.findObject(By.text("سمول")).click()
         val editFields = device.findObjects(By.clazz(EditText::class.java))
         assertTrue("Note edit fields were not displayed", editFields.size >= 2)
