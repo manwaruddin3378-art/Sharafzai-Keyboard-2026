@@ -123,6 +123,18 @@ class KeyboardSettingsTextActivity : Activity() {
                 finish()
             } else Toast.makeText(this, "ایمیل خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
         }, LinearLayout.LayoutParams(-1, dp(50)))
+        page.addView(action("ایمیل حذفول") {
+            AlertDialog.Builder(this)
+                .setTitle("خوندي شوی ایمیل حذف شي؟")
+                .setMessage("د ایمیل پته به له دې موبایل څخه پاکه شي.")
+                .setNegativeButton("نه", null)
+                .setPositiveButton("هو، حذف") { _, _ ->
+                    if (prefs.edit().remove("preferredEmail").commit()) {
+                        Toast.makeText(this, "خوندي شوی ایمیل حذف شو", Toast.LENGTH_SHORT).show()
+                        finish()
+                    } else Toast.makeText(this, "ایمیل حذف نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
+                }.show()
+        }, LinearLayout.LayoutParams(-1, dp(46)))
         page.addView(action("بندول") { finish() }, LinearLayout.LayoutParams(-1, dp(46)))
         showKeyboard(email)
     }
