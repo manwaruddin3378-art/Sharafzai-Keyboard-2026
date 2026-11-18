@@ -63,7 +63,7 @@ class KeyboardService : InputMethodService() {
     private var fontStyleIndex = 0
     private var numberRowEnabled = true
     private var nativeDigitsEnabled = true
-    private var autoCorrectEnabled = true
+    private var autoTextEnabled = true
     private var hapticEnabled = true
     private var soundEnabled = false
     private var pendingVoiceText = ""
@@ -176,7 +176,7 @@ class KeyboardService : InputMethodService() {
         }
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", false)
         nativeDigitsEnabled = prefs.getBoolean("nativeDigitsEnabled", true)
-        autoCorrectEnabled = prefs.getBoolean("autoCorrectEnabled", false)
+        autoTextEnabled = prefs.getBoolean("autoTextEnabled", true)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
@@ -1136,13 +1136,13 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(typingRow, if (autoCorrectEnabled) "اتومات بدلون: فعال" else "اتومات بدلون: بند", 1.25f, 38) {
-            autoCorrectEnabled = !autoCorrectEnabled
+        addSpecial(typingRow, if (autoTextEnabled) "AutoText پراخول: فعال" else "AutoText پراخول: بند", 1.25f, 38) {
+            autoTextEnabled = !autoTextEnabled
             saveSettings()
             Toast.makeText(
                 this,
-                if (autoCorrectEnabled) "اتومات بدلون فعال شو؛ د AutoText لنډیزونه به د فاصله تڼۍ په وهلو پراخېږي."
-                else "اتومات بدلون بند شو؛ لنډیزونه به په خپله نه پراخېږي.",
+                if (autoTextEnabled) "د AutoText لنډیزونه فعال شول؛ د فاصلې تڼۍ په وهلو به بشپړه جمله راشي."
+                else "د AutoText لنډیزونه موقتاً بند شول.",
                 Toast.LENGTH_LONG
             ).show()
             refreshKeyboard()
@@ -1732,16 +1732,22 @@ class KeyboardService : InputMethodService() {
             updateSuggestions()
             return
         }
+        if (!autoTextEnabled) {
+            connection.commitText(" ", 1)
+            updateSuggestions()
+            return
+        }
         val before = connection.getTextBeforeCursor(100, 0)?.toString().orEmpty()
         val word = getCurrentWord(before)
         learnCompletedWord(word)
         val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
             .getStringSet("autoText_$language", emptySet()).orEmpty()
-        // Personal AutoText shortcuts are an explicit user feature and must expand
-        // even when general automatic spelling correction is switched off.
+        // Ignore Arabic-script diacritics and common letter variants when matching,
+        // but preserve the exact expansion saved by the user.
+        val normalizedWord = normalizeSuggestionText(word)
         val expansion = entries.mapNotNull { entry ->
             val parts = entry.split("|||", limit = 2)
-            if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
+            if (parts.size == 2 && normalizeSuggestionText(parts[0]) == normalizedWord) parts[1] else null
         }.firstOrNull()
         if (expansion != null && word.isNotEmpty()) {
             connection.deleteSurroundingText(word.length, 0)
@@ -3636,7 +3642,7 @@ class KeyboardService : InputMethodService() {
             .putInt("fontStyleIndex", fontStyleIndex)
             .putBoolean("numberRowEnabled", numberRowEnabled)
             .putBoolean("nativeDigitsEnabled", nativeDigitsEnabled)
-            .putBoolean("autoCorrectEnabled", autoCorrectEnabled)
+            .putBoolean("autoTextEnabled", autoTextEnabled)
             .putBoolean("hapticEnabled", hapticEnabled)
             .putBoolean("soundEnabled", soundEnabled)
             .apply()
