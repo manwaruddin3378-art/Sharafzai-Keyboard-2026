@@ -67,6 +67,7 @@ class KeyboardService : InputMethodService() {
     private var hapticEnabled = true
     private var soundEnabled = false
     private var pendingVoiceText = ""
+    private var restoreKeyboardPending = false
     private val dhikrSettingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             stopDhikrOverlay()
@@ -75,6 +76,8 @@ class KeyboardService : InputMethodService() {
     }
     private val restoreKeyboardReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            Log.e("SUNDUS_IME_LIFECYCLE", "Standalone editor closed; restoring keyboard")
+            restoreKeyboardPending = true
             quickActionsVisible = false
             emojiPanelVisible = false
             savedTextsPanelVisible = false
@@ -477,6 +480,20 @@ class KeyboardService : InputMethodService() {
         return view
     }
 
+    override fun onWindowShown() {
+        super.onWindowShown()
+        if (restoreKeyboardPending) {
+            quickActionsVisible = false
+            emojiPanelVisible = false
+            savedTextsPanelVisible = false
+            symbolsPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = false
+            refreshKeyboard()
+            restoreKeyboardPending = false
+        }
+    }
+
     // Keep the IME docked above the app content, including landscape mode.
     override fun onEvaluateFullscreenMode(): Boolean = false
 
@@ -486,6 +503,16 @@ class KeyboardService : InputMethodService() {
     ) {
         Log.e("SUNDUS_IME_LIFECYCLE", "onStartInputView restarting=$restarting inputType=${info.inputType}")
         super.onStartInputView(info, restarting)
+        if (restoreKeyboardPending) {
+            quickActionsVisible = false
+            emojiPanelVisible = false
+            savedTextsPanelVisible = false
+            symbolsPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = false
+            refreshKeyboard()
+            restoreKeyboardPending = false
+        }
         startDhikrOverlayIfAllowed()
         if (pendingVoiceText.isNotBlank()) {
             if (isRestrictedEditorField()) {
