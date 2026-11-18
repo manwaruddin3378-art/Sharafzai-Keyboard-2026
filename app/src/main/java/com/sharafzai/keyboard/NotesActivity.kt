@@ -62,6 +62,10 @@ class NotesActivity : Activity() {
             startActivity(Intent(this, NotesBackupActivity::class.java).putExtra(NotesBackupActivity.EXTRA_MODE, NotesBackupActivity.MODE_IMPORT))
         }, LinearLayout.LayoutParams(0, dp(46), 1f))
         root.addView(actions)
+        val draftPrefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val hasDraft = draftPrefs.getString("notesDraftTitle_new", "").orEmpty().isNotBlank() ||
+            draftPrefs.getString("notesDraftBody_new", "").orEmpty().isNotBlank()
+        if (hasDraft) root.addView(btn("نیمګړي نوټ ته دوام") { editor(null) }, LinearLayout.LayoutParams(-1, dp(44)))
         val search = EditText(this).apply { hint = "د نوټ سرلیک یا متن ولټوئ"; setSingleLine(true); textSize = 16f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE) }
         root.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -121,18 +125,32 @@ class NotesActivity : Activity() {
     }
     private fun editor(old: Note?) {
         val root = base(if (old == null) "نوی نوټ جوړول" else "نوټ اصلاح کول")
-        val title = EditText(this).apply { hint = "د نوټ سرلیک"; setSingleLine(true); textSize = 17f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE); setPadding(dp(10), 0, dp(10), 0); setText(old?.title ?: "") }
+        val draftPrefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        val draftId = old?.id?.toString() ?: "new"
+        val draftTitleKey = "notesDraftTitle_$draftId"
+        val draftBodyKey = "notesDraftBody_$draftId"
+        val title = EditText(this).apply { hint = "د نوټ سرلیک"; setSingleLine(true); textSize = 17f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE); setPadding(dp(10), 0, dp(10), 0); setText(old?.title ?: draftPrefs.getString(draftTitleKey, "").orEmpty()) }
         val body = EditText(this).apply {
             hint = "د موضوع بشپړ متن دلته ولیکئ (تر ۱۰۰ زره تورو پورې)"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            gravity = Gravity.TOP or Gravity.START; minLines = 8; setSingleLine(false); textSize = 17f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE); setPadding(dp(10), dp(10), dp(10), dp(10)); setText(old?.body ?: "")
+            gravity = Gravity.TOP or Gravity.START; minLines = 8; setSingleLine(false); textSize = 17f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE); setPadding(dp(10), dp(10), dp(10), dp(10)); setText(old?.body ?: draftPrefs.getString(draftBodyKey, "").orEmpty())
         }
         root.addView(title, LinearLayout.LayoutParams(-1, dp(52)))
         root.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
         val counter = TextView(this).apply { text = body.text.length.toString() + " / " + maxChars }
+        title.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                draftPrefs.edit().putString(draftTitleKey, s?.toString().orEmpty()).apply()
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
         body.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { this@NotesActivity.runOnUiThread { counter.text = (s?.length ?: 0).toString() + " / " + maxChars } }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                this@NotesActivity.runOnUiThread { counter.text = (s?.length ?: 0).toString() + " / " + maxChars }
+                draftPrefs.edit().putString(draftBodyKey, s?.toString().orEmpty()).apply()
+            }
             override fun afterTextChanged(s: Editable?) = Unit
         })
         root.addView(counter)
@@ -147,7 +165,11 @@ class NotesActivity : Activity() {
                 else {
                     val n = Note(old?.id ?: System.currentTimeMillis(), t, b, System.currentTimeMillis(), old?.pinned ?: false)
                     val i = all.indexOfFirst { it.id == n.id }; if (i >= 0) all[i] = n else all.add(n)
-                    if (save(all)) { toast("نوټ په بریالیتوب خوندي شو"); manager() } else toast("نوټ خوندي نه شو")
+                    if (save(all)) {
+                        draftPrefs.edit().remove(draftTitleKey).remove(draftBodyKey).apply()
+                        toast("نوټ په بریالیتوب خوندي شو")
+                        manager()
+                    } else toast("نوټ خوندي نه شو")
                 }
             }
         }, LinearLayout.LayoutParams(0, dp(50), 1f))
