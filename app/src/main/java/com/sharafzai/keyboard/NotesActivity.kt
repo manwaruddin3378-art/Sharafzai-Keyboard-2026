@@ -29,6 +29,11 @@ class NotesActivity : Activity() {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         manager()
     }
+    override fun onDestroy() {
+        sendBroadcast(Intent("com.sharafzai.keyboard.ACTION_RESTORE_IME").setPackage(packageName))
+        super.onDestroy()
+    }
+
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
     private fun base(title: String): LinearLayout {
         val root = LinearLayout(this).apply {
