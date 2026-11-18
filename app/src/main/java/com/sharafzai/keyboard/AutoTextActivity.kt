@@ -2,6 +2,7 @@ package com.sharafzai.keyboard
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.WindowManager
@@ -111,8 +112,21 @@ class AutoTextActivity : Activity() {
             }
         }, LinearLayout.LayoutParams(-1, dp(50)))
         root.addView(button("بېرته") { manager() }, LinearLayout.LayoutParams(-1, dp(46)))
-        code.requestFocus()
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        showKeyboard(code)
     }
+    private fun showKeyboard(field: EditText) {
+        field.requestFocus()
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        field.post {
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(field, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    override fun onDestroy() {
+        sendBroadcast(Intent("com.sharafzai.keyboard.ACTION_RESTORE_IME").setPackage(packageName))
+        super.onDestroy()
+    }
+
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 }
