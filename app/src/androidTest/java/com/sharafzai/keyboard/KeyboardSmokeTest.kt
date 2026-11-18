@@ -4,6 +4,9 @@ import android.content.Intent
 import android.widget.EditText
 import android.os.SystemClock
 import android.util.Log
+import android.util.AtomicFile
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -166,5 +169,37 @@ class KeyboardSmokeTest {
         device.findObject(By.text("نوټ حذفول")).click()
         device.findObject(By.text("هو، حذف یې کړه")).click()
         assertNotNull("Deleted note still appears or notes list did not refresh", device.wait(Until.findObject(By.text("تر اوسه مو نوټ نه دی جوړ کړی.")), 5_000))
+
+        // Stress the new file-backed store with more than fifty topics and a long document.
+        val bulkNotes = JSONArray()
+        repeat(60) { index ->
+            val isLongDocument = index == 59
+            bulkNotes.put(
+                JSONObject()
+                    .put("id", 2_000_000_000L + index)
+                    .put("title", if (isLongDocument) "SUNDUS ten-page document" else "SUNDUS bulk topic ${index + 1}")
+                    .put("body", if (isLongDocument) "A4_PAGE_CONTENT ".repeat(5_000) else "Bulk note body ${index + 1}")
+                    .put("updatedAt", System.currentTimeMillis() + index)
+                    .put("pinned", index == 0)
+            )
+        }
+        val notesAtomicFile = AtomicFile(java.io.File(instrumentation.targetContext.filesDir, "sundus_notes_v2.json"))
+        var notesOutput: java.io.FileOutputStream? = null
+        try {
+            notesOutput = notesAtomicFile.startWrite()
+            notesOutput.write(bulkNotes.toString().toByteArray(Charsets.UTF_8))
+            notesAtomicFile.finishWrite(notesOutput)
+        } catch (error: Exception) {
+            if (notesOutput != null) notesAtomicFile.failWrite(notesOutput)
+            throw error
+        }
+        val notesSearch = device.findObject(By.clazz(EditText::class.java))
+        notesSearch.setText("SUNDUS bulk topic 60")
+        assertNotNull("The notes store did not display topic 60 after loading 60 topics", device.wait(Until.findObject(By.textContains("SUNDUS bulk topic 60")), 5_000))
+        notesSearch.setText("SUNDUS ten-page document")
+        val longNote = device.wait(Until.findObject(By.textContains("SUNDUS ten-page document")), 5_000)
+        assertNotNull("The long document was not found in the notes list", longNote)
+        longNote!!.click()
+        assertNotNull("The long document body could not be opened", device.wait(Until.findObject(By.textContains("A4_PAGE_CONTENT")), 5_000))
     }
 }
