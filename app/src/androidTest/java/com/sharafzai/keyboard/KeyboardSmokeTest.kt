@@ -172,10 +172,21 @@ class KeyboardSmokeTest {
         device.findObject(By.text("بندول")).click()
         device.waitForIdle()
 
-        val quickToolsAfterDictionary = device.wait(Until.findObject(By.text("•••")), 5_000)
+        val keyboardAfterDictionary = device.wait(Until.findObject(By.text("ض")), 8_000)
+        if (keyboardAfterDictionary == null) {
+            val hierarchy = java.io.File(instrumentation.targetContext.cacheDir, "after-dictionary.xml")
+            device.dumpWindowHierarchy(hierarchy)
+            Log.e("SUNDUS_IME_DIAG", "After dictionary close hierarchy: " + hierarchy.readText())
+        }
+        assertNotNull("Letter keyboard did not return after personal dictionary", keyboardAfterDictionary)
+        val quickToolsAfterDictionary = device.wait(Until.findObject(By.text("•••")), 8_000)
+            ?: device.findObject(By.desc("•••"))
+            ?: device.findObject(By.textContains("•••"))
         assertNotNull("Quick tools did not return after personal dictionary", quickToolsAfterDictionary)
         quickToolsAfterDictionary!!.click()
-        device.findObject(By.text("⚙")).click()
+        val settingsAfterDictionary = device.wait(Until.findObject(By.text("⚙")), 3_000)
+        assertNotNull("Settings shortcut did not return after personal dictionary", settingsAfterDictionary)
+        settingsAfterDictionary!!.click()
 
         // "Add word" uses the same standalone editor and must not fall back to an IME dialog.
         instrumentation.runOnMainSync {
