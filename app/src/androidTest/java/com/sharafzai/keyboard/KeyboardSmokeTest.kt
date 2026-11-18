@@ -136,14 +136,8 @@ class KeyboardSmokeTest {
         device.findObject(By.text("هو، پاک یې کړه")).click()
         device.waitForIdle()
 
-        // Clearing the saved-text panel may close its dialog; reopen the panel
-        // before continuing with the personal-phrase workflow.
-        val moreToolsAgain = device.wait(Until.findObject(By.text("•••")), 5_000)
-        assertNotNull("Quick tools button disappeared after clearing saved texts", moreToolsAgain)
-        moreToolsAgain!!.click()
-        val savedToolAgain = device.wait(Until.findObject(By.text("خوندي شوي")), 5_000)
-        assertNotNull("Saved texts panel could not be reopened", savedToolAgain)
-        savedToolAgain!!.click()
+        // Clearing saved texts refreshes the keyboard but keeps this panel open.
+        // Do not toggle it closed by reopening the quick-tools panel.
         val addPhraseAction = device.wait(Until.findObject(By.text("جمله ساتل")), 5_000)
         assertNotNull("Add personal phrase action was not displayed", addPhraseAction)
         addPhraseAction!!.click()
