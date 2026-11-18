@@ -94,7 +94,7 @@ class KeyboardService : InputMethodService() {
                 window?.window?.decorView?.visibility = View.VISIBLE
                 window?.window?.decorView?.requestLayout()
                 updateSuggestions()
-                Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 1; shown=$isInputViewShown windowShowing=${window?.window?.isShowing} decorVisible=${window?.window?.decorView?.visibility} decorAttached=${window?.window?.decorView?.isAttachedToWindow}")
+                Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 1; shown=$isInputViewShown windowShowing=${window?.isShowing} decorVisible=${window?.window?.decorView?.visibility} decorAttached=${window?.window?.decorView?.isAttachedToWindow}")
             }, 500L)
             mainHandler.postDelayed({
                 requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
@@ -102,7 +102,7 @@ class KeyboardService : InputMethodService() {
                 window?.window?.decorView?.visibility = View.VISIBLE
                 window?.window?.decorView?.requestLayout()
                 updateSuggestions()
-                Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 2; shown=$isInputViewShown windowShowing=${window?.window?.isShowing} decorVisible=${window?.window?.decorView?.visibility} decorAttached=${window?.window?.decorView?.isAttachedToWindow}")
+                Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 2; shown=$isInputViewShown windowShowing=${window?.isShowing} decorVisible=${window?.window?.decorView?.visibility} decorAttached=${window?.window?.decorView?.isAttachedToWindow}")
             }, 1200L)
         }
     }
@@ -497,7 +497,7 @@ class KeyboardService : InputMethodService() {
 
     override fun onWindowShown() {
         super.onWindowShown()
-        Log.e("SUNDUS_IME_LIFECYCLE", "onWindowShown; shown=$isInputViewShown windowShowing=${window?.window?.isShowing} decorVisible=${window?.window?.decorView?.visibility}")
+        Log.e("SUNDUS_IME_LIFECYCLE", "onWindowShown; shown=$isInputViewShown windowShowing=${window?.isShowing} decorVisible=${window?.window?.decorView?.visibility}")
         if (restoreKeyboardPending) {
             quickActionsVisible = false
             emojiPanelVisible = false
@@ -514,7 +514,7 @@ class KeyboardService : InputMethodService() {
     override fun onEvaluateFullscreenMode(): Boolean = false
 
     override fun onWindowHidden() {
-        Log.e("SUNDUS_IME_LIFECYCLE", "onWindowHidden; shown=$isInputViewShown windowShowing=${window?.window?.isShowing}")
+        Log.e("SUNDUS_IME_LIFECYCLE", "onWindowHidden; shown=$isInputViewShown windowShowing=${window?.isShowing}")
         super.onWindowHidden()
     }
 
