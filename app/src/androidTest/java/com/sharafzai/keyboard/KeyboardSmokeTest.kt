@@ -218,22 +218,16 @@ class KeyboardSmokeTest {
         device.findObject(By.text("هو، پاک یې کړه")).click()
         device.waitForIdle()
 
-        // Clearing saved texts refreshes the keyboard but keeps this panel open.
-        // Do not toggle it closed by reopening the quick-tools panel.
-        val addPhraseAction = device.wait(Until.findObject(By.text("جمله ساتل")), 5_000)
-        assertNotNull("Add personal phrase action was not displayed", addPhraseAction)
-        addPhraseAction!!.click()
-        assertNotNull("Personal phrase editor did not open", device.wait(Until.findObject(By.text("شخصي جمله اضافه کړئ")), 3_000))
-        val phraseInput = device.wait(Until.findObject(By.clazz(EditText::class.java)), 3_000)
-        assertNotNull("Personal phrase text field was not found", phraseInput)
-        device.findObjects(By.clazz(EditText::class.java)).last().setText("SUNDUS phrase test")
-        // AlertDialog action buttons can be exposed by resource ID even when
-        // UiAutomator does not expose their localized text on hosted API-30 images.
-        val savePhraseButton = device.wait(Until.findObject(By.res("android", "button1")), 5_000)
-            ?: device.wait(Until.findObject(By.text("ذخیره")), 2_000)
-        assertNotNull("Personal phrase save button was not found", savePhraseButton)
-        savePhraseButton!!.click()
-        assertNotNull("Saved personal phrase window did not open", device.wait(Until.findObject(By.text("د سندس چټکې جملې")), 3_000))
+        // Verify that closing the personal-phrases window restores the IME toolbar.
+        // Open the phrases window directly; editing text inside an IME-owned dialog
+        // changes the active input target and is covered separately from this lifecycle test.
+        val quickToolsBeforePhrases = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools toggle was not displayed before opening personal phrases", quickToolsBeforePhrases)
+        quickToolsBeforePhrases!!.click()
+        val phrasesShortcut = device.wait(Until.findObject(By.text("جملې")), 3_000)
+        assertNotNull("Personal phrases shortcut was not displayed", phrasesShortcut)
+        phrasesShortcut!!.click()
+        assertNotNull("Personal phrases window did not open", device.wait(Until.findObject(By.text("د سندس چټکې جملې")), 3_000))
         // AlertDialog's negative action is android:id/button2; localized text
         // is not consistently exposed by UiAutomator on hosted API-30 images.
         val closePhraseButton = device.wait(Until.findObject(By.res("android", "button2")), 5_000)
@@ -241,27 +235,15 @@ class KeyboardSmokeTest {
         assertNotNull("Personal phrases close button was not found", closePhraseButton)
         closePhraseButton!!.click()
 
-        // Closing the phrase dialog can briefly detach the IME accessibility tree
-        // while the keyboard restores its quick-tools panel. Wait for the Notes
-        // action instead of dereferencing an immediately missing UiObject2.
-        device.waitForIdle()
-        var notesAction = device.wait(Until.findObject(By.text("نوټس")), 3_000)
-        if (notesAction == null) {
-            // Dismissing an IME-attached phrase dialog can collapse the toolbar panel
-            // on API-30 hosted emulators. Reopen quick tools and the saved-texts panel
-            // through the same user-visible path before treating Notes as unavailable.
-            val quickTools = device.wait(Until.findObject(By.text("•••")), 5_000)
-            assertNotNull("Quick tools did not return after closing personal phrases", quickTools)
-            quickTools!!.click()
-            notesAction = device.wait(Until.findObject(By.text("نوټس")), 2_000)
-            if (notesAction == null) {
-                val savedTexts = device.wait(Until.findObject(By.text("خوندي شوي")), 3_000)
-                assertNotNull("Saved texts panel shortcut was not restored", savedTexts)
-                savedTexts!!.click()
-                notesAction = device.wait(Until.findObject(By.text("نوټس")), 5_000)
-            }
-        }
-        assertNotNull("Notes action was not visible after restoring saved texts", notesAction)
+        // Wait for the toolbar to return after the attached dialog is dismissed.
+        val quickToolsAfterPhrases = device.wait(Until.findObject(By.text("•••")), 8_000)
+        assertNotNull("Quick tools did not return after closing personal phrases", quickToolsAfterPhrases)
+        quickToolsAfterPhrases!!.click()
+        val savedTextsShortcut = device.wait(Until.findObject(By.text("خوندي شوي")), 3_000)
+        assertNotNull("Saved texts shortcut was not displayed after closing personal phrases", savedTextsShortcut)
+        savedTextsShortcut!!.click()
+        val notesAction = device.wait(Until.findObject(By.text("نوټس")), 5_000)
+        assertNotNull("Notes action was not visible in the saved texts panel", notesAction)
         notesAction!!.click()
         assertNotNull("Notes manager did not open", device.wait(Until.findObject(By.text("زما نوټس")), 5_000))
         assertNotNull(
