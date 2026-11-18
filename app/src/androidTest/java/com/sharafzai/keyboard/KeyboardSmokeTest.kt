@@ -169,8 +169,8 @@ class KeyboardSmokeTest {
         settingsAfterAutoText!!.click()
         assertNotNull("Settings panel did not reopen after AutoText", device.wait(Until.findObject(By.text("د سندس کیبورډ تنظیمات")), 3_000))
 
-        val autoCorrectOff = device.wait(Until.findObject(By.text("اتومات بدلون: بند")), 3_000)
-        assertNotNull("Auto-correction should remain off for the independent AutoText test", autoCorrectOff)
+        val autoTextEnabled = device.wait(Until.findObject(By.text("AutoText پراخول: فعال")), 3_000)
+        assertNotNull("AutoText expansion should be enabled by default", autoTextEnabled)
         device.findObject(By.text("تنظیمات بندول")).click()
         device.waitForIdle()
         instrumentation.runOnMainSync {
@@ -189,10 +189,42 @@ class KeyboardSmokeTest {
         )
         device.findObject(By.text("سندس")).click()
         assertEquals(
-            "AutoText shortcut did not expand when auto-correction was enabled",
+            "AutoText shortcut did not expand when AutoText expansion was enabled",
             "SUNDUS AutoText works ",
             activeEditor.text.toString()
         )
+        instrumentation.runOnMainSync { activeEditor.setText("") }
+
+        // Verify that the dedicated AutoText switch really disables and re-enables
+        // expansion without affecting ordinary text entry.
+        device.waitForIdle()
+        val quickToolsForAutoText = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools did not return for AutoText toggle test", quickToolsForAutoText)
+        quickToolsForAutoText!!.click()
+        device.wait(Until.findObject(By.text("⚙")), 3_000)!!.click()
+        val disableAutoText = device.wait(Until.findObject(By.text("AutoText پراخول: فعال")), 3_000)
+        assertNotNull("AutoText enable switch was not available", disableAutoText)
+        disableAutoText!!.click()
+        assertNotNull("AutoText did not switch off", device.wait(Until.findObject(By.text("AutoText پراخول: بند")), 3_000))
+        device.findObject(By.text("تنظیمات بندول")).click()
+        device.waitForIdle()
+        instrumentation.runOnMainSync {
+            activeEditor.requestFocus()
+            activeEditor.setText("sundustest")
+            activeEditor.setSelection(activeEditor.text.length)
+        }
+        device.findObject(By.text("سندس")).click()
+        assertEquals("Disabled AutoText changed ordinary text", "sundustest ", activeEditor.text.toString())
+
+        val quickToolsToReenable = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools did not return to re-enable AutoText", quickToolsToReenable)
+        quickToolsToReenable!!.click()
+        device.wait(Until.findObject(By.text("⚙")), 3_000)!!.click()
+        val enableAutoText = device.wait(Until.findObject(By.text("AutoText پراخول: بند")), 3_000)
+        assertNotNull("AutoText disable switch was not available", enableAutoText)
+        enableAutoText!!.click()
+        assertNotNull("AutoText did not switch back on", device.wait(Until.findObject(By.text("AutoText پراخول: فعال")), 3_000))
+        device.findObject(By.text("تنظیمات بندول")).click()
         instrumentation.runOnMainSync { activeEditor.setText("") }
 
         // Reopen quick tools after the settings panel has been closed.
