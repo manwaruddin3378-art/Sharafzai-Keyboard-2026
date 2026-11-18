@@ -149,7 +149,12 @@ class KeyboardSmokeTest {
         val phraseInput = device.wait(Until.findObject(By.clazz(EditText::class.java)), 3_000)
         assertNotNull("Personal phrase text field was not found", phraseInput)
         device.findObjects(By.clazz(EditText::class.java)).last().setText("SUNDUS phrase test")
-        device.findObject(By.text("ذخیره")).click()
+        // AlertDialog action buttons can be exposed by resource ID even when
+        // UiAutomator does not expose their localized text on hosted API-30 images.
+        val savePhraseButton = device.wait(Until.findObject(By.res("android", "button1")), 5_000)
+            ?: device.wait(Until.findObject(By.text("ذخیره")), 2_000)
+        assertNotNull("Personal phrase save button was not found", savePhraseButton)
+        savePhraseButton!!.click()
         assertNotNull("Saved personal phrase window did not open", device.wait(Until.findObject(By.text("د سندس چټکې جملې")), 3_000))
         device.findObject(By.text("بند")).click()
 
