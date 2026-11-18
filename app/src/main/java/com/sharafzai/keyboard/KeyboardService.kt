@@ -2424,7 +2424,15 @@ class KeyboardService : InputMethodService() {
             .create()
         phraseDialog = dialog
         addPhrasePanel(content)
-        dialog.setOnDismissListener { if (phraseDialog === dialog) phraseDialog = null }
+        dialog.setOnDismissListener {
+            if (phraseDialog === dialog) {
+                phraseDialog = null
+                // Rebuild the IME after an attached dialog closes. On some Android
+                // versions dismissing an IME-owned dialog detaches the keyboard view;
+                // restoring it here keeps the previously open toolbar/panel usable.
+                refreshKeyboard()
+            }
+        }
         attachDialogToIme(dialog)
         dialog.show()
     }
