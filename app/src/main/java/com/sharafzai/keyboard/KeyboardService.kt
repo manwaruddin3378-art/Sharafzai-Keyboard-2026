@@ -1656,69 +1656,14 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun showAutoTextEditor() {
-        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        val key = "autoText_$language"
-        val rows = prefs.getStringSet(key, emptySet()).orEmpty().mapNotNull {
-            val parts = it.split("|||", limit = 2)
-            if (parts.size == 2) parts[0] to parts[1] else null
-        }.sortedBy { it.first }
-        val display = if (rows.isEmpty()) "تر اوسه لنډیز نه دی ثبت شوی." else rows.joinToString("\n") { "${it.first} → ${it.second}" }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(8), dp(18), dp(4))
-        }
-        content.addView(TextView(this).apply {
-            text = display
-            textSize = 13f
-            maxLines = 5
-            setPadding(0, 0, 0, dp(6))
-        })
-        val shortcut = EditText(this).apply { hint = "لنډ کوډ، لکه سلام"; setSingleLine(true) }
-        val expansion = EditText(this).apply { hint = "بشپړه جمله یا متن"; minLines = 2 }
-        content.addView(shortcut)
-        content.addView(expansion)
-        val dialog = ImeDialogBuilder()
-            .setTitle("شخصي AutoText لنډیزونه")
-            .setMessage("لنډ کوډ د فاصله تڼۍ په وهلو سره بشپړ متن ته پراخېږي. ټول معلومات آفلاین ساتل کېږي.")
-            .setView(content)
-            .setPositiveButton("＋ ساتل", null)
-            .setNeutralButton("ثبت شوي اداره کول", null)
-            .setNegativeButton("بند", null)
-            .create()
-        dialog.setOnShowListener {
-            shortcut.requestFocus()
-            dialog.window?.setSoftInputMode(
-                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
-                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-            )
-            shortcut.post {
-                (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
-                    .showSoftInput(shortcut, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-            }
-            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val code = shortcut.text.toString().trim()
-                val value = expansion.text.toString().trim()
-                if (code.isEmpty() || value.isEmpty()) {
-                    Toast.makeText(this, "لنډ کوډ او بشپړ متن دواړه ولیکئ", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-                updated.removeAll { it.substringBefore("|||") == code }
-                updated.add("$code|||$value")
-                if (prefs.edit().putStringSet(key, HashSet(updated)).commit()) {
-                    dialog.dismiss()
-                    Toast.makeText(this, "AutoText لنډیز خوندي شو", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "لنډیز خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
-                }
-            }
-            dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                dialog.dismiss()
-                showAutoTextManager()
-            }
-        }
-        attachDialogToIme(dialog)
-        dialog.show()
+        // AutoText fields must live in a normal Activity. EditTexts inside an
+        // IME-owned dialog cannot reliably receive the active input method.
+        prepareKeyboardForTextEntry()
+        startActivity(
+            Intent(this@KeyboardService, AutoTextActivity::class.java)
+                .putExtra(AutoTextActivity.EXTRA_LANGUAGE, language)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     private fun showAutoTextManager() {
