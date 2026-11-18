@@ -29,6 +29,7 @@ import android.widget.EditText
 import android.app.AlertDialog
 import android.widget.Toast
 import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -2300,7 +2301,7 @@ class KeyboardService : InputMethodService() {
                     setPadding(dp(10), dp(7), dp(10), dp(7))
                     setTextColor(Color.WHITE)
                     background = roundedBackground(
-                        if (index % 2 == 0) theme.suggestion else theme.key,
+                        if (index % 2 == 0) theme.suggestion else theme.keyColors[0],
                         dp(7)
                     )
                     setOnClickListener {
