@@ -2254,7 +2254,6 @@ class KeyboardService : InputMethodService() {
         refreshList("")
         attachDialogToIme(dialog)
         dialog.setOnDismissListener { refreshKeyboard() }
-        dialog.show()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 dialog.dismiss()
@@ -2263,6 +2262,7 @@ class KeyboardService : InputMethodService() {
                 }
             }
         }
+        dialog.show()
     }
 
     private fun showNoteEditor(existing: KeyboardNote?) {
