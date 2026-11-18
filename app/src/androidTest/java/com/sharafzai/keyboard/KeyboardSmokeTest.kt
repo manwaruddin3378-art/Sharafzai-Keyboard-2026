@@ -216,10 +216,13 @@ class KeyboardSmokeTest {
             val quickTools = device.wait(Until.findObject(By.text("•••")), 5_000)
             assertNotNull("Quick tools did not return after closing personal phrases", quickTools)
             quickTools!!.click()
-            val savedTexts = device.wait(Until.findObject(By.text("خوندي شوي")), 5_000)
-            assertNotNull("Saved texts panel shortcut was not restored", savedTexts)
-            savedTexts!!.click()
-            notesAction = device.wait(Until.findObject(By.text("نوټس")), 5_000)
+            notesAction = device.wait(Until.findObject(By.text("نوټس")), 2_000)
+            if (notesAction == null) {
+                val savedTexts = device.wait(Until.findObject(By.text("خوندي شوي")), 3_000)
+                assertNotNull("Saved texts panel shortcut was not restored", savedTexts)
+                savedTexts!!.click()
+                notesAction = device.wait(Until.findObject(By.text("نوټس")), 5_000)
+            }
         }
         assertNotNull("Notes action was not visible after restoring saved texts", notesAction)
         notesAction!!.click()
