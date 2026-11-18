@@ -252,9 +252,17 @@ class KeyboardSmokeTest {
         assertNotNull("Notes action was not visible after restoring saved texts", notesAction)
         notesAction!!.click()
         assertNotNull("Notes manager did not open", device.wait(Until.findObject(By.text("زما نوټس")), 5_000))
+        assertNotNull(
+            "Pashto letter keys disappeared when Notes manager opened",
+            device.wait(Until.findObject(By.text("ض")), 3_000)
+        )
         device.findObject(By.text("نوی نوټ")).click()
         val noteFields = device.findObjects(By.clazz(EditText::class.java))
         assertTrue("Note title and body fields were not both displayed", noteFields.size >= 2)
+        assertNotNull(
+            "Pashto letter keys disappeared when the note editor opened",
+            device.wait(Until.findObject(By.text("ض")), 3_000)
+        )
         noteFields.takeLast(2)[0].setText("SUNDUS note test")
         noteFields.takeLast(2)[1].setText("This is a saved note body for the keyboard test.")
         device.findObject(By.text("خوندي کول")).click()
