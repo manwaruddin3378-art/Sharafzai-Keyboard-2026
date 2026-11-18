@@ -84,11 +84,21 @@ class KeyboardService : InputMethodService() {
             symbolsPanelVisible = false
             settingsPanelVisible = false
             phrasePanelVisible = false
-            Handler(Looper.getMainLooper()).postDelayed({
+            val mainHandler = Handler(Looper.getMainLooper())
+            mainHandler.postDelayed({
                 refreshKeyboard()
                 requestShowSelf(0)
                 updateSuggestions()
-            }, 220L)
+                Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 1; shown=$isInputViewShown")
+            }, 500L)
+            mainHandler.postDelayed({
+                if (!isInputViewShown) {
+                    refreshKeyboard()
+                    requestShowSelf(0)
+                }
+                updateSuggestions()
+                Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 2; shown=$isInputViewShown")
+            }, 1200L)
         }
     }
 
