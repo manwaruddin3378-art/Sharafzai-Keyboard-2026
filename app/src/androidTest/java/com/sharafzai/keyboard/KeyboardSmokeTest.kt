@@ -166,6 +166,16 @@ class KeyboardSmokeTest {
         device.findObject(By.text("تنظیمات بندول")).click()
         device.waitForIdle()
 
+        // Closing settings returns to the compact keyboard toolbar. Reopen quick
+        // tools and settings before looking for the AutoText shortcut.
+        val quickToolsBeforeAutoText = device.wait(Until.findObject(By.text("•••")), 3_000)
+        assertNotNull("Quick tools did not return after closing settings", quickToolsBeforeAutoText)
+        quickToolsBeforeAutoText!!.click()
+        val settingsBeforeAutoText = device.wait(Until.findObject(By.text("⚙")), 3_000)
+        assertNotNull("Settings shortcut was not displayed before AutoText", settingsBeforeAutoText)
+        settingsBeforeAutoText!!.click()
+        assertNotNull("Settings panel did not reopen before AutoText", device.wait(Until.findObject(By.text("د سندس کیبورډ تنظیمات")), 3_000))
+
         val autoTextButton = device.wait(Until.findObject(By.text("AutoText تنظیم")), 3_000)
         assertNotNull("AutoText settings button was not displayed", autoTextButton)
         autoTextButton!!.click()
