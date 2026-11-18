@@ -1737,12 +1737,12 @@ class KeyboardService : InputMethodService() {
         learnCompletedWord(word)
         val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
             .getStringSet("autoText_$language", emptySet()).orEmpty()
-        val expansion = if (autoCorrectEnabled) {
-            entries.mapNotNull { entry ->
-                val parts = entry.split("|||", limit = 2)
-                if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
-            }.firstOrNull()
-        } else null
+        // Personal AutoText shortcuts are an explicit user feature and must expand
+        // even when general automatic spelling correction is switched off.
+        val expansion = entries.mapNotNull { entry ->
+            val parts = entry.split("|||", limit = 2)
+            if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
+        }.firstOrNull()
         if (expansion != null && word.isNotEmpty()) {
             connection.deleteSurroundingText(word.length, 0)
             connection.commitText("$expansion ", 1)
