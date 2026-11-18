@@ -1303,125 +1303,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun showPersonalDictionaryEditor() {
-        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        val languageName = listOf("پښتو", "عربي", "English", "دري")[language.coerceIn(0, 3)]
-        fun showList() {
-            val entries = dictionaryEntries()
-            val words = prefs.getStringSet("personalWords_$language", emptySet()).orEmpty()
-            val allTerms = (entries.map { it.first } + words).distinct().sorted()
-            val labels = allTerms.map { term ->
-                val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
-                if (meaning.isBlank()) term else "$term  —  $meaning"
-            }
-            ImeDialogBuilder()
-                .setTitle("شخصي قاموس – $languageName (${allTerms.size})")
-                .setMessage(if (allTerms.isEmpty()) "تر اوسه کلمه نه ده ثبت شوې. نوې کلمه له مانا سره اضافه کړئ." else "د یوې کلمې پر نوم کلیک وکړئ چې مانا یې وګورئ، اصلاح یا حذف یې کړئ.")
-                .setItems(labels.toTypedArray()) { _, which ->
-                    val term = allTerms[which]
-                    val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
-                    ImeDialogBuilder()
-                        .setTitle(term)
-                        .setMessage(meaning.ifBlank { "د دې کلمې مانا لا نه ده ثبت شوې." })
-                        .setPositiveButton("کلمه ولیکئ") { _, _ ->
-                            currentInputConnection?.commitText("$term ", 1)
-                            updateSuggestions()
-                        }
-                        .setNeutralButton("سمون") { _, _ ->
-                            showAddDictionaryEntryDialog(term, meaning)
-                        }
-                        .setNegativeButton("حذف") { _, _ ->
-                            ImeDialogBuilder()
-                                .setTitle("کلمه حذف کړئ؟")
-                                .setMessage("«$term» له شخصي قاموس څخه حذف شي؟")
-                                .setNegativeButton("نه", null)
-                                .setPositiveButton("هو، حذف") { _, _ ->
-                                    val updatedWords = prefs.getStringSet("personalWords_$language", emptySet())
-                                        ?.toMutableSet() ?: mutableSetOf()
-                                    updatedWords.remove(term)
-                                    prefs.edit().putStringSet("personalWords_$language", HashSet(updatedWords)).commit()
-                                    val updatedEntries = prefs.getStringSet("dictionaryEntries_$language", emptySet())
-                                        ?.toMutableSet() ?: mutableSetOf()
-                                    updatedEntries.removeAll { it.substringBefore("|||") == term }
-                                    val hidden = prefs.getStringSet("dictionaryHidden_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
-                                    hidden.add(term)
-                                    prefs.edit()
-                                        .putStringSet("dictionaryEntries_$language", HashSet(updatedEntries))
-                                        .putStringSet("dictionaryHidden_$language", HashSet(hidden))
-                                        .commit()
-                                    updateSuggestions()
-                                    showList()
-                                }.show()
-                        }
-                        .show()
-                }
-                .setPositiveButton("＋ نوې کلمه") { _, _ -> showAddDictionaryEntryDialog() }
-                .setNeutralButton("لټون") { _, _ -> showDictionarySearchDialog() }
-                .setNegativeButton("بند", null)
-                .show()
-        }
-        showList()
-    }
-
-    private fun showAddDictionaryEntryDialog(existingTerm: String = "", existingMeaning: String = "") {
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(8), dp(18), dp(4))
-        }
-        val termInput = EditText(this).apply {
-            hint = "کلمه یا اصطلاح"
-            setSingleLine(true)
-            setText(existingTerm)
-        }
-        val meaningInput = EditText(this).apply {
-            hint = "د کلمې مانا او تشریح"
-            minLines = 2
-            setSingleLine(false)
-            setText(existingMeaning)
-        }
-        content.addView(termInput)
-        content.addView(meaningInput)
-        val dialog = ImeDialogBuilder()
-            .setTitle(if (existingTerm.isBlank()) "قاموس ته نوې کلمه اضافه کړئ" else "د قاموس کلمه اصلاح کړئ")
-            .setMessage("کلمه او مانا یې ولیکئ؛ معلومات په همدې موبایل کې ساتل کېږي.")
-            .setView(content)
-            .setNegativeButton("بند", null)
-            .setPositiveButton("ذخیره", null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val term = termInput.text.toString().trim()
-                val meaning = meaningInput.text.toString().trim()
-                if (term.isEmpty() || meaning.isEmpty()) {
-                    Toast.makeText(this, "کلمه او مانا دواړه ولیکئ", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                val words = prefs.getStringSet("personalWords_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
-                if (existingTerm.isNotBlank()) words.remove(existingTerm)
-                words.add(term)
-                val entries = prefs.getStringSet("dictionaryEntries_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
-                if (existingTerm.isNotBlank()) entries.removeAll { it.substringBefore("|||") == existingTerm }
-                entries.removeAll { it.substringBefore("|||") == term }
-                entries.add("$term|||$meaning")
-                val hidden = prefs.getStringSet("dictionaryHidden_$language", emptySet())?.toMutableSet() ?: mutableSetOf()
-                if (existingTerm.isNotBlank() && existingTerm != term) hidden.add(existingTerm)
-                hidden.remove(term)
-                val saved = prefs.edit()
-                    .putStringSet("personalWords_$language", HashSet(words))
-                    .putStringSet("dictionaryEntries_$language", HashSet(entries))
-                    .putStringSet("dictionaryHidden_$language", HashSet(hidden))
-                    .commit()
-                if (saved) {
-                    dialog.dismiss()
-                    Toast.makeText(this, "کلمه او مانا خوندي شول", Toast.LENGTH_SHORT).show()
-                    updateSuggestions()
-                } else {
-                    Toast.makeText(this, "ذخیره ناکامه شوه؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-        attachDialogToIme(dialog)
-        dialog.show()
+        openKeyboardSettingsTextActivity(KeyboardSettingsTextActivity.MODE_DICTIONARY_MANAGER)
     }
 
     private fun showDictionarySearchDialog() {
@@ -3291,14 +3173,6 @@ class KeyboardService : InputMethodService() {
             return
         }
 
-        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        val dictionaryKey = "personalWords_$language"
-        val saved = prefs.getStringSet(dictionaryKey, emptySet())
-            ?.toMutableSet() ?: mutableSetOf()
-        saved.add(word)
-        prefs.edit().putStringSet(dictionaryKey, HashSet(saved)).commit()
-        Toast.makeText(this, "کلمه شخصي قاموس ته اضافه شوه؛ که وغواړئ مانا یې هم ولیکئ.", Toast.LENGTH_SHORT).show()
-        updateSuggestions()
         showAddDictionaryEntryDialog(word, dictionaryEntries().firstOrNull { it.first == word }?.second.orEmpty())
     }
 
@@ -3561,16 +3435,21 @@ class KeyboardService : InputMethodService() {
 
 
     private fun showEmailSetup() {
-        val input = EditText(this).apply {
-            hint = "name@example.com"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            setText(getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).getString("preferredEmail", ""))
-        }
-        ImeDialogBuilder().setTitle("ستاسو ایمیل").setMessage("ایمیل یوازې په دې موبایل کې ساتل کېږي او د ایمیل په خانه کې به په یوه ټک ښکاره شي.")
-            .setView(input).setPositiveButton("ساتل") { _, _ ->
-                getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).edit().putString("preferredEmail", input.text.toString().trim()).apply()
-                refreshKeyboard()
-            }.setNegativeButton("بند", null).show()
+        openKeyboardSettingsTextActivity(KeyboardSettingsTextActivity.MODE_EMAIL)
+    }
+
+    private fun openKeyboardSettingsTextActivity(mode: String, term: String = "", meaning: String = "") {
+        // Text fields opened from IME settings must be hosted by a normal Activity.
+        // EditTexts in an attached IME dialog cannot reliably summon this keyboard.
+        prepareKeyboardForTextEntry()
+        startActivity(
+            Intent(this@KeyboardService, KeyboardSettingsTextActivity::class.java)
+                .putExtra(KeyboardSettingsTextActivity.EXTRA_MODE, mode)
+                .putExtra(KeyboardSettingsTextActivity.EXTRA_LANGUAGE, language)
+                .putExtra(KeyboardSettingsTextActivity.EXTRA_TERM, term)
+                .putExtra(KeyboardSettingsTextActivity.EXTRA_MEANING, meaning)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     private fun saveSettings() {
