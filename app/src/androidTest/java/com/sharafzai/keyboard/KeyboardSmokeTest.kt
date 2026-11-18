@@ -1,7 +1,6 @@
 package com.sharafzai.keyboard
 
 import android.content.Intent
-import android.content.ClipboardManager
 import android.widget.EditText
 import android.os.SystemClock
 import android.util.Log
@@ -207,10 +206,17 @@ class KeyboardSmokeTest {
         assertNotNull("Saved text copy action was not displayed", copySavedText)
         copySavedText!!.click()
         device.waitForIdle()
-        val clipboard = instrumentation.targetContext.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
-        assertTrue("Saved text was not copied to the system clipboard",
-            clipboard.hasPrimaryClip() &&
-                clipboard.primaryClip?.getItemAt(0)?.coerceToText(instrumentation.targetContext).toString() == "SUNDUS saved text test"
+        // Verify the user-visible result by pasting into the focused editor.
+        // Android restricts direct clipboard reads from background/instrumentation contexts,
+        // while TextView's paste action exercises the real system clipboard path.
+        instrumentation.runOnMainSync {
+            activeEditor.setText("")
+            activeEditor.requestFocus()
+            activeEditor.setSelection(0)
+            activeEditor.onTextContextMenuItem(android.R.id.paste)
+        }
+        assertEquals("Copied saved text could not be pasted into the editor",
+            "SUNDUS saved text test", activeEditor.text.toString()
         )
 
         device.findObject(By.text("خوندي شوي متنونه پاکول")).click()
