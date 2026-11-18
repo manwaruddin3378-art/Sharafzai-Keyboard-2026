@@ -1302,6 +1302,14 @@ class KeyboardService : InputMethodService() {
             .show()
     }
 
+    private fun showAddDictionaryEntryDialog(term: String = "", meaning: String = "") {
+        openKeyboardSettingsTextActivity(
+            KeyboardSettingsTextActivity.MODE_DICTIONARY_EDITOR,
+            term,
+            meaning
+        )
+    }
+
     private fun showPersonalDictionaryEditor() {
         openKeyboardSettingsTextActivity(KeyboardSettingsTextActivity.MODE_DICTIONARY_MANAGER)
     }
@@ -3119,7 +3127,11 @@ class KeyboardService : InputMethodService() {
             return
         }
 
-        showAddDictionaryEntryDialog(word, dictionaryEntries().firstOrNull { it.first == word }?.second.orEmpty())
+        openKeyboardSettingsTextActivity(
+            KeyboardSettingsTextActivity.MODE_DICTIONARY_EDITOR,
+            word,
+            dictionaryEntries().firstOrNull { it.first == word }?.second.orEmpty()
+        )
     }
 
     private fun updateSuggestions() {
