@@ -116,13 +116,13 @@ class NotesActivity : Activity() {
         }
         root.addView(title, LinearLayout.LayoutParams(-1, dp(52)))
         root.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
-        val count = TextView(this).apply { text = body.text.length.toString() + " / " + maxChars }
+        val counter = TextView(this).apply { text = body.text.length.toString() + " / " + maxChars }
         body.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { this@NotesActivity.runOnUiThread { count.text = (s?.length ?: 0).toString() + " / " + maxChars } }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { this@NotesActivity.runOnUiThread { counter.text = (s?.length ?: 0).toString() + " / " + maxChars } }
             override fun afterTextChanged(s: Editable?) = Unit
         })
-        root.addView(count)
+        root.addView(counter)
         val row = LinearLayout(this)
         row.addView(btn(if (old == null) "خوندي کول" else "بدلون خوندي کول") {
             val t = title.text.toString().trim(); val b = body.text.toString()
