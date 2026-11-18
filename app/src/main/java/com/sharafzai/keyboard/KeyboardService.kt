@@ -950,8 +950,8 @@ class KeyboardService : InputMethodService() {
                 savedTextsPanelVisible = false
                 symbolsPanelVisible = false
                 settingsPanelVisible = false
+                phrasePanelVisible = true
                 refreshKeyboard()
-                showPhraseWindow()
             }
             addSpecial(quickToolsRow, "😀 ایموجي", 1f, 34) {
                 quickActionsVisible = false
@@ -988,7 +988,7 @@ class KeyboardService : InputMethodService() {
         }
         root.addView(quickToolsRow, rowParams(if (quickActionsVisible) 36 else 28))
 
-        if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
+        if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible && !phrasePanelVisible) {
             val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
