@@ -2294,6 +2294,8 @@ class KeyboardService : InputMethodService() {
             phrases.forEachIndexed { index, phrase ->
                 val item = TextView(this).apply {
                     text = phrase
+                    contentDescription = phrase
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
                     textSize = 13f
                     gravity = Gravity.CENTER_VERTICAL
                     maxLines = 3
