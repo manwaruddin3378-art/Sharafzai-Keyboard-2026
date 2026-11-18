@@ -152,7 +152,9 @@ class KeyboardSmokeTest {
         val quickToolsAfterEmail = device.wait(Until.findObject(By.text("•••")), 5_000)
         assertNotNull("Quick tools did not return after Email settings", quickToolsAfterEmail)
         quickToolsAfterEmail!!.click()
-        device.findObject(By.text("⚙")).click()
+        val settingsAfterEmail = device.wait(Until.findObject(By.text("⚙")), 5_000)
+        assertNotNull("Settings shortcut did not return after Email settings", settingsAfterEmail)
+        settingsAfterEmail!!.click()
         val dictionaryButton = device.wait(Until.findObject(By.text("شخصي قاموس")), 3_000)
         assertNotNull("Personal dictionary button was not displayed", dictionaryButton)
         dictionaryButton!!.click()
@@ -178,7 +180,7 @@ class KeyboardSmokeTest {
         // "Add word" uses the same standalone editor and must not fall back to an IME dialog.
         instrumentation.runOnMainSync {
             activeEditor.requestFocus()
-            activeEditor.setText("SUNDUSaddedword")
+            activeEditor.setText("SUNDUSaddedword ")
             activeEditor.setSelection(activeEditor.text.length)
         }
         val addCurrentWord = device.wait(Until.findObject(By.text("کلمه اضافه")), 3_000)
@@ -188,7 +190,7 @@ class KeyboardSmokeTest {
         assertNotNull("Pashto letter keys did not appear when adding the current word", device.wait(Until.findObject(By.text("ض")), 5_000))
         val addWordFields = device.findObjects(By.clazz(EditText::class.java))
         assertTrue("Add-current-word fields were not displayed", addWordFields.size >= 2)
-        assertEquals("Current word was not prefilled in the add-word editor", "SUNDUSaddedword", addWordFields[0].text)
+        assertEquals("Current word was not prefilled when the cursor followed a space", "SUNDUSaddedword", addWordFields[0].text)
         addWordFields[1].setText("Added from the keyboard settings")
         device.findObject(By.text("ذخیره")).click()
         device.waitForIdle()
