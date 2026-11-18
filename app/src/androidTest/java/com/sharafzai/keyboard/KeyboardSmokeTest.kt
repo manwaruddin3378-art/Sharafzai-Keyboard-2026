@@ -154,7 +154,20 @@ class KeyboardSmokeTest {
         assertNotNull("Auto-correction could not be enabled", device.wait(Until.findObject(By.text("اتومات بدلون: فعال")), 3_000))
         device.findObject(By.text("تنظیمات بندول")).click()
         device.waitForIdle()
-        instrumentation.runOnMainSync { activeEditor.setText("sundus-test") }
+        instrumentation.runOnMainSync {
+            activeEditor.requestFocus()
+            activeEditor.setText("sundustest")
+            // setText() can leave the selection at the start on the hosted API-30
+            // emulator. Real typing appends at the cursor, so explicitly place it
+            // after the shortcut before exercising the IME's space/AutoText action.
+            activeEditor.setSelection(activeEditor.text.length)
+        }
+        device.waitForIdle()
+        assertEquals(
+            "AutoText test shortcut cursor was not positioned at the end",
+            "sundustest".length,
+            activeEditor.selectionStart
+        )
         device.findObject(By.text("سندس")).click()
         assertEquals(
             "AutoText shortcut did not expand when auto-correction was enabled",
