@@ -1937,15 +1937,21 @@ class KeyboardService : InputMethodService() {
             if (favorites.isEmpty()) {
                 Toast.makeText(this, "تر اوسه مو کوم متن نه دی خوندي کړی.", Toast.LENGTH_LONG).show()
             } else {
+                val savedItems = favorites.toList()
                 ImeDialogBuilder().setTitle("ستاسو خوندي شوي متنونه")
-                    .setItems(favorites.toList().toTypedArray()) { _, which ->
-                        val selected = favorites.toList()[which]
+                    .setItems(savedItems.toTypedArray()) { _, which ->
+                        val selected = savedItems[which]
                         ImeDialogBuilder()
                             .setTitle("خوندي شوی متن")
                             .setMessage(selected)
                             .setPositiveButton("داخلول") { _, _ ->
                                 currentInputConnection?.commitText(selected, 1)
                                 updateSuggestions()
+                            }
+                            .setNeutralButton("کاپي") { _, _ ->
+                                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("خوندي شوی متن", selected))
+                                Toast.makeText(this, "متن کاپي شو؛ اوس یې پیسټ کولای شئ.", Toast.LENGTH_SHORT).show()
                             }
                             .setNegativeButton("حذف") { _, _ ->
                                 val updated = prefs.getStringSet("clipboardFavorites", emptySet())
