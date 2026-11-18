@@ -24,6 +24,11 @@
 
         <activity android:name=".VoiceInputActivity" android:exported="false" android:excludeFromRecents="true" />
         <activity android:name=".NotesBackupActivity" android:exported="false" android:excludeFromRecents="true" />
+        <activity
+            android:name=".NotesActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize"
+            android:configChanges="orientation|screenSize" />
 
         <service
             android:name=".KeyboardService"
