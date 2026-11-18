@@ -18,6 +18,7 @@ class KeyboardSettingsTextActivity : Activity() {
         const val MODE_EMAIL = "email"
         const val MODE_DICTIONARY_MANAGER = "dictionary_manager"
         const val MODE_DICTIONARY_EDITOR = "dictionary_editor"
+        const val MODE_PHRASE = "phrase"
     }
 
     private val prefs by lazy { getSharedPreferences("SharafzaiSettings", MODE_PRIVATE) }
@@ -33,6 +34,7 @@ class KeyboardSettingsTextActivity : Activity() {
                 intent.getStringExtra(EXTRA_TERM).orEmpty(),
                 intent.getStringExtra(EXTRA_MEANING).orEmpty()
             )
+            MODE_PHRASE -> phraseEditor(intent.getStringExtra(EXTRA_TERM).orEmpty())
             else -> dictionaryManager()
         }
     }
@@ -205,6 +207,32 @@ class KeyboardSettingsTextActivity : Activity() {
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         showKeyboard(search)
+    }
+
+    private fun phraseEditor(initialPhrase: String) {
+        val page = root("شخصي جمله اضافه کړئ")
+        page.addView(TextView(this).apply {
+            text = "خپله جمله ولیکئ؛ وروسته به د کیبورډ په شخصي جملو کې ښکاره شي."
+            textSize = 14f
+            setTextColor(Color.DKGRAY)
+        })
+        val phrase = editField("خپله جمله یا متن ولیکئ", initialPhrase, multiline = true)
+        page.addView(phrase, LinearLayout.LayoutParams(-1, 0, 1f))
+        page.addView(action("جمله خوندي کول") {
+            val value = phrase.text.toString().trim()
+            if (value.isBlank()) {
+                Toast.makeText(this, "لومړی جمله ولیکئ", Toast.LENGTH_SHORT).show()
+                return@action
+            }
+            val saved = prefs.getStringSet("savedPhrases", emptySet()).orEmpty().toMutableSet()
+            saved.add(value)
+            if (prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()) {
+                Toast.makeText(this, "جمله په شخصي برخه کې خوندي شوه", Toast.LENGTH_SHORT).show()
+                finish()
+            } else Toast.makeText(this, "جمله خوندي نه شوه؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
+        }, LinearLayout.LayoutParams(-1, dp(50)))
+        page.addView(action("بېرته") { finish() }, LinearLayout.LayoutParams(-1, dp(46)))
+        showKeyboard(phrase)
     }
 
     private fun dictionaryEditor(existingTerm: String, existingMeaning: String) {
