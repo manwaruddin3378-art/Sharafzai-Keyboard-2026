@@ -25,7 +25,7 @@
         <activity android:name=".VoiceInputActivity" android:exported="false" android:excludeFromRecents="true" />
         <activity android:name=".NotesBackupActivity" android:exported="false" android:excludeFromRecents="true" />
         <activity android:name=".KeyboardSettingsTextActivity" android:exported="false" android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
-        <activity android:name=".AutoTextActivity" android:exported="false" android:windowSoftInputMode="stateAlwaysHidden|adjustResize" />
+        <activity android:name=".AutoTextActivity" android:exported="false" android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
         <activity
             android:name=".NotesActivity"
             android:exported="false"
