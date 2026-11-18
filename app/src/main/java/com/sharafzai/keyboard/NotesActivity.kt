@@ -89,8 +89,7 @@ class NotesActivity : Activity() {
             override fun afterTextChanged(s: Editable?) = Unit
         })
         refresh("")
-        search.requestFocus()
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        showKeyboard(search)
     }
     private fun details(n: Note) {
         val root = base(n.title)
@@ -149,8 +148,15 @@ class NotesActivity : Activity() {
         }, LinearLayout.LayoutParams(0, dp(50), 1f))
         row.addView(btn("بېرته") { if (old == null) manager() else details(old) }, LinearLayout.LayoutParams(0, dp(50), 1f))
         root.addView(row)
-        title.requestFocus()
+        showKeyboard(title)
+    }
+    private fun showKeyboard(field: EditText) {
+        field.requestFocus()
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        field.post {
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(field, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
     }
     private fun parse(raw: String): MutableList<Note> {
         val a = JSONArray(raw)
