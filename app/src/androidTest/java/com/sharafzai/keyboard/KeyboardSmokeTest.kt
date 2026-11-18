@@ -175,6 +175,28 @@ class KeyboardSmokeTest {
         quickToolsAfterDictionary!!.click()
         device.findObject(By.text("⚙")).click()
 
+        // "Add word" uses the same standalone editor and must not fall back to an IME dialog.
+        instrumentation.runOnMainSync {
+            activeEditor.requestFocus()
+            activeEditor.setText("SUNDUSaddedword")
+            activeEditor.setSelection(activeEditor.text.length)
+        }
+        val addCurrentWord = device.wait(Until.findObject(By.text("کلمه اضافه")), 3_000)
+        assertNotNull("Add current word button was not displayed", addCurrentWord)
+        addCurrentWord!!.click()
+        assertNotNull("Add-current-word editor did not open", device.wait(Until.findObject(By.text("د قاموس کلمه اصلاح کړئ")), 5_000))
+        assertNotNull("Pashto letter keys did not appear when adding the current word", device.wait(Until.findObject(By.text("ض")), 5_000))
+        val addWordFields = device.findObjects(By.clazz(EditText::class.java))
+        assertTrue("Add-current-word fields were not displayed", addWordFields.size >= 2)
+        assertEquals("Current word was not prefilled in the add-word editor", "SUNDUSaddedword", addWordFields[0].text)
+        addWordFields[1].setText("Added from the keyboard settings")
+        device.findObject(By.text("ذخیره")).click()
+        device.waitForIdle()
+        val quickToolsAfterAddWord = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools did not return after adding a word", quickToolsAfterAddWord)
+        quickToolsAfterAddWord!!.click()
+        device.findObject(By.text("⚙")).click()
+
         val autoTextButton = device.wait(Until.findObject(By.text("AutoText تنظیم")), 3_000)
         assertNotNull("AutoText settings button was not displayed", autoTextButton)
         autoTextButton!!.click()
