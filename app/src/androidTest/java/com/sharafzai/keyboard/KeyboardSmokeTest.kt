@@ -186,6 +186,12 @@ class KeyboardSmokeTest {
         val quickToolsAfterDictionary = device.wait(Until.findObject(By.text("•••")), 8_000)
             ?: device.findObject(By.desc("•••"))
             ?: device.findObject(By.textContains("•••"))
+        if (quickToolsAfterDictionary == null) {
+            val hierarchy = java.io.File(instrumentation.targetContext.cacheDir, "after-dictionary-quick-tools.xml")
+            device.dumpWindowHierarchy(hierarchy)
+            Log.e("SUNDUS_IME_DIAG", "After dictionary quick-tools hierarchy: " + hierarchy.readText())
+            Log.e("SUNDUS_IME_DIAG", "After dictionary quick-tools input method: " + device.executeShellCommand("dumpsys input_method"))
+        }
         assertNotNull("Quick tools did not return after personal dictionary", quickToolsAfterDictionary)
         val freshQuickToolsAfterDictionary = device.wait(Until.findObject(By.text("•••")), 2_000)
             ?: device.findObject(By.desc("•••"))
