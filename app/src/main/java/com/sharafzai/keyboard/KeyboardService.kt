@@ -1666,64 +1666,6 @@ class KeyboardService : InputMethodService() {
         )
     }
 
-    private fun showAutoTextManager() {
-        val key = "autoText_$language"
-        val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-        fun readRows(): List<Pair<String, String>> =
-            prefs.getStringSet(key, emptySet()).orEmpty().mapNotNull { entry ->
-                val parts = entry.split("|||", limit = 2)
-                if (parts.size == 2) parts[0] to parts[1] else null
-            }.sortedBy { it.first.lowercase() }
-        fun showList() {
-            val rows = readRows()
-            ImeDialogBuilder()
-                .setTitle("ثبت شوي AutoText لنډیزونه (${rows.size})")
-                .setItems(rows.map { "${it.first}  →  ${it.second}" }.toTypedArray()) { _, which ->
-                    val selected = rows[which]
-                    ImeDialogBuilder()
-                        .setTitle(selected.first)
-                        .setMessage(selected.second)
-                        .setPositiveButton("سمون") { _, _ ->
-                            val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(4)) }
-                            val code = EditText(this).apply { hint = "لنډ کوډ"; setText(selected.first) }
-                            val expansion = EditText(this).apply { hint = "بشپړ متن"; setText(selected.second); minLines = 2 }
-                            content.addView(code)
-                            content.addView(expansion)
-                            ImeDialogBuilder()
-                                .setTitle("AutoText اصلاح کړئ")
-                                .setView(content)
-                                .setNegativeButton("بند", null)
-                                .setPositiveButton("ذخیره") { _, _ ->
-                                    val newCode = code.text.toString().trim()
-                                    val newExpansion = expansion.text.toString().trim()
-                                    if (newCode.isNotEmpty() && newExpansion.isNotEmpty()) {
-                                        val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-                                        updated.removeAll { it.substringBefore("|||") == selected.first || it.substringBefore("|||") == newCode }
-                                        updated.add("$newCode|||${newExpansion}")
-                                        prefs.edit().putStringSet(key, HashSet(updated)).commit()
-                                        Toast.makeText(this, "AutoText اصلاح شو", Toast.LENGTH_SHORT).show()
-                                    }
-                                }.show()
-                        }
-                        .setNegativeButton("حذف") { _, _ ->
-                            ImeDialogBuilder()
-                                .setTitle("لنډیز حذف کړئ؟")
-                                .setNegativeButton("نه", null)
-                                .setPositiveButton("هو، حذف") { _, _ ->
-                                    val updated = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-                                    updated.remove("${selected.first}|||${selected.second}")
-                                    prefs.edit().putStringSet(key, HashSet(updated)).commit()
-                                    showList()
-                                }.show()
-                        }
-                        .show()
-                }
-                .setPositiveButton("بند", null)
-                .show()
-        }
-        showList()
-    }
-
     private fun expandAutoTextAndSpace() {
         val connection = currentInputConnection ?: return
         // Never inspect words or expand shortcuts in protected/private editor fields.
