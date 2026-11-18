@@ -2122,6 +2122,36 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(8), dp(4), dp(8), dp(4))
         }
+        val backupActions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val exportButton = Button(this).apply {
+            text = "نسخه صادرول"
+            setOnClickListener {
+                startActivity(Intent(this@KeyboardService, NotesBackupActivity::class.java)
+                    .putExtra(NotesBackupActivity.EXTRA_MODE, NotesBackupActivity.MODE_EXPORT)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
+        val importButton = Button(this).apply {
+            text = "نسخه واردول"
+            setOnClickListener {
+                ImeDialogBuilder()
+                    .setTitle("د نوټونو نسخه واردول؟")
+                    .setMessage("واردول به اوسني نوټونه له ټاکل شوې نسخې سره بدل کړي. د اوسنیو نوټونو احتیاطي نسخه به ترې مخکې وساتل شي.")
+                    .setNegativeButton("بېرته", null)
+                    .setPositiveButton("فایل وټاکئ") { _, _ ->
+                        startActivity(Intent(this@KeyboardService, NotesBackupActivity::class.java)
+                            .putExtra(NotesBackupActivity.EXTRA_MODE, NotesBackupActivity.MODE_IMPORT)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    }
+                    .show()
+            }
+        }
+        backupActions.addView(exportButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        backupActions.addView(importButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        content.addView(backupActions, LinearLayout.LayoutParams(-1, dp(48)))
         val search = EditText(this).apply {
             hint = "د نوټ سرلیک یا متن ولټوئ"
             setSingleLine(true)
