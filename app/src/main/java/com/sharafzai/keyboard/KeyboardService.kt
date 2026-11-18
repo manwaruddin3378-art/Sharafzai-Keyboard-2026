@@ -2132,7 +2132,21 @@ class KeyboardService : InputMethodService() {
         }
     }
 
+    // Any text-entry dialog opened from a toolbar panel must first restore the
+    // actual letter keyboard. Otherwise the saved-text/emoji/settings panel remains
+    // the active IME view and users have no letter keys for search or note entry.
+    private fun prepareKeyboardForTextEntry() {
+        quickActionsVisible = false
+        emojiPanelVisible = false
+        savedTextsPanelVisible = false
+        symbolsPanelVisible = false
+        settingsPanelVisible = false
+        phrasePanelVisible = false
+        refreshKeyboard()
+    }
+
     private fun showNotesWindow() {
+        prepareKeyboardForTextEntry()
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(8), dp(4), dp(8), dp(4))
@@ -2263,9 +2277,15 @@ class KeyboardService : InputMethodService() {
             }
         }
         dialog.show()
+        search.requestFocus()
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
     }
 
     private fun showNoteEditor(existing: KeyboardNote?) {
+        prepareKeyboardForTextEntry()
         val form = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(6), dp(4), dp(6), dp(4))
@@ -2352,7 +2372,7 @@ class KeyboardService : InputMethodService() {
             android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
                 android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         )
-        bodyInput.requestFocus()
+        titleInput.requestFocus()
     }
 
     private fun showNoteDetails(note: KeyboardNote) {
