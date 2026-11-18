@@ -306,32 +306,44 @@ class KeyboardSmokeTest {
         device.findObject(By.text("هو، پاک یې کړه")).click()
         device.waitForIdle()
 
-        // Verify that closing the personal-phrases window restores the IME toolbar.
-        // Open the phrases window directly; editing text inside an IME-owned dialog
-        // changes the active input target and is covered separately from this lifecycle test.
+        // Verify the new in-keyboard phrase panel: categories and full phrase list
+        // appear in place of letter keys, and tapping a phrase inserts it then restores keys.
         val quickToolsBeforePhrases = device.wait(Until.findObject(By.text("•••")), 5_000)
-        assertNotNull("Quick tools toggle was not displayed before opening personal phrases", quickToolsBeforePhrases)
+        assertNotNull("Quick tools toggle was not displayed before opening phrases", quickToolsBeforePhrases)
         quickToolsBeforePhrases!!.click()
         val phrasesShortcut = device.wait(Until.findObject(By.text("جملې")), 3_000)
-        assertNotNull("Personal phrases shortcut was not displayed", phrasesShortcut)
+        assertNotNull("Phrases shortcut was not displayed", phrasesShortcut)
         phrasesShortcut!!.click()
-        assertNotNull("Personal phrases window did not open", device.wait(Until.findObject(By.text("د سندس چټکې جملې")), 3_000))
-        // AlertDialog's negative action is android:id/button2; localized text
-        // is not consistently exposed by UiAutomator on hosted API-30 images.
-        val closePhraseButton = device.wait(Until.findObject(By.res("android", "button2")), 5_000)
-            ?: device.wait(Until.findObject(By.text("بند")), 2_000)
-        assertNotNull("Personal phrases close button was not found", closePhraseButton)
-        closePhraseButton!!.click()
 
-        // Wait for the toolbar to return after the attached dialog is dismissed.
+        val islamicCategory = device.wait(Until.findObject(By.text("اسلامي")), 5_000)
+        val pashtoCategory = device.wait(Until.findObject(By.text("پښتو")), 3_000)
+        assertNotNull("Phrase panel did not show its category tabs", islamicCategory)
+        assertNotNull("Pashto phrase category was not displayed", pashtoCategory)
+        pashtoCategory!!.click()
+
+        val expectedPhrase = "السلام علیکم، څنګه یاست؟ هیله ده روغ او جوړ به یاست."
+        val phraseRow = device.wait(Until.findObject(By.text(expectedPhrase)), 5_000)
+        assertNotNull("Pashto phrase list did not appear inside the keyboard", phraseRow)
+        phraseRow!!.click()
+        assertEquals(
+            "Tapping a phrase did not insert it into the editor",
+            expectedPhrase + " ",
+            activeEditor.text.toString()
+        )
+        assertNotNull(
+            "Ordinary keyboard keys did not return after inserting a phrase",
+            device.wait(Until.findObject(By.text("ض")), 5_000)
+        )
+        instrumentation.runOnMainSync { activeEditor.setText("") }
         device.waitForIdle()
-        assertNotNull("Quick tools did not return after closing personal phrases", device.wait(Until.findObject(By.text("•••")), 8_000))
-        // Re-query immediately before clicking: UiAutomator can retain a stale
-        // node across the IME window transition after the dialog is dismissed.
-        val quickToolsAfterPhrases = device.findObject(By.text("•••"))
-            ?: device.findObject(By.desc("•••"))
-        assertNotNull("Quick tools button became stale after closing personal phrases", quickToolsAfterPhrases)
-        quickToolsAfterPhrases!!.click()
+
+        // Open quick tools again to continue the Notes smoke test.
+        val quickToolsAfterPhraseInsert = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools did not return after phrase insertion", quickToolsAfterPhraseInsert)
+        quickToolsAfterPhraseInsert!!.click()
+        val savedToolAfterPhrases = device.wait(Until.findObject(By.text("خوندي شوي")), 3_000)
+        assertNotNull("Saved texts shortcut was not displayed after phrase insertion", savedToolAfterPhrases)
+        savedToolAfterPhrases!!.click()
         val savedTextsShortcut = device.wait(Until.findObject(By.text("خوندي شوي")), 3_000)
         assertNotNull("Saved texts shortcut was not displayed after closing personal phrases", savedTextsShortcut)
         savedTextsShortcut!!.click()
