@@ -2147,7 +2147,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
-        val categories = listOf("اسلامي", "پښتو", "English", "دري", "زما")
+        val categories = listOf("اسلامي", "پښتو", "English", "دري")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         categories.forEachIndexed { index, label ->
             addSpecial(categoryRow, label, 1f, 28) {
@@ -2267,11 +2267,7 @@ class KeyboardService : InputMethodService() {
                 "برای شما سلامتی، آرامش و موفقیت آرزو می‌کنم."
             )
         )
-        val phrases = when (phraseCategory) {
-            in 0..3 -> phraseGroups[phraseCategory]
-            else -> getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                .getStringSet("savedPhrases", emptySet()).orEmpty().toList()
-        }
+        val phrases = phraseGroups[phraseCategory.coerceIn(0, 3)]
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
@@ -2286,7 +2282,7 @@ class KeyboardService : InputMethodService() {
                 text = "تر اوسه په دې برخه کې جمله نشته."
                 textSize = 12f
                 gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
+                setTextColor(Color.BLACK)
                 setPadding(dp(8), dp(12), dp(8), dp(12))
             }
             phraseList.addView(empty, rowParams(48))
@@ -2301,9 +2297,10 @@ class KeyboardService : InputMethodService() {
                     maxLines = 3
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     setPadding(dp(10), dp(7), dp(10), dp(7))
-                    setTextColor(Color.WHITE)
+                    setTextColor(Color.BLACK)
+                    // Bright phrase cards keep black text readable across every keyboard theme.
                     background = roundedBackground(
-                        if (index % 2 == 0) theme.suggestion else theme.keyColors[0],
+                        if (index % 2 == 0) Color.WHITE else Color.rgb(248, 250, 252),
                         dp(7)
                     )
                     setOnClickListener {
