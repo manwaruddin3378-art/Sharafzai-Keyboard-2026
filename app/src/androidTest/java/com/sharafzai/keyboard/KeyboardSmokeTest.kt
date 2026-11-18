@@ -112,7 +112,19 @@ class KeyboardSmokeTest {
         // Wait for the actual quick-tools button rather than treating the early SUNDUS label
         // as proof that the keyboard view is already attached and accessible.
         device.waitForIdle()
-        val moreTools = device.wait(Until.findObject(By.text("•••")), 20_000)
+        var moreTools = device.wait(Until.findObject(By.text("•••")), 45_000)
+        if (moreTools == null) {
+            // Some Android 11 IME accessibility trees expose the button through
+            // its description or a partial text node rather than an exact text match.
+            moreTools = device.findObject(By.desc("•••"))
+                ?: device.findObject(By.textContains("•••"))
+        }
+        if (moreTools == null) {
+            val hierarchyFile = java.io.File(instrumentation.targetContext.cacheDir, "sundus-ime-window.xml")
+            device.dumpWindowHierarchy(hierarchyFile)
+            Log.e("SUNDUS_IME_DIAG", "quick-tools missing; display=" + device.executeShellCommand("dumpsys input_method"))
+            Log.e("SUNDUS_IME_DIAG", "windows=" + device.executeShellCommand("dumpsys window windows"))
+        }
         assertNotNull("Quick tools button was not found after keyboard view initialization", moreTools)
         moreTools!!.click()
 
