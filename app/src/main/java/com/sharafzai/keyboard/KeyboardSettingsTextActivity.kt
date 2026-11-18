@@ -171,7 +171,7 @@ class KeyboardSettingsTextActivity : Activity() {
                     setBackgroundColor(Color.WHITE)
                 }
                 row.addView(TextView(this).apply {
-                    text = if (meaning.isBlank()) term else "$term — $meaning"
+                    this.text = if (meaning.isBlank()) term else "$term — $meaning"
                     textSize = 16f
                     setTextColor(Color.BLACK)
                 })
