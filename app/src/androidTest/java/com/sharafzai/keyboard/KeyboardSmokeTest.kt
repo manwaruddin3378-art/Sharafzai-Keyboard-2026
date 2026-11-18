@@ -261,8 +261,13 @@ class KeyboardSmokeTest {
         closePhraseButton!!.click()
 
         // Wait for the toolbar to return after the attached dialog is dismissed.
-        val quickToolsAfterPhrases = device.wait(Until.findObject(By.text("•••")), 8_000)
-        assertNotNull("Quick tools did not return after closing personal phrases", quickToolsAfterPhrases)
+        device.waitForIdle()
+        assertNotNull("Quick tools did not return after closing personal phrases", device.wait(Until.findObject(By.text("•••")), 8_000))
+        // Re-query immediately before clicking: UiAutomator can retain a stale
+        // node across the IME window transition after the dialog is dismissed.
+        val quickToolsAfterPhrases = device.findObject(By.text("•••"))
+            ?: device.findObject(By.desc("•••"))
+        assertNotNull("Quick tools button became stale after closing personal phrases", quickToolsAfterPhrases)
         quickToolsAfterPhrases!!.click()
         val savedTextsShortcut = device.wait(Until.findObject(By.text("خوندي شوي")), 3_000)
         assertNotNull("Saved texts shortcut was not displayed after closing personal phrases", savedTextsShortcut)
