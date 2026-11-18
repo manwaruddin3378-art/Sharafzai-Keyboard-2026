@@ -116,6 +116,47 @@ class KeyboardSmokeTest {
         assertNotNull("Quick tools button was not found after keyboard view initialization", moreTools)
         moreTools!!.click()
 
+        // Verify the three requested settings fixes before exercising saved texts.
+        val settingsButton = device.wait(Until.findObject(By.text("⚙")), 5_000)
+        assertNotNull("Settings shortcut was not displayed", settingsButton)
+        settingsButton!!.click()
+        assertNotNull("Keyboard settings panel did not open", device.wait(Until.findObject(By.text("د سندس کیبورډ تنظیمات")), 3_000))
+        val closeSettingsButtons = device.findObjects(By.text("تنظیمات بندول"))
+        assertEquals("Settings must expose exactly one close button", 1, closeSettingsButtons.size)
+
+        val autoTextButton = device.wait(Until.findObject(By.text("AutoText تنظیم")), 3_000)
+        assertNotNull("AutoText settings button was not displayed", autoTextButton)
+        autoTextButton!!.click()
+        assertNotNull("AutoText editor did not open", device.wait(Until.findObject(By.text("شخصي AutoText لنډیزونه")), 3_000))
+        val autoTextFields = device.findObjects(By.clazz(EditText::class.java))
+        assertTrue("AutoText shortcut and expansion fields were not both displayed", autoTextFields.size >= 2)
+        autoTextFields.takeLast(2)[0].setText("sundus-test")
+        autoTextFields.takeLast(2)[1].setText("SUNDUS AutoText works")
+        val saveAutoText = device.wait(Until.findObject(By.text("＋ ساتل")), 3_000)
+        assertNotNull("AutoText save button was not displayed", saveAutoText)
+        saveAutoText!!.click()
+        device.waitForIdle()
+
+        val autoCorrectOff = device.wait(Until.findObject(By.text("اتومات بدلون: بند")), 3_000)
+        if (autoCorrectOff != null) autoCorrectOff.click()
+        assertNotNull("Auto-correction could not be enabled", device.wait(Until.findObject(By.text("اتومات بدلون: فعال")), 3_000))
+        device.findObject(By.text("تنظیمات بندول")).click()
+        device.waitForIdle()
+        instrumentation.runOnMainSync { activeEditor.setText("sundus-test") }
+        device.findObject(By.text("سندس")).click()
+        assertEquals(
+            "AutoText shortcut did not expand when auto-correction was enabled",
+            "SUNDUS AutoText works ",
+            activeEditor.text.toString()
+        )
+        instrumentation.runOnMainSync { activeEditor.setText("") }
+
+        // Reopen quick tools after the settings panel has been closed.
+        device.waitForIdle()
+        val quickToolsAfterSettings = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools did not return after closing settings", quickToolsAfterSettings)
+        quickToolsAfterSettings!!.click()
+
         val savedTool = device.wait(Until.findObject(By.text("خوندي شوي")), 5_000)
         assertNotNull("Saved texts button was not found", savedTool)
         savedTool!!.click()
@@ -167,8 +208,20 @@ class KeyboardSmokeTest {
         // while the keyboard restores its quick-tools panel. Wait for the Notes
         // action instead of dereferencing an immediately missing UiObject2.
         device.waitForIdle()
-        val notesAction = device.wait(Until.findObject(By.text("نوټس")), 10_000)
-        assertNotNull("Notes action was not visible after closing personal phrases", notesAction)
+        var notesAction = device.wait(Until.findObject(By.text("نوټس")), 3_000)
+        if (notesAction == null) {
+            // Dismissing an IME-attached phrase dialog can collapse the toolbar panel
+            // on API-30 hosted emulators. Reopen quick tools and the saved-texts panel
+            // through the same user-visible path before treating Notes as unavailable.
+            val quickTools = device.wait(Until.findObject(By.text("•••")), 5_000)
+            assertNotNull("Quick tools did not return after closing personal phrases", quickTools)
+            quickTools!!.click()
+            val savedTexts = device.wait(Until.findObject(By.text("خوندي شوي")), 5_000)
+            assertNotNull("Saved texts panel shortcut was not restored", savedTexts)
+            savedTexts!!.click()
+            notesAction = device.wait(Until.findObject(By.text("نوټس")), 5_000)
+        }
+        assertNotNull("Notes action was not visible after restoring saved texts", notesAction)
         notesAction!!.click()
         assertNotNull("Notes manager did not open", device.wait(Until.findObject(By.text("زما نوټس")), 5_000))
         device.findObject(By.text("نوی نوټ")).click()
