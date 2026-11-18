@@ -35,6 +35,8 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.net.Uri
 import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
 
 class KeyboardService : InputMethodService() {
 
@@ -1892,8 +1894,8 @@ class KeyboardService : InputMethodService() {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val favorites = prefs.getStringSet("clipboardFavorites", emptySet()).orEmpty()
 
-        val saveRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(saveRow, "انتخاب شوی متن خوندي کول", 1.7f, 36) {
+        val actionRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(actionRow, "انتخاب شوی متن خوندي کول", 1.35f, 36) {
             val selected = currentInputConnection?.getSelectedText(0)?.toString().orEmpty().trim()
             if (selected.isEmpty()) {
                 Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
@@ -1901,17 +1903,26 @@ class KeyboardService : InputMethodService() {
                 val updated = prefs.getStringSet("clipboardFavorites", emptySet())
                     ?.toMutableSet() ?: mutableSetOf()
                 updated.add(selected)
-                prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
-                Toast.makeText(this, "متن خوندي شو", Toast.LENGTH_SHORT).show()
-                refreshKeyboard()
+                val saved = prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
+                Toast.makeText(
+                    this,
+                    if (saved) "متن خوندي شو" else "متن خوندي نه شو؛ بیا هڅه وکړئ",
+                    Toast.LENGTH_SHORT
+                ).show()
+                if (saved) refreshKeyboard()
             }
         }
-        addSpecial(saveRow, "خوندي شوي: ${favorites.size}", 1.1f, 36) {
+        addSpecial(actionRow, "جمله ساتل", 0.8f, 36) { showAddPhraseDialog() }
+        addSpecial(actionRow, "نوټس", 0.7f, 36) { showNotesWindow() }
+        parent.addView(actionRow, rowParams(39))
+
+        val savedRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(savedRow, "خوندي شوي متنونه: ${favorites.size}", 1f, 34) {
             if (favorites.isEmpty()) {
                 Toast.makeText(this, "تر اوسه مو کوم متن نه دی خوندي کړی.", Toast.LENGTH_LONG).show()
             } else {
                 ImeDialogBuilder().setTitle("ستاسو خوندي شوي متنونه")
-                    .setItems(favorites.toTypedArray()) { _, which ->
+                    .setItems(favorites.toList().toTypedArray()) { _, which ->
                         val selected = favorites.toList()[which]
                         ImeDialogBuilder()
                             .setTitle("خوندي شوی متن")
@@ -1931,9 +1942,9 @@ class KeyboardService : InputMethodService() {
                     }.show()
             }
         }
-        parent.addView(saveRow, rowParams(39))
+        parent.addView(savedRow, rowParams(36))
 
-        favorites.toList().chunked(2).forEach { group ->
+        favorites.toList().sorted().chunked(2).forEach { group ->
             val favoriteRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             group.forEach { item ->
                 addSpecial(favoriteRow, "📌 " + item.replace("\n", " ").take(18), 1f, 36) {
@@ -1944,9 +1955,13 @@ class KeyboardService : InputMethodService() {
                     val updated = prefs.getStringSet("clipboardFavorites", emptySet())
                         ?.toMutableSet() ?: mutableSetOf()
                     updated.remove(item)
-                    prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
-                    Toast.makeText(this, "له خوندي شويو متنونو حذف شو", Toast.LENGTH_SHORT).show()
-                    refreshKeyboard()
+                    val saved = prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
+                    Toast.makeText(
+                        this,
+                        if (saved) "له خوندي شويو متنونو حذف شو" else "حذف ترسره نه شو",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    if (saved) refreshKeyboard()
                     true
                 }
             }
@@ -1956,14 +1971,223 @@ class KeyboardService : InputMethodService() {
 
         val close = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(close, "خوندي شوي متنونه پاکول", 1.3f, 32) {
-            prefs.edit().remove("clipboardFavorites").apply()
-            refreshKeyboard()
+            if (favorites.isEmpty()) {
+                Toast.makeText(this, "د پاکولو لپاره خوندي متن نشته", Toast.LENGTH_SHORT).show()
+            } else {
+                ImeDialogBuilder()
+                    .setTitle("ټول خوندي متنونه پاکول؟")
+                    .setMessage("دا کار به ټول خوندي شوي متنونه حذف کړي. بېرته نه راګرځي.")
+                    .setNegativeButton("نه", null)
+                    .setPositiveButton("هو، پاک یې کړه") { _, _ ->
+                        val cleared = prefs.edit().remove("clipboardFavorites").commit()
+                        Toast.makeText(
+                            this,
+                            if (cleared) "ټول خوندي شوي متنونه پاک شول" else "پاکول ترسره نه شول",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        if (cleared) refreshKeyboard()
+                    }
+                    .show()
+            }
         }
         addSpecial(close, "بندول", 0.8f, 32) {
             savedTextsPanelVisible = false
             refreshKeyboard()
         }
         parent.addView(close, rowParams(35))
+    }
+
+    private data class KeyboardNote(val id: Long, val title: String, val body: String)
+
+    private fun readKeyboardNotes(): MutableList<KeyboardNote> {
+        val raw = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+            .getString("keyboardNotesV1", null) ?: return mutableListOf()
+        return runCatching {
+            val array = JSONArray(raw)
+            MutableList(array.length()) { index ->
+                val item = array.getJSONObject(index)
+                KeyboardNote(
+                    item.optLong("id"),
+                    item.optString("title"),
+                    item.optString("body")
+                )
+            }.filter { it.title.isNotBlank() || it.body.isNotBlank() }.toMutableList()
+        }.getOrElse {
+            Log.e("SUNDUS_NOTES", "Could not read saved notes", it)
+            mutableListOf()
+        }
+    }
+
+    private fun writeKeyboardNotes(notes: List<KeyboardNote>): Boolean {
+        val array = JSONArray()
+        notes.forEach { note ->
+            array.put(JSONObject().put("id", note.id).put("title", note.title).put("body", note.body))
+        }
+        return getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+            .edit().putString("keyboardNotesV1", array.toString()).commit()
+    }
+
+    private fun showNotesWindow() {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+        }
+        val search = EditText(this).apply {
+            hint = "د نوټ سرلیک یا متن ولټوئ"
+            singleLine = true
+            textSize = 15f
+        }
+        content.addView(search, LinearLayout.LayoutParams(-1, dp(46)))
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val scroll = android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            addView(list)
+        }
+        content.addView(scroll, LinearLayout.LayoutParams(-1, dp(220)))
+        val dialog = ImeDialogBuilder()
+            .setTitle("زما نوټس")
+            .setView(content)
+            .setPositiveButton("نوی نوټ") { _, _ -> showNoteEditor(null) }
+            .setNegativeButton("بندول", null)
+            .create()
+
+        fun refreshList(query: String = search.text.toString()) {
+            list.removeAllViews()
+            val normalized = query.trim()
+            val matches = readKeyboardNotes().filter {
+                normalized.isBlank() ||
+                    it.title.contains(normalized, ignoreCase = true) ||
+                    it.body.contains(normalized, ignoreCase = true)
+            }.sortedByDescending { it.id }
+            if (matches.isEmpty()) {
+                val empty = TextView(this).apply {
+                    text = if (normalized.isBlank()) "تر اوسه مو نوټ نه دی جوړ کړی." else "د لټون پایله ونه موندل شوه."
+                    textSize = 14f
+                    gravity = Gravity.CENTER
+                    setPadding(dp(8), dp(18), dp(8), dp(18))
+                }
+                list.addView(empty)
+            } else {
+                matches.forEach { note ->
+                    val item = TextView(this).apply {
+                        text = "📝  ${note.title}\n" + note.body.replace("\n", " ").take(90)
+                        textSize = 15f
+                        setPadding(dp(10), dp(9), dp(10), dp(9))
+                        setTextColor(Color.WHITE)
+                        background = roundedBackground(Color.rgb(5, 48, 77), dp(9))
+                        setOnClickListener {
+                            dialog.dismiss()
+                            showNoteDetails(note)
+                        }
+                    }
+                    list.addView(item, LinearLayout.LayoutParams(-1, -2).apply {
+                        setMargins(0, dp(3), 0, dp(3))
+                    })
+                }
+            }
+        }
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshList(s?.toString().orEmpty())
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
+        refreshList("")
+        attachDialogToIme(dialog)
+        dialog.show()
+    }
+
+    private fun showNoteEditor(existing: KeyboardNote?) {
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(6), dp(4), dp(6), dp(4))
+        }
+        val titleInput = EditText(this).apply {
+            hint = "د نوټ سرلیک"
+            singleLine = true
+            setText(existing?.title.orEmpty())
+        }
+        val bodyInput = EditText(this).apply {
+            hint = "د موضوع بشپړ متن دلته ولیکئ"
+            minLines = 5
+            maxLines = 12
+            gravity = Gravity.TOP or Gravity.START
+            setText(existing?.body.orEmpty())
+        }
+        form.addView(titleInput, LinearLayout.LayoutParams(-1, dp(48)))
+        form.addView(bodyInput, LinearLayout.LayoutParams(-1, dp(180)))
+        val dialog = ImeDialogBuilder()
+            .setTitle(if (existing == null) "نوی نوټ جوړول" else "نوټ اصلاح کول")
+            .setView(form)
+            .setNegativeButton("بندول", null)
+            .setPositiveButton(if (existing == null) "خوندي کول" else "بدلون خوندي کول", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val title = titleInput.text.toString().trim()
+                val body = bodyInput.text.toString().trim()
+                if (title.isBlank() || body.isBlank()) {
+                    Toast.makeText(this, "د نوټ سرلیک او متن دواړه ولیکئ", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val notes = readKeyboardNotes()
+                val note = KeyboardNote(existing?.id ?: System.currentTimeMillis(), title, body)
+                if (existing == null) notes.add(note) else {
+                    val index = notes.indexOfFirst { it.id == existing.id }
+                    if (index >= 0) notes[index] = note else notes.add(note)
+                }
+                if (writeKeyboardNotes(notes)) {
+                    dialog.dismiss()
+                    Toast.makeText(this, "نوټ په موبایل کې خوندي شو", Toast.LENGTH_SHORT).show()
+                    showNotesWindow()
+                } else {
+                    Toast.makeText(this, "نوټ خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        attachDialogToIme(dialog)
+        dialog.show()
+    }
+
+    private fun showNoteDetails(note: KeyboardNote) {
+        ImeDialogBuilder()
+            .setTitle(note.title)
+            .setMessage(note.body)
+            .setPositiveButton("سمول") { _, _ -> showNoteEditor(note) }
+            .setNeutralButton("کاپي") { _, _ ->
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText(note.title, note.body))
+                Toast.makeText(this, "د نوټ متن کاپي شو", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("نور") { _, _ ->
+                ImeDialogBuilder()
+                    .setTitle("د نوټ نورې چارې")
+                    .setItems(arrayOf("له نورو سره شریکول", "نوټ حذفول")) { _, which ->
+                        if (which == 0) {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, note.title)
+                                putExtra(Intent.EXTRA_TEXT, "${note.title}\n\n${note.body}")
+                            }
+                            startActivity(Intent.createChooser(shareIntent, "نوټ له چا سره شریک کړئ").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        } else confirmDeleteNote(note)
+                    }
+                    .show()
+            }
+            .show()
+    }
+
+    private fun confirmDeleteNote(note: KeyboardNote) {
+        ImeDialogBuilder()
+            .setTitle("نوټ حذفول؟")
+            .setMessage("«${note.title}» به د موبایل له خوندي شويو نوټونو حذف شي.")
+            .setNegativeButton("نه", null)
+            .setPositiveButton("هو، حذف یې کړه") { _, _ ->
+                val notes = readKeyboardNotes().filterNot { it.id == note.id }
+                val deleted = writeKeyboardNotes(notes)
+                Toast.makeText(this, if (deleted) "نوټ حذف شو" else "نوټ حذف نه شو", Toast.LENGTH_SHORT).show()
+                if (deleted) showNotesWindow()
+            }
+            .show()
     }
 
     private fun saveCurrentTextAsPhrase() {
