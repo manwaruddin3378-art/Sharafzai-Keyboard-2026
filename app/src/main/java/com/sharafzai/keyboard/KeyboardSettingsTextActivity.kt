@@ -204,6 +204,7 @@ class KeyboardSettingsTextActivity : Activity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList(s?.toString().orEmpty()) }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
+        showKeyboard(search)
     }
 
     private fun dictionaryEditor(existingTerm: String, existingMeaning: String) {
