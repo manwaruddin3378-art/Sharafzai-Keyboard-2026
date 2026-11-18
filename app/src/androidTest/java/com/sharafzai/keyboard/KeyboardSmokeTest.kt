@@ -136,7 +136,17 @@ class KeyboardSmokeTest {
         device.findObject(By.text("هو، پاک یې کړه")).click()
         device.waitForIdle()
 
-        device.findObject(By.text("جمله ساتل")).click()
+        // Clearing the saved-text panel may close its dialog; reopen the panel
+        // before continuing with the personal-phrase workflow.
+        val moreToolsAgain = device.wait(Until.findObject(By.text("•••")), 5_000)
+        assertNotNull("Quick tools button disappeared after clearing saved texts", moreToolsAgain)
+        moreToolsAgain!!.click()
+        val savedToolAgain = device.wait(Until.findObject(By.text("خوندي شوي")), 5_000)
+        assertNotNull("Saved texts panel could not be reopened", savedToolAgain)
+        savedToolAgain!!.click()
+        val addPhraseAction = device.wait(Until.findObject(By.text("جمله ساتل")), 5_000)
+        assertNotNull("Add personal phrase action was not displayed", addPhraseAction)
+        addPhraseAction!!.click()
         assertNotNull("Personal phrase editor did not open", device.wait(Until.findObject(By.text("شخصي جمله اضافه کړئ")), 3_000))
         val phraseInput = device.wait(Until.findObject(By.clazz(EditText::class.java)), 3_000)
         assertNotNull("Personal phrase text field was not found", phraseInput)
