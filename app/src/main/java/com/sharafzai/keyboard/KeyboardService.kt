@@ -35,6 +35,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.net.Uri
 import android.util.Log
+import android.util.AtomicFile
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -1997,34 +1998,123 @@ class KeyboardService : InputMethodService() {
         parent.addView(close, rowParams(35))
     }
 
-    private data class KeyboardNote(val id: Long, val title: String, val body: String)
+    // Notes are stored as atomic private files, not in the SharedPreferences XML.
+    // This avoids the Binder/1 MB SharedPreferences limits for long documents and many notes.
+    private data class KeyboardNote(
+        val id: Long,
+        val title: String,
+        val body: String,
+        val updatedAt: Long = System.currentTimeMillis(),
+        val pinned: Boolean = false
+    )
+
+    private val notesFile: AtomicFile by lazy {
+        AtomicFile(java.io.File(filesDir, "sundus_notes_v2.json"))
+    }
+    private val notesBackupFile: AtomicFile by lazy {
+        AtomicFile(java.io.File(filesDir, "sundus_notes_v2.backup"))
+    }
+    private var notesStorageUnreadable = false
+    private val maxNoteBodyChars = 100_000 // comfortably accommodates ten A4 pages of ordinary text
+
+    private fun parseKeyboardNotes(raw: String): MutableList<KeyboardNote> {
+        val array = JSONArray(raw)
+        return MutableList(array.length()) { index ->
+            val item = array.getJSONObject(index)
+            KeyboardNote(
+                id = item.optLong("id"),
+                title = item.optString("title"),
+                body = item.optString("body"),
+                updatedAt = item.optLong("updatedAt", item.optLong("id")),
+                pinned = item.optBoolean("pinned", false)
+            )
+        }.filter { it.title.isNotBlank() || it.body.isNotBlank() }.toMutableList()
+    }
+
+    private fun readAtomicNotes(file: AtomicFile): MutableList<KeyboardNote>? {
+        return runCatching {
+            file.openRead().bufferedReader(Charsets.UTF_8).use { parseKeyboardNotes(it.readText()) }
+        }.getOrNull()
+    }
 
     private fun readKeyboardNotes(): MutableList<KeyboardNote> {
-        val raw = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+        notesStorageUnreadable = false
+        if (notesFile.baseFile.exists() || java.io.File(notesFile.baseFile.path + ".bak").exists()) {
+            readAtomicNotes(notesFile)?.let { return it }
+            // A previous complete generation is kept separately before every replacement.
+            readAtomicNotes(notesBackupFile)?.let { recovered ->
+                Log.w("SUNDUS_NOTES", "Recovered notes from the previous backup")
+                writeAtomicNotes(notesFile, encodeKeyboardNotes(recovered))
+                return recovered
+            }
+            notesStorageUnreadable = true
+            Log.e("SUNDUS_NOTES", "Main and backup note stores are unreadable; refusing to overwrite them")
+            return mutableListOf()
+        }
+
+        // One-time migration from the earlier SharedPreferences-based notes store.
+        val legacy = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
             .getString("keyboardNotesV1", null) ?: return mutableListOf()
         return runCatching {
-            val array = JSONArray(raw)
-            MutableList(array.length()) { index ->
-                val item = array.getJSONObject(index)
-                KeyboardNote(
-                    item.optLong("id"),
-                    item.optString("title"),
-                    item.optString("body")
-                )
-            }.filter { it.title.isNotBlank() || it.body.isNotBlank() }.toMutableList()
+            val migrated = parseKeyboardNotes(legacy)
+            if (writeKeyboardNotes(migrated)) {
+                getSharedPreferences("SharafzaiSettings", MODE_PRIVATE).edit()
+                    .remove("keyboardNotesV1").commit()
+            }
+            migrated
         }.getOrElse {
-            Log.e("SUNDUS_NOTES", "Could not read saved notes", it)
+            notesStorageUnreadable = true
+            Log.e("SUNDUS_NOTES", "Legacy notes could not be parsed; original data was retained", it)
             mutableListOf()
         }
     }
 
-    private fun writeKeyboardNotes(notes: List<KeyboardNote>): Boolean {
+    private fun encodeKeyboardNotes(notes: List<KeyboardNote>): ByteArray {
         val array = JSONArray()
         notes.forEach { note ->
-            array.put(JSONObject().put("id", note.id).put("title", note.title).put("body", note.body))
+            array.put(
+                JSONObject()
+                    .put("id", note.id)
+                    .put("title", note.title)
+                    .put("body", note.body)
+                    .put("updatedAt", note.updatedAt)
+                    .put("pinned", note.pinned)
+            )
         }
-        return getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-            .edit().putString("keyboardNotesV1", array.toString()).commit()
+        return array.toString().toByteArray(Charsets.UTF_8)
+    }
+
+    private fun writeAtomicNotes(file: AtomicFile, bytes: ByteArray): Boolean {
+        var output: java.io.FileOutputStream? = null
+        return try {
+            output = file.startWrite()
+            output.write(bytes)
+            file.finishWrite(output)
+            true
+        } catch (error: Exception) {
+            if (output != null) file.failWrite(output)
+            Log.e("SUNDUS_NOTES", "Atomic note write failed", error)
+            false
+        }
+    }
+
+    private fun writeKeyboardNotes(notes: List<KeyboardNote>): Boolean {
+        if (notesStorageUnreadable) {
+            Log.e("SUNDUS_NOTES", "Write blocked to protect unreadable note data")
+            return false
+        }
+        return runCatching {
+            val next = encodeKeyboardNotes(notes)
+            // Keep the last known-good complete file as a recovery point.
+            if (notesFile.baseFile.exists()) {
+                val previous = notesFile.openRead().use { it.readBytes() }
+                if (!writeAtomicNotes(notesBackupFile, previous)) return false
+            }
+            writeAtomicNotes(notesFile, next)
+        }.getOrElse {
+            Log.e("SUNDUS_NOTES", "Could not persist notes", it)
+            false
+        }
     }
 
     private fun showNotesWindow() {
@@ -2059,7 +2149,7 @@ class KeyboardService : InputMethodService() {
                         .setNegativeButton("نه", null)
                         .setPositiveButton("هو، ټول حذف کړه") { _, _ ->
                             val cleared = writeKeyboardNotes(emptyList())
-                            Toast.makeText(this, if (cleared) "ټول نوټس پاک شول" else "نوټس پاک نه شول", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, if (cleared) "ټول نوټس پاک شول" else "نوټس پاک نه شول؛ پخوانۍ زېرمه وساتل شوه", Toast.LENGTH_SHORT).show()
                             if (cleared) showNotesWindow()
                         }
                         .show()
@@ -2071,11 +2161,12 @@ class KeyboardService : InputMethodService() {
         fun refreshList(query: String = search.text.toString()) {
             list.removeAllViews()
             val normalized = query.trim()
-            val matches = readKeyboardNotes().filter {
+            val allNotes = readKeyboardNotes()
+            val matches = allNotes.filter {
                 normalized.isBlank() ||
                     it.title.contains(normalized, ignoreCase = true) ||
                     it.body.contains(normalized, ignoreCase = true)
-            }.sortedByDescending { it.id }
+            }.sortedWith(compareByDescending<KeyboardNote> { it.pinned }.thenByDescending { it.updatedAt })
             if (matches.isEmpty()) {
                 val empty = TextView(this).apply {
                     text = if (normalized.isBlank()) "تر اوسه مو نوټ نه دی جوړ کړی." else "د لټون پایله ونه موندل شوه."
@@ -2086,9 +2177,13 @@ class KeyboardService : InputMethodService() {
                 list.addView(empty)
             } else {
                 matches.forEach { note ->
+                    val modified = java.text.DateFormat.getDateTimeInstance(
+                        java.text.DateFormat.SHORT, java.text.DateFormat.SHORT
+                    ).format(java.util.Date(note.updatedAt))
                     val item = TextView(this).apply {
-                        text = "📝  ${note.title}\n" + note.body.replace("\n", " ").take(90)
-                        textSize = 15f
+                        text = (if (note.pinned) "📌  " else "📝  ") + note.title +
+                            "\n" + note.body.replace("\n", " ").take(90) + "\n" + modified
+                        textSize = 14f
                         setPadding(dp(10), dp(9), dp(10), dp(9))
                         setTextColor(Color.WHITE)
                         background = roundedBackground(Color.rgb(5, 48, 77), dp(9))
@@ -2124,14 +2219,32 @@ class KeyboardService : InputMethodService() {
             setText(existing?.title.orEmpty())
         }
         val bodyInput = EditText(this).apply {
-            hint = "د موضوع بشپړ متن دلته ولیکئ"
-            minLines = 5
-            maxLines = 12
+            hint = "د موضوع بشپړ متن دلته ولیکئ (تر ۱۰۰ زره تورو پورې)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setSingleLine(false)
+            minLines = 8
+            maxLines = 10000
             gravity = Gravity.TOP or Gravity.START
+            setVerticalScrollBarEnabled(true)
             setText(existing?.body.orEmpty())
         }
+        val count = TextView(this).apply {
+            textSize = 12f
+            setTextColor(if (themeIndex == 1) Color.LTGRAY else Color.DKGRAY)
+            text = "${bodyInput.text.length} / $maxNoteBodyChars"
+        }
+        bodyInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, countBefore: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, countAfter: Int) {
+                count.text = "${s?.length ?: 0} / $maxNoteBodyChars"
+            }
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
         form.addView(titleInput, LinearLayout.LayoutParams(-1, dp(48)))
-        form.addView(bodyInput, LinearLayout.LayoutParams(-1, dp(180)))
+        form.addView(bodyInput, LinearLayout.LayoutParams(-1, dp(300)))
+        form.addView(count, LinearLayout.LayoutParams(-1, dp(24)))
         val dialog = ImeDialogBuilder()
             .setTitle(if (existing == null) "نوی نوټ جوړول" else "نوټ اصلاح کول")
             .setView(form)
@@ -2141,23 +2254,37 @@ class KeyboardService : InputMethodService() {
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val title = titleInput.text.toString().trim()
-                val body = bodyInput.text.toString().trim()
+                val body = bodyInput.text.toString()
                 if (title.isBlank() || body.isBlank()) {
                     Toast.makeText(this, "د نوټ سرلیک او متن دواړه ولیکئ", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
+                if (body.length > maxNoteBodyChars) {
+                    Toast.makeText(this, "د نوټ متن له ۱۰۰ زره تورو زیات نه شي کېدای", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
                 val notes = readKeyboardNotes()
-                val note = KeyboardNote(existing?.id ?: System.currentTimeMillis(), title, body)
+                if (notesStorageUnreadable) {
+                    Toast.makeText(this, "د زړې زېرمې لوستل ستونزمن دي؛ د معلوماتو د ساتنې لپاره نوی بدلون ونه ساتل شو.", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                val note = KeyboardNote(
+                    id = existing?.id ?: System.currentTimeMillis(),
+                    title = title,
+                    body = body,
+                    updatedAt = System.currentTimeMillis(),
+                    pinned = existing?.pinned ?: false
+                )
                 if (existing == null) notes.add(note) else {
                     val index = notes.indexOfFirst { it.id == existing.id }
                     if (index >= 0) notes[index] = note else notes.add(note)
                 }
                 if (writeKeyboardNotes(notes)) {
                     dialog.dismiss()
-                    Toast.makeText(this, "نوټ په موبایل کې خوندي شو", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "نوټ په خوندي زېرمه کې ثبت شو", Toast.LENGTH_SHORT).show()
                     showNotesWindow()
                 } else {
-                    Toast.makeText(this, "نوټ خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "نوټ خوندي نه شو؛ پخواني نوټونه مو خوندي پاتې دي. بیا هڅه وکړئ.", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -2178,15 +2305,28 @@ class KeyboardService : InputMethodService() {
             .setNegativeButton("نور") { _, _ ->
                 ImeDialogBuilder()
                     .setTitle("د نوټ نورې چارې")
-                    .setItems(arrayOf("له نورو سره شریکول", "نوټ حذفول")) { _, which ->
-                        if (which == 0) {
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, note.title)
-                                putExtra(Intent.EXTRA_TEXT, "${note.title}\n\n${note.body}")
+                    .setItems(arrayOf("له نورو سره شریکول", if (note.pinned) "له مهمو نوټونو ایستل" else "مهم نوټ نښه کول", "نوټ حذفول")) { _, which ->
+                        when (which) {
+                            0 -> {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, note.title)
+                                    putExtra(Intent.EXTRA_TEXT, "${note.title}\n\n${note.body}")
+                                }
+                                startActivity(Intent.createChooser(shareIntent, "نوټ له چا سره شریک کړئ").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                             }
-                            startActivity(Intent.createChooser(shareIntent, "نوټ له چا سره شریک کړئ").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                        } else confirmDeleteNote(note)
+                            1 -> {
+                                val notes = readKeyboardNotes()
+                                val index = notes.indexOfFirst { it.id == note.id }
+                                if (index >= 0) {
+                                    notes[index] = notes[index].copy(pinned = !notes[index].pinned, updatedAt = System.currentTimeMillis())
+                                    val saved = writeKeyboardNotes(notes)
+                                    Toast.makeText(this, if (saved) "د نوټ نښه بدله شوه" else "بدلون خوندي نه شو", Toast.LENGTH_SHORT).show()
+                                    if (saved) showNotesWindow()
+                                }
+                            }
+                            2 -> confirmDeleteNote(note)
+                        }
                     }
                     .show()
             }
@@ -2201,7 +2341,7 @@ class KeyboardService : InputMethodService() {
             .setPositiveButton("هو، حذف یې کړه") { _, _ ->
                 val notes = readKeyboardNotes().filterNot { it.id == note.id }
                 val deleted = writeKeyboardNotes(notes)
-                Toast.makeText(this, if (deleted) "نوټ حذف شو" else "نوټ حذف نه شو", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, if (deleted) "نوټ حذف شو" else "نوټ حذف نه شو؛ زېرمه خوندي پاتې ده", Toast.LENGTH_SHORT).show()
                 if (deleted) showNotesWindow()
             }
             .show()
