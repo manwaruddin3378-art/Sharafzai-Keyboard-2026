@@ -158,7 +158,7 @@ class KeyboardSettingsTextActivity : Activity() {
                 .sortedBy { it.first.lowercase() }
             if (entries.isEmpty()) {
                 list.addView(TextView(this).apply {
-                    text = "د لټون لپاره کومه کلمه ونه موندل شوه."
+                    this.text = "د لټون لپاره کومه کلمه ونه موندل شوه."
                     gravity = Gravity.CENTER
                     setTextColor(Color.DKGRAY)
                     setPadding(0, dp(24), 0, dp(24))
