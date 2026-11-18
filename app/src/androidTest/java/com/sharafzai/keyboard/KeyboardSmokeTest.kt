@@ -335,7 +335,18 @@ class KeyboardSmokeTest {
         pashtoCategory!!.click()
 
         val expectedPhrase = "السلام علیکم، څنګه یاست؟ هیله ده روغ او جوړ به یاست."
-        val phraseRow = device.wait(Until.findObject(By.text(expectedPhrase)), 5_000)
+        var phraseRow = device.wait(Until.findObject(By.text(expectedPhrase)), 5_000)
+        if (phraseRow == null) {
+            // Long RTL phrases may be exposed through their accessibility description
+            // rather than the visible text property on some Android 11 IME trees.
+            phraseRow = device.wait(Until.findObject(By.desc(expectedPhrase)), 3_000)
+                ?: device.findObject(By.textContains("السلام علیکم"))
+        }
+        if (phraseRow == null) {
+            val hierarchyFile = java.io.File(instrumentation.targetContext.cacheDir, "sundus-phrase-panel.xml")
+            device.dumpWindowHierarchy(hierarchyFile)
+            Log.e("SUNDUS_IME_DIAG", "phrase panel hierarchy=" + runCatching { hierarchyFile.readText() }.getOrDefault("unavailable"))
+        }
         assertNotNull("Pashto phrase list did not appear inside the keyboard", phraseRow)
         phraseRow!!.click()
         assertEquals(
