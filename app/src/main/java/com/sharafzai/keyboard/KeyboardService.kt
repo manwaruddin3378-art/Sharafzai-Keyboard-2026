@@ -1307,62 +1307,8 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun showDictionarySearchDialog() {
-        val input = EditText(this).apply {
-            hint = "کلمه یا د مانا یوه برخه ولیکئ"
-            setSingleLine(true)
-        }
-        ImeDialogBuilder()
-            .setTitle("په آفلاین شخصي قاموس کې لټون")
-            .setView(input)
-            .setNegativeButton("بند", null)
-            .setPositiveButton("لټون") { _, _ ->
-                val query = input.text.toString().trim()
-                if (query.isNotEmpty()) {
-                    val personal = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                        .getStringSet("personalWords_$language", emptySet()).orEmpty()
-                    val entries = dictionaryEntries()
-                    // Built-in seed definitions are authored in Pashto for every vocabulary column.
-                    // Label them explicitly in non-Pashto layouts so they are not mistaken for
-                    // Arabic, English, or Dari definitions. User-authored entries keep their label.
-                    val builtInTerms = builtInDictionaryEntries(language).mapTo(hashSetOf()) { it.first }
-                    val matches = (offlineWordsFor(language) + personal + entries.map { it.first })
-                        .distinct()
-                        .filter { term ->
-                            normalizeSuggestionText(term).contains(normalizeSuggestionText(query)) ||
-                                entries.firstOrNull { it.first == term }?.second?.let {
-                                    normalizeSuggestionText(it).contains(normalizeSuggestionText(query))
-                                } == true
-                        }
-                        .take(80)
-                    if (matches.isEmpty()) {
-                        Toast.makeText(this, "پایله ونه موندل شوه؛ خپله کلمه او مانا قاموس ته اضافه کړئ.", Toast.LENGTH_LONG).show()
-                    } else {
-                        ImeDialogBuilder()
-                            .setTitle("د لټون پایلې (${matches.size})")
-                            .setItems(matches.map { term ->
-                                val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
-                                val label = if (language != 0 && term in builtInTerms) "پښتو تشریح: " else ""
-                                if (meaning.isBlank()) term else "$term — $label$meaning"
-                            }.toTypedArray()) { _, which ->
-                                val term = matches[which]
-                                val meaning = entries.firstOrNull { it.first == term }?.second.orEmpty()
-                                val label = if (language != 0 && term in builtInTerms) "پښتو تشریح: " else ""
-                                ImeDialogBuilder()
-                                    .setTitle(term)
-                                    .setMessage(if (meaning.isBlank()) "د دې کلمې مانا په شخصي قاموس کې نه ده ثبت شوې." else label + meaning)
-                                    .setPositiveButton("کلمه ولیکئ") { _, _ ->
-                                        currentInputConnection?.commitText("$term ", 1)
-                                        updateSuggestions()
-                                    }
-                                    .setNegativeButton("بند", null)
-                                    .show()
-                            }
-                            .setNegativeButton("بند", null)
-                            .show()
-                    }
-                }
-            }
-            .show()
+        // The dictionary Activity provides a real focused search field and the active IME.
+        openKeyboardSettingsTextActivity(KeyboardSettingsTextActivity.MODE_DICTIONARY_MANAGER)
     }
 
     private fun showOfflineTranslationPicker() {
