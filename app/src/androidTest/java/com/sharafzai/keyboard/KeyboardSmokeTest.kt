@@ -163,8 +163,14 @@ class KeyboardSmokeTest {
         assertNotNull("Personal phrases close button was not found", closePhraseButton)
         closePhraseButton!!.click()
 
-        device.findObject(By.text("نوټس")).click()
-        assertNotNull("Notes manager did not open", device.wait(Until.findObject(By.text("زما نوټس")), 3_000))
+        // Closing the phrase dialog can briefly detach the IME accessibility tree
+        // while the keyboard restores its quick-tools panel. Wait for the Notes
+        // action instead of dereferencing an immediately missing UiObject2.
+        device.waitForIdle()
+        val notesAction = device.wait(Until.findObject(By.text("نوټس")), 10_000)
+        assertNotNull("Notes action was not visible after closing personal phrases", notesAction)
+        notesAction!!.click()
+        assertNotNull("Notes manager did not open", device.wait(Until.findObject(By.text("زما نوټس")), 5_000))
         device.findObject(By.text("نوی نوټ")).click()
         val noteFields = device.findObjects(By.clazz(EditText::class.java))
         assertTrue("Note title and body fields were not both displayed", noteFields.size >= 2)
