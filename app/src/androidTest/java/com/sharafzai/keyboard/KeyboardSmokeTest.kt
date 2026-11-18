@@ -151,7 +151,10 @@ class KeyboardSmokeTest {
 
         // Personal dictionary editor has been removed; confirm ordinary keyboard remains
         // available after the supported Email settings Activity closes.
-        val quickToolsAfterEmail = device.wait(Until.findObject(By.text("•••")), 5_000)
+        device.waitForIdle()
+        SystemClock.sleep(350)
+        val quickToolsAfterEmail = device.findObject(By.text("•••"))
+            ?: device.findObject(By.desc("•••"))
         assertNotNull("Quick tools did not return after Email settings", quickToolsAfterEmail)
         quickToolsAfterEmail!!.click()
         val settingsAfterEmail = device.wait(Until.findObject(By.text("⚙")), 3_000)
