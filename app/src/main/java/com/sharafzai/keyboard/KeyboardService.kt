@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import android.content.ClipboardManager
-import android.content.ClipData
 import android.content.Context
 import android.os.Build
 import android.graphics.Color
@@ -54,7 +53,7 @@ class KeyboardService : InputMethodService() {
     private var phraseDialog: AlertDialog? = null
     private var phraseCategory = 0
     private var phraseIndex = 0
-    private var clipboardPanelVisible = false
+    private var savedTextsPanelVisible = false
     private var emojiCategory = 0
     private var emojiPage = 0
     private var symbolsCategory = 0
@@ -874,7 +873,7 @@ class KeyboardService : InputMethodService() {
             addSpecial(quickToolsRow, "جملې", 1f, 34) {
                 quickActionsVisible = false
                 emojiPanelVisible = false
-                clipboardPanelVisible = false
+                savedTextsPanelVisible = false
                 symbolsPanelVisible = false
                 settingsPanelVisible = false
                 refreshKeyboard()
@@ -883,25 +882,25 @@ class KeyboardService : InputMethodService() {
             addSpecial(quickToolsRow, "😀 ایموجي", 1f, 34) {
                 quickActionsVisible = false
                 symbolsPanelVisible = false
-                clipboardPanelVisible = false
+                savedTextsPanelVisible = false
                 settingsPanelVisible = false
                 phrasePanelVisible = false
                 emojiPanelVisible = !emojiPanelVisible
                 refreshKeyboard()
             }
-            addSpecial(quickToolsRow, "📋", 0.75f, 34) {
+            addSpecial(quickToolsRow, "خوندي شوي", 1.1f, 34) {
                 quickActionsVisible = false
                 emojiPanelVisible = false
                 symbolsPanelVisible = false
                 settingsPanelVisible = false
                 phrasePanelVisible = false
-                clipboardPanelVisible = !clipboardPanelVisible
+                savedTextsPanelVisible = !savedTextsPanelVisible
                 refreshKeyboard()
             }
             addSpecial(quickToolsRow, "⚙", 0.75f, 34) {
                 quickActionsVisible = false
                 emojiPanelVisible = false
-                clipboardPanelVisible = false
+                savedTextsPanelVisible = false
                 symbolsPanelVisible = false
                 phrasePanelVisible = false
                 settingsPanelVisible = !settingsPanelVisible
@@ -915,7 +914,7 @@ class KeyboardService : InputMethodService() {
         }
         root.addView(quickToolsRow, rowParams(if (quickActionsVisible) 36 else 28))
 
-        if (!emojiPanelVisible && !clipboardPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
+        if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible) {
             val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
@@ -955,7 +954,7 @@ class KeyboardService : InputMethodService() {
             addEmojiPanel(root)
         }
 
-        if (clipboardPanelVisible) {
+        if (savedTextsPanelVisible) {
             addClipboardPanel(root)
         }
 
@@ -994,7 +993,7 @@ class KeyboardService : InputMethodService() {
             symbolsPanelVisible = !symbolsPanelVisible
             if (symbolsPanelVisible) {
                 emojiPanelVisible = false
-                clipboardPanelVisible = false
+                savedTextsPanelVisible = false
                 settingsPanelVisible = false
                 phrasePanelVisible = false
                 symbolsCategory = 0
@@ -1892,36 +1891,6 @@ class KeyboardService : InputMethodService() {
     private fun addClipboardPanel(parent: LinearLayout) {
         val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
         val favorites = prefs.getStringSet("clipboardFavorites", emptySet()).orEmpty()
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(row, "کاپي", 1f, 38) {
-            val selected = currentInputConnection?.getSelectedText(0)?.toString().orEmpty()
-            if (selected.isEmpty()) Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
-            else {
-                (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
-                    .setPrimaryClip(ClipData.newPlainText("Sundus", selected))
-                Toast.makeText(this, "متن کاپي شو؛ په سندس کې نه ساتل کېږي", Toast.LENGTH_SHORT).show()
-            }
-        }
-        addSpecial(row, "کټ", 1f, 38) {
-            val connection = currentInputConnection
-            val selected = connection?.getSelectedText(0)?.toString().orEmpty()
-            if (selected.isEmpty()) Toast.makeText(this, "لومړی متن انتخاب کړئ", Toast.LENGTH_SHORT).show()
-            else {
-                (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
-                    .setPrimaryClip(ClipData.newPlainText("Sundus", selected))
-                connection?.commitText("", 1)
-            }
-        }
-        addSpecial(row, "پېسټ", 1f, 38) {
-            val clip = (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip
-            if (clip != null && clip.itemCount > 0) currentInputConnection?.commitText(clip.getItemAt(0).coerceToText(this), 1)
-            else Toast.makeText(this, "کلیپ‌بورډ تش دی", Toast.LENGTH_SHORT).show()
-        }
-        addSpecial(row, "ټول انتخاب", 1.2f, 38) {
-            currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
-        }
-        addSpecial(row, "جمله ساتل", 1.3f, 38) { saveCurrentTextAsPhrase() }
-        parent.addView(row, rowParams(42))
 
         val saveRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(saveRow, "انتخاب شوی متن خوندي کول", 1.7f, 36) {
@@ -1933,37 +1902,41 @@ class KeyboardService : InputMethodService() {
                     ?.toMutableSet() ?: mutableSetOf()
                 updated.add(selected)
                 prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
-                Toast.makeText(this, "یوازې ستاسو په غوښتنه متن خوندي شو", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "متن خوندي شو", Toast.LENGTH_SHORT).show()
                 refreshKeyboard()
             }
         }
         addSpecial(saveRow, "خوندي شوي: ${favorites.size}", 1.1f, 36) {
-            if (favorites.isEmpty()) Toast.makeText(this, "تر اوسه مو کوم متن په خپله خوښه نه دی خوندي کړی.", Toast.LENGTH_LONG).show()
-            else ImeDialogBuilder().setTitle("ستاسو خوندي شوي متنونه")
-                .setItems(favorites.toTypedArray()) { _, which ->
-                    val selected = favorites.toList()[which]
-                    ImeDialogBuilder()
-                        .setTitle("خوندي شوی متن")
-                        .setMessage(selected)
-                        .setPositiveButton("داخلول") { _, _ ->
-                            currentInputConnection?.commitText(selected, 1)
-                            updateSuggestions()
-                        }
-                        .setNegativeButton("حذف") { _, _ ->
-                            val updated = prefs.getStringSet("clipboardFavorites", emptySet())?.toMutableSet() ?: mutableSetOf()
-                            updated.remove(selected)
-                            prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
-                            refreshKeyboard()
-                        }
-                        .show()
-                }.show()
+            if (favorites.isEmpty()) {
+                Toast.makeText(this, "تر اوسه مو کوم متن نه دی خوندي کړی.", Toast.LENGTH_LONG).show()
+            } else {
+                ImeDialogBuilder().setTitle("ستاسو خوندي شوي متنونه")
+                    .setItems(favorites.toTypedArray()) { _, which ->
+                        val selected = favorites.toList()[which]
+                        ImeDialogBuilder()
+                            .setTitle("خوندي شوی متن")
+                            .setMessage(selected)
+                            .setPositiveButton("داخلول") { _, _ ->
+                                currentInputConnection?.commitText(selected, 1)
+                                updateSuggestions()
+                            }
+                            .setNegativeButton("حذف") { _, _ ->
+                                val updated = prefs.getStringSet("clipboardFavorites", emptySet())
+                                    ?.toMutableSet() ?: mutableSetOf()
+                                updated.remove(selected)
+                                prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
+                                refreshKeyboard()
+                            }
+                            .show()
+                    }.show()
+            }
         }
         parent.addView(saveRow, rowParams(39))
 
         favorites.toList().chunked(2).forEach { group ->
             val favoriteRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             group.forEach { item ->
-                addSpecial(favoriteRow, "📌 " + item.replace("\n", " ").take(18), 1f, 36) {
+                addSpecial(favoriteRow, "📌 " + item.replace("\\n", " ").take(18), 1f, 36) {
                     currentInputConnection?.commitText(item, 1)
                     updateSuggestions()
                 }
@@ -1987,7 +1960,7 @@ class KeyboardService : InputMethodService() {
             refreshKeyboard()
         }
         addSpecial(close, "بندول", 0.8f, 32) {
-            clipboardPanelVisible = false
+            savedTextsPanelVisible = false
             refreshKeyboard()
         }
         parent.addView(close, rowParams(35))
