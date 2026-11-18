@@ -1966,28 +1966,32 @@ class KeyboardService : InputMethodService() {
         }
         parent.addView(savedRow, rowParams(36))
 
-        favorites.toList().sorted().chunked(2).forEach { group ->
+        favorites.toList().sorted().forEach { item ->
             val favoriteRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            group.forEach { item ->
-                addSpecial(favoriteRow, "📌 " + item.replace("\n", " ").take(18), 1f, 36) {
-                    currentInputConnection?.commitText(item, 1)
-                    updateSuggestions()
-                }
-                favoriteRow.getChildAt(favoriteRow.childCount - 1)?.setOnLongClickListener {
-                    val updated = prefs.getStringSet("clipboardFavorites", emptySet())
-                        ?.toMutableSet() ?: mutableSetOf()
-                    updated.remove(item)
-                    val saved = prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
-                    Toast.makeText(
-                        this,
-                        if (saved) "له خوندي شويو متنونو حذف شو" else "حذف ترسره نه شو",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    if (saved) refreshKeyboard()
-                    true
-                }
+            addSpecial(favoriteRow, "📌 " + item.replace("\n", " ").take(18), 1.45f, 36) {
+                currentInputConnection?.commitText(item, 1)
+                updateSuggestions()
             }
-            repeat(2 - group.size) { addSpecial(favoriteRow, " ", 1f, 36) { } }
+            favoriteRow.getChildAt(favoriteRow.childCount - 1)?.setOnLongClickListener {
+                val updated = prefs.getStringSet("clipboardFavorites", emptySet())
+                    ?.toMutableSet() ?: mutableSetOf()
+                updated.remove(item)
+                val saved = prefs.edit().putStringSet("clipboardFavorites", HashSet(updated)).commit()
+                Toast.makeText(
+                    this,
+                    if (saved) "له خوندي شويو متنونو حذف شو" else "حذف ترسره نه شو",
+                    Toast.LENGTH_SHORT
+                ).show()
+                if (saved) refreshKeyboard()
+                true
+            }
+            addSpecial(favoriteRow, "کاپي", 0.55f, 36) {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText("خوندي شوی متن", item)
+                )
+                Toast.makeText(this, "متن کاپي شو؛ اوس یې پیسټ کولای شئ.", Toast.LENGTH_SHORT).show()
+            }
             parent.addView(favoriteRow, rowParams(39))
         }
 
