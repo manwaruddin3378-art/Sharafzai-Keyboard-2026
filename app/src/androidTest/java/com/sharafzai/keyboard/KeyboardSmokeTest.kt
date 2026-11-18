@@ -142,7 +142,7 @@ class KeyboardSmokeTest {
         assertNotNull("AutoText editor did not open", device.wait(Until.findObject(By.text("شخصي AutoText لنډیزونه")), 3_000))
         val autoTextFields = device.findObjects(By.clazz(EditText::class.java))
         assertTrue("AutoText shortcut and expansion fields were not both displayed", autoTextFields.size >= 2)
-        autoTextFields.takeLast(2)[0].setText("sundus-test")
+        autoTextFields.takeLast(2)[0].setText("sundustest")
         autoTextFields.takeLast(2)[1].setText("SUNDUS AutoText works")
         val saveAutoText = device.wait(Until.findObject(By.text("＋ ساتل")), 3_000)
         assertNotNull("AutoText save button was not displayed", saveAutoText)
