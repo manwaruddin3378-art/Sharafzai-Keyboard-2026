@@ -176,7 +176,7 @@ class KeyboardService : InputMethodService() {
         }
         numberRowEnabled = prefs.getBoolean("numberRowEnabled", false)
         nativeDigitsEnabled = prefs.getBoolean("nativeDigitsEnabled", true)
-        autoCorrectEnabled = false
+        autoCorrectEnabled = prefs.getBoolean("autoCorrectEnabled", false)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
@@ -1110,10 +1110,6 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(row, "بند", 0.7f, 40) {
-            settingsPanelVisible = false
-            refreshKeyboard()
-        }
         parent.addView(row, rowParams(44))
 
         val fontRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -1121,10 +1117,6 @@ class KeyboardService : InputMethodService() {
         addSpecial(fontRow, "فونټ: ${fontNames[fontStyleIndex]}", 1.8f, 38) {
             fontStyleIndex = (fontStyleIndex + 1) % fontNames.size
             saveSettings()
-            refreshKeyboard()
-        }
-        addSpecial(fontRow, "بندول", 0.8f, 38) {
-            settingsPanelVisible = false
             refreshKeyboard()
         }
         parent.addView(fontRow, rowParams(41))
@@ -1136,10 +1128,6 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(themeRow, "بندول", 0.8f, 38) {
-            settingsPanelVisible = false
-            refreshKeyboard()
-        }
         parent.addView(themeRow, rowParams(41))
 
         val typingRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -1148,8 +1136,16 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
-        addSpecial(typingRow, "اتومات بدلون: بند", 1.25f, 38) {
-            Toast.makeText(this, "سندس ستاسو لیکل نه بدلوي؛ یوازې د لغتونو وړاندیز کوي.", Toast.LENGTH_LONG).show()
+        addSpecial(typingRow, if (autoCorrectEnabled) "اتومات بدلون: فعال" else "اتومات بدلون: بند", 1.25f, 38) {
+            autoCorrectEnabled = !autoCorrectEnabled
+            saveSettings()
+            Toast.makeText(
+                this,
+                if (autoCorrectEnabled) "اتومات بدلون فعال شو؛ د AutoText لنډیزونه به د فاصله تڼۍ په وهلو پراخېږي."
+                else "اتومات بدلون بند شو؛ لنډیزونه به په خپله نه پراخېږي.",
+                Toast.LENGTH_LONG
+            ).show()
+            refreshKeyboard()
         }
         addSpecial(typingRow, if (nativeDigitsEnabled) "ملي شمېرې" else "انګلیسي شمېرې", 1.15f, 38) {
             nativeDigitsEnabled = !nativeDigitsEnabled
@@ -1180,6 +1176,14 @@ class KeyboardService : InputMethodService() {
             addCurrentWordToDictionary()
         }
         parent.addView(dictionaryRow, rowParams(41))
+
+        // One shared close control for the entire settings panel.
+        val closeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(closeRow, "تنظیمات بندول", 1f, 36) {
+            settingsPanelVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(closeRow, rowParams(38))
     }
 
     private fun builtInDictionaryEntries(languageId: Int): List<Pair<String, String>> {
@@ -1675,13 +1679,22 @@ class KeyboardService : InputMethodService() {
         content.addView(expansion)
         val dialog = ImeDialogBuilder()
             .setTitle("شخصي AutoText لنډیزونه")
-            .setMessage("لنډ کوډ د Space په وهلو سره بشپړ متن ته پراخېږي. ټول معلومات آفلاین ساتل کېږي.")
+            .setMessage("لنډ کوډ د فاصله تڼۍ په وهلو سره بشپړ متن ته پراخېږي. ټول معلومات آفلاین ساتل کېږي.")
             .setView(content)
             .setPositiveButton("＋ ساتل", null)
             .setNeutralButton("ثبت شوي اداره کول", null)
             .setNegativeButton("بند", null)
             .create()
         dialog.setOnShowListener {
+            shortcut.requestFocus()
+            dialog.window?.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
+            shortcut.post {
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                    .showSoftInput(shortcut, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
             dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val code = shortcut.text.toString().trim()
                 val value = expansion.text.toString().trim()
@@ -1779,10 +1792,12 @@ class KeyboardService : InputMethodService() {
         learnCompletedWord(word)
         val entries = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
             .getStringSet("autoText_$language", emptySet()).orEmpty()
-        val expansion = entries.mapNotNull { entry ->
-            val parts = entry.split("|||", limit = 2)
-            if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
-        }.firstOrNull()
+        val expansion = if (autoCorrectEnabled) {
+            entries.mapNotNull { entry ->
+                val parts = entry.split("|||", limit = 2)
+                if (parts.size == 2 && parts[0].equals(word, ignoreCase = true)) parts[1] else null
+            }.firstOrNull()
+        } else null
         if (expansion != null && word.isNotEmpty()) {
             connection.deleteSurroundingText(word.length, 0)
             connection.commitText("$expansion ", 1)
