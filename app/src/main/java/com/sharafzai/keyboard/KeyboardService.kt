@@ -2182,7 +2182,8 @@ class KeyboardService : InputMethodService() {
         val dialog = ImeDialogBuilder()
             .setTitle("زما نوټس")
             .setView(content)
-            .setPositiveButton("نوی نوټ") { _, _ -> showNoteEditor(null) }
+            // Open the editor only after this IME-attached dialog has fully closed.
+            .setPositiveButton("نوی نوټ", null)
             .setNeutralButton("ټول نوټس پاکول") { _, _ ->
                 val notes = readKeyboardNotes()
                 if (notes.isEmpty()) {
@@ -2234,7 +2235,9 @@ class KeyboardService : InputMethodService() {
                         background = roundedBackground(Color.rgb(5, 48, 77), dp(9))
                         setOnClickListener {
                             dialog.dismiss()
-                            showNoteDetails(note)
+                            android.os.Handler(mainLooper).post {
+                                showNoteDetails(note)
+                            }
                         }
                     }
                     list.addView(item, LinearLayout.LayoutParams(-1, -2).apply {
@@ -2250,7 +2253,16 @@ class KeyboardService : InputMethodService() {
         })
         refreshList("")
         attachDialogToIme(dialog)
+        dialog.setOnDismissListener { refreshKeyboard() }
         dialog.show()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                dialog.dismiss()
+                android.os.Handler(mainLooper).post {
+                    showNoteEditor(null)
+                }
+            }
+        }
     }
 
     private fun showNoteEditor(existing: KeyboardNote?) {
@@ -2334,7 +2346,13 @@ class KeyboardService : InputMethodService() {
             }
         }
         attachDialogToIme(dialog)
+        dialog.setOnDismissListener { refreshKeyboard() }
         dialog.show()
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
+        bodyInput.requestFocus()
     }
 
     private fun showNoteDetails(note: KeyboardNote) {
