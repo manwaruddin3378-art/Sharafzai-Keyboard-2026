@@ -2048,6 +2048,23 @@ class KeyboardService : InputMethodService() {
             .setTitle("زما نوټس")
             .setView(content)
             .setPositiveButton("نوی نوټ") { _, _ -> showNoteEditor(null) }
+            .setNeutralButton("ټول نوټس پاکول") { _, _ ->
+                val notes = readKeyboardNotes()
+                if (notes.isEmpty()) {
+                    Toast.makeText(this, "د پاکولو لپاره نوټ نشته", Toast.LENGTH_SHORT).show()
+                } else {
+                    ImeDialogBuilder()
+                        .setTitle("ټول نوټس حذفول؟")
+                        .setMessage("ټول خوندي شوي نوټونه به حذف شي. دا کار بېرته نه راګرځي.")
+                        .setNegativeButton("نه", null)
+                        .setPositiveButton("هو، ټول حذف کړه") { _, _ ->
+                            val cleared = writeKeyboardNotes(emptyList())
+                            Toast.makeText(this, if (cleared) "ټول نوټس پاک شول" else "نوټس پاک نه شول", Toast.LENGTH_SHORT).show()
+                            if (cleared) showNotesWindow()
+                        }
+                        .show()
+                }
+            }
             .setNegativeButton("بندول", null)
             .create()
 
