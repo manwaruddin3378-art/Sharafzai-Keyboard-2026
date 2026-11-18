@@ -2119,40 +2119,15 @@ class KeyboardService : InputMethodService() {
         Toast.makeText(this, "جمله په شخصي جملو کې وساتل شوه", Toast.LENGTH_SHORT).show()
     }
 
+    // Show phrases inside the keyboard itself; do not open a separate dialog/window.
     private fun showPhraseWindow() {
-        phraseDialog?.dismiss()
-        phraseCategory = phraseCategory.coerceIn(0, 4)
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-        }
-        val dialog = ImeDialogBuilder()
-            .setTitle("د سندس چټکې جملې")
-            .setView(content)
-            .setNegativeButton("بند", null)
-            .create()
-        phraseDialog = dialog
-        addPhrasePanel(content)
-        dialog.setOnDismissListener {
-            if (phraseDialog === dialog) {
-                phraseDialog = null
-                // Reset transient panels after the IME-attached dialog is fully dismissed.
-                // Rebuilding synchronously from onDismiss can race Android's window teardown:
-                // the new input view is then built while the IME window is still closing.
-                savedTextsPanelVisible = false
-                phrasePanelVisible = false
-                quickActionsVisible = false
-                emojiPanelVisible = false
-                symbolsPanelVisible = false
-                settingsPanelVisible = false
-                Handler(Looper.getMainLooper()).postDelayed({
-                    refreshKeyboard()
-                    requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
-                }, 250L)
-            }
-        }
-        attachDialogToIme(dialog)
-        dialog.show()
+        quickActionsVisible = false
+        emojiPanelVisible = false
+        savedTextsPanelVisible = false
+        symbolsPanelVisible = false
+        settingsPanelVisible = false
+        phrasePanelVisible = true
+        refreshKeyboard()
     }
 
     private fun showAddPhraseDialog() {
@@ -2177,13 +2152,12 @@ class KeyboardService : InputMethodService() {
             addSpecial(categoryRow, label, 1f, 28) {
                 phraseCategory = index
                 phraseIndex = 0
-                showPhraseWindow()
+                refreshKeyboard()
             }
         }
-        addSpecial(categoryRow, "＋", 0.65f, 28) { showAddPhraseDialog() }
         addSpecial(categoryRow, "×", 0.55f, 28) {
             phrasePanelVisible = false
-            phraseDialog?.dismiss()
+            refreshKeyboard()
         }
         parent.addView(categoryRow, rowParams(30))
 
@@ -2298,69 +2272,68 @@ class KeyboardService : InputMethodService() {
                 .getStringSet("savedPhrases", emptySet()).orEmpty().toList()
         }
 
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+        }
+        val phraseList = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(3), 0, dp(4))
+        }
         if (phrases.isEmpty()) {
             val empty = TextView(this).apply {
-                text = "تر اوسه شخصي جمله نه ده ساتل شوې؛ د کلیپ‌بورډ له برخې یې خوندي کړئ."
+                text = "تر اوسه په دې برخه کې جمله نشته."
                 textSize = 12f
                 gravity = Gravity.CENTER
                 setTextColor(Color.WHITE)
+                setPadding(dp(8), dp(12), dp(8), dp(12))
             }
-            parent.addView(empty, rowParams(42))
+            phraseList.addView(empty, rowParams(48))
         } else {
-            phraseIndex = phraseIndex.coerceIn(0, phrases.lastIndex)
-            val navigation = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
-            addSpecial(navigation, "❮", 0.65f, 42) {
-                phraseIndex = if (phraseIndex <= 0) phrases.lastIndex else phraseIndex - 1
-                showPhraseWindow()
-            }
-            val phraseText = TextView(this).apply {
-                text = phrases[phraseIndex]
-                textSize = 13f
-                gravity = Gravity.CENTER
-                maxLines = 3
-                setPadding(dp(5), dp(3), dp(5), dp(3))
-                setTextColor(Color.WHITE)
-                background = roundedBackground(theme.suggestion, dp(8))
-                setOnClickListener {
-                    currentInputConnection?.commitText(phrases[phraseIndex] + " ", 1)
-                    updateSuggestions()
-                    phraseDialog?.dismiss()
+            phrases.forEachIndexed { index, phrase ->
+                val item = TextView(this).apply {
+                    text = phrase
+                    textSize = 13f
+                    gravity = Gravity.CENTER_VERTICAL
+                    maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(dp(10), dp(7), dp(10), dp(7))
+                    setTextColor(Color.WHITE)
+                    background = roundedBackground(
+                        if (index % 2 == 0) theme.suggestion else theme.key,
+                        dp(7)
+                    )
+                    setOnClickListener {
+                        val inserted = runCatching {
+                            currentInputConnection?.commitText(phrase + " ", 1) ?: false
+                        }.getOrDefault(false)
+                        if (inserted) {
+                            phrasePanelVisible = false
+                            refreshKeyboard()
+                            updateSuggestions()
+                        } else {
+                            Toast.makeText(this@KeyboardService, "جمله داخل متن کې نه شوه زیاتېدای", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
-            }
-            navigation.addView(phraseText, LinearLayout.LayoutParams(0, dp(40), 1f))
-            addSpecial(navigation, "❯", 0.65f, 42) {
-                phraseIndex = (phraseIndex + 1) % phrases.size
-                showPhraseWindow()
-            }
-            parent.addView(navigation, rowParams(42))
-            if (phraseCategory == 4) {
-                val manageRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-                addSpecial(manageRow, "✎ جمله اصلاح", 1f, 34) {
-                    phrases.getOrNull(phraseIndex)?.let { showEditPhraseDialog(it) }
+                val itemParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    bottomMargin = dp(4)
                 }
-                addSpecial(manageRow, "حذف جمله", 1f, 34) {
-                    val selected = phrases.getOrNull(phraseIndex)
-                    if (selected != null) ImeDialogBuilder()
-                        .setTitle("جمله حذف کړئ؟")
-                        .setMessage("ایا دا جمله له شخصي جملو حذف کول غواړئ؟")
-                        .setNegativeButton("نه", null)
-                        .setPositiveButton("هو، حذف") { _, _ ->
-                            val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
-                            val saved = prefs.getStringSet("savedPhrases", emptySet())?.toMutableSet() ?: mutableSetOf()
-                            saved.remove(selected)
-                            prefs.edit().putStringSet("savedPhrases", HashSet(saved)).commit()
-                            phraseIndex = 0
-                            showPhraseWindow()
-                        }.show()
-                }
-                parent.addView(manageRow, rowParams(36))
+                phraseList.addView(item, itemParams)
             }
-
-
         }
+        scroll.addView(phraseList)
+        parent.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+        )
     }
 
     private val handler = Handler(Looper.getMainLooper())
