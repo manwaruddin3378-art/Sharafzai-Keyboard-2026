@@ -202,11 +202,7 @@ class KeyboardSmokeTest {
         savedChip!!.click()
         assertEquals("Saved text did not insert into the editor", "SUNDUS saved text test", activeEditor.text.toString())
 
-        // The saved-text detail dialog must offer a real clipboard copy action.
-        device.findObject(By.text("خوندي شوي متنونه: 1")).click()
-        val savedTextItem = device.wait(Until.findObject(By.text("SUNDUS saved text test")), 3_000)
-        assertNotNull("Saved text could not be selected for copy", savedTextItem)
-        savedTextItem!!.click()
+        // Each saved-text row exposes a direct copy action, avoiding nested IME dialogs.
         val copySavedText = device.wait(Until.findObject(By.text("کاپي")), 3_000)
         assertNotNull("Saved text copy action was not displayed", copySavedText)
         copySavedText!!.click()
