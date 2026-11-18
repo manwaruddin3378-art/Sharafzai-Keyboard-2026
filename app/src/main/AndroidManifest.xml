@@ -23,6 +23,7 @@
         <service android:name=".DhikrOverlayService" android:exported="false" />
 
         <activity android:name=".VoiceInputActivity" android:exported="false" android:excludeFromRecents="true" />
+        <activity android:name=".NotesBackupActivity" android:exported="false" android:excludeFromRecents="true" />
 
         <service
             android:name=".KeyboardService"
