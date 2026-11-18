@@ -87,14 +87,14 @@ class KeyboardService : InputMethodService() {
             val mainHandler = Handler(Looper.getMainLooper())
             mainHandler.postDelayed({
                 refreshKeyboard()
-                requestShowSelf(0)
+                requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
                 updateSuggestions()
                 Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 1; shown=$isInputViewShown")
             }, 500L)
             mainHandler.postDelayed({
                 if (!isInputViewShown) {
                     refreshKeyboard()
-                    requestShowSelf(0)
+                    requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
                 }
                 updateSuggestions()
                 Log.e("SUNDUS_IME_LIFECYCLE", "Keyboard restore attempt 2; shown=$isInputViewShown")
@@ -2147,7 +2147,7 @@ class KeyboardService : InputMethodService() {
                 settingsPanelVisible = false
                 Handler(Looper.getMainLooper()).postDelayed({
                     refreshKeyboard()
-                    requestShowSelf(0)
+                    requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
                 }, 250L)
             }
         }
