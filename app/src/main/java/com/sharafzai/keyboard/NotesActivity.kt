@@ -57,7 +57,7 @@ class NotesActivity : Activity() {
             startActivity(Intent(this, NotesBackupActivity::class.java).putExtra(NotesBackupActivity.EXTRA_MODE, NotesBackupActivity.MODE_IMPORT))
         }, LinearLayout.LayoutParams(0, dp(46), 1f))
         root.addView(actions)
-        val search = EditText(this).apply { hint = "د نوټ سرلیک یا متن ولټوئ"; setSingleLine(true); textSize = 16f }
+        val search = EditText(this).apply { hint = "د نوټ سرلیک یا متن ولټوئ"; setSingleLine(true); textSize = 16f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE) }
         root.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { isFillViewport = true; addView(list) }, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -97,6 +97,7 @@ class NotesActivity : Activity() {
         root.addView(ScrollView(this).apply { addView(TextView(this@NotesActivity).apply {
             text = n.body; textSize = 17f; setTextColor(Color.BLACK); setPadding(dp(8), dp(8), dp(8), dp(8))
         }) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(btn("شریکول") { shareNote(n) }, LinearLayout.LayoutParams(-1, dp(46)))
         val row = LinearLayout(this)
         row.addView(btn("سمول") { editor(n) }, LinearLayout.LayoutParams(0, dp(48), 1f))
         row.addView(btn("حذف") {
@@ -106,13 +107,21 @@ class NotesActivity : Activity() {
         row.addView(btn("بېرته") { manager() }, LinearLayout.LayoutParams(0, dp(48), 1f))
         root.addView(row)
     }
+    private fun shareNote(note: Note) {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, note.title)
+            putExtra(Intent.EXTRA_TEXT, "${note.title}\n\n${note.body}")
+        }
+        startActivity(Intent.createChooser(send, "نوټ له کوم اپ سره شریکوئ؟"))
+    }
     private fun editor(old: Note?) {
         val root = base(if (old == null) "نوی نوټ جوړول" else "نوټ اصلاح کول")
-        val title = EditText(this).apply { hint = "د نوټ سرلیک"; setSingleLine(true); setText(old?.title ?: "") }
+        val title = EditText(this).apply { hint = "د نوټ سرلیک"; setSingleLine(true); textSize = 17f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE); setPadding(dp(10), 0, dp(10), 0); setText(old?.title ?: "") }
         val body = EditText(this).apply {
             hint = "د موضوع بشپړ متن دلته ولیکئ (تر ۱۰۰ زره تورو پورې)"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            gravity = Gravity.TOP or Gravity.START; minLines = 8; setSingleLine(false); setText(old?.body ?: "")
+            gravity = Gravity.TOP or Gravity.START; minLines = 8; setSingleLine(false); textSize = 17f; setTextColor(Color.BLACK); setHintTextColor(Color.DKGRAY); setBackgroundColor(Color.WHITE); setPadding(dp(10), dp(10), dp(10), dp(10)); setText(old?.body ?: "")
         }
         root.addView(title, LinearLayout.LayoutParams(-1, dp(52)))
         root.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
