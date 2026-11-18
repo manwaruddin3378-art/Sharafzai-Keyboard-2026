@@ -1,6 +1,7 @@
 package com.sharafzai.keyboard
 
 import android.content.Intent
+import android.content.ClipboardManager
 import android.widget.EditText
 import android.os.SystemClock
 import android.util.Log
@@ -200,6 +201,21 @@ class KeyboardSmokeTest {
         assertNotNull("Saved text quick-insert chip was not displayed", savedChip)
         savedChip!!.click()
         assertEquals("Saved text did not insert into the editor", "SUNDUS saved text test", activeEditor.text.toString())
+
+        // The saved-text detail dialog must offer a real clipboard copy action.
+        device.findObject(By.text("خوندي شوي متنونه: 1")).click()
+        val savedTextItem = device.wait(Until.findObject(By.text("SUNDUS saved text test")), 3_000)
+        assertNotNull("Saved text could not be selected for copy", savedTextItem)
+        savedTextItem!!.click()
+        val copySavedText = device.wait(Until.findObject(By.text("کاپي")), 3_000)
+        assertNotNull("Saved text copy action was not displayed", copySavedText)
+        copySavedText!!.click()
+        device.waitForIdle()
+        val clipboard = instrumentation.targetContext.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+        assertTrue("Saved text was not copied to the system clipboard",
+            clipboard.hasPrimaryClip() &&
+                clipboard.primaryClip?.getItemAt(0)?.coerceToText(instrumentation.targetContext).toString() == "SUNDUS saved text test"
+        )
 
         device.findObject(By.text("خوندي شوي متنونه پاکول")).click()
         assertNotNull("Clear-all confirmation did not open", device.wait(Until.findObject(By.text("ټول خوندي متنونه پاکول؟")), 3_000))
