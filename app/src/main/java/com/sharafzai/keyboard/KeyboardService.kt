@@ -2034,7 +2034,7 @@ class KeyboardService : InputMethodService() {
         }
         val search = EditText(this).apply {
             hint = "د نوټ سرلیک یا متن ولټوئ"
-            singleLine = true
+            setSingleLine(true)
             textSize = 15f
         }
         content.addView(search, LinearLayout.LayoutParams(-1, dp(46)))
@@ -2120,7 +2120,7 @@ class KeyboardService : InputMethodService() {
         }
         val titleInput = EditText(this).apply {
             hint = "د نوټ سرلیک"
-            singleLine = true
+            setSingleLine(true)
             setText(existing?.title.orEmpty())
         }
         val bodyInput = EditText(this).apply {
