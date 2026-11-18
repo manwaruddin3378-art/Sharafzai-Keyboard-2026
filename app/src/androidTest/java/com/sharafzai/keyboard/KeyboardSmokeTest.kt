@@ -156,7 +156,12 @@ class KeyboardSmokeTest {
         assertNotNull("Personal phrase save button was not found", savePhraseButton)
         savePhraseButton!!.click()
         assertNotNull("Saved personal phrase window did not open", device.wait(Until.findObject(By.text("د سندس چټکې جملې")), 3_000))
-        device.findObject(By.text("بند")).click()
+        // AlertDialog's negative action is android:id/button2; localized text
+        // is not consistently exposed by UiAutomator on hosted API-30 images.
+        val closePhraseButton = device.wait(Until.findObject(By.res("android", "button2")), 5_000)
+            ?: device.wait(Until.findObject(By.text("بند")), 2_000)
+        assertNotNull("Personal phrases close button was not found", closePhraseButton)
+        closePhraseButton!!.click()
 
         device.findObject(By.text("نوټس")).click()
         assertNotNull("Notes manager did not open", device.wait(Until.findObject(By.text("زما نوټس")), 3_000))
