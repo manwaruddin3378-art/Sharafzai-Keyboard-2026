@@ -2249,7 +2249,12 @@ class KeyboardService : InputMethodService() {
             hint = "خپله جمله یا متن ولیکئ"
             minLines = 3
             setSingleLine(false)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             setText(currentInputConnection?.getSelectedText(0)?.toString().orEmpty())
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            isFocusableInTouchMode = true
         }
         val dialog = ImeDialogBuilder()
             .setTitle("شخصي جمله اضافه کړئ")
@@ -2258,10 +2263,19 @@ class KeyboardService : InputMethodService() {
             .setPositiveButton("ذخیره", null)
             .create()
         dialog.setOnShowListener {
+            dialog.window?.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
+            dialog.window?.setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+            )
             dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val phrase = input.text.toString().trim()
                 if (phrase.isEmpty()) {
                     Toast.makeText(this, "لومړی جمله ولیکئ", Toast.LENGTH_SHORT).show()
+                    input.requestFocus()
                     return@setOnClickListener
                 }
                 val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
@@ -2272,14 +2286,18 @@ class KeyboardService : InputMethodService() {
                     phraseIndex = 0
                     dialog.dismiss()
                     phraseDialog?.dismiss()
-                    Toast.makeText(this, "جمله په شخصي برخې کې خوندي شوه", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "جمله په شخصي برخه کې خوندي شوه", Toast.LENGTH_SHORT).show()
                     showPhraseWindow()
                 } else {
                     Toast.makeText(this, "جمله خوندي نه شوه؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
                 }
             }
+            input.requestFocus()
+            input.post {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                imm?.showSoftInput(input, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
         }
-        attachDialogToIme(dialog)
         dialog.show()
     }
 
@@ -2288,8 +2306,13 @@ class KeyboardService : InputMethodService() {
             hint = "خپله جمله یا متن ولیکئ"
             minLines = 3
             setSingleLine(false)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             setText(existingPhrase)
             setSelection(text.length)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            isFocusableInTouchMode = true
         }
         val dialog = ImeDialogBuilder()
             .setTitle("شخصي جمله اصلاح کړئ")
@@ -2298,10 +2321,19 @@ class KeyboardService : InputMethodService() {
             .setPositiveButton("بدلون خوندي کړئ", null)
             .create()
         dialog.setOnShowListener {
+            dialog.window?.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
+            dialog.window?.setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+            )
             dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val updatedPhrase = input.text.toString().trim()
                 if (updatedPhrase.isEmpty()) {
                     Toast.makeText(this, "جمله تشه نه شي پاتې کېدای", Toast.LENGTH_SHORT).show()
+                    input.requestFocus()
                     return@setOnClickListener
                 }
                 val prefs = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
@@ -2319,8 +2351,12 @@ class KeyboardService : InputMethodService() {
                     Toast.makeText(this, "بدلون خوندي نه شو؛ بیا هڅه وکړئ", Toast.LENGTH_LONG).show()
                 }
             }
+            input.requestFocus()
+            input.post {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                imm?.showSoftInput(input, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
         }
-        attachDialogToIme(dialog)
         dialog.show()
     }
 
