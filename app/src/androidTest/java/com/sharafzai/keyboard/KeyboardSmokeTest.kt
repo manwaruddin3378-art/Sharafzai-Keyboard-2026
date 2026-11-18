@@ -108,8 +108,12 @@ class KeyboardSmokeTest {
         assertTrue("SUNDUS keyboard did not appear", keyboardAppeared)
 
         // This instrumentation run is deliberately scoped to saved texts, personal phrases and Notes.
-        val moreTools = device.wait(Until.findObject(By.text("•••")), 5_000)
-        assertNotNull("Quick tools button was not found", moreTools)
+        // InputMethodService may report its window before onCreateInputView has finished.
+        // Wait for the actual quick-tools button rather than treating the early SUNDUS label
+        // as proof that the keyboard view is already attached and accessible.
+        device.waitForIdle()
+        val moreTools = device.wait(Until.findObject(By.text("•••")), 20_000)
+        assertNotNull("Quick tools button was not found after keyboard view initialization", moreTools)
         moreTools!!.click()
 
         val savedTool = device.wait(Until.findObject(By.text("خوندي شوي")), 5_000)
