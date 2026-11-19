@@ -14,11 +14,13 @@ class VoiceInputActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         languageIndex = intent.getIntExtra("language", 0).coerceIn(0, 3)
-        setContentView(TextView(this).apply {
+        val voiceIntro = TextView(this).apply {
             text = "د سندس غږیز لیکل\n\nد موبایل د غږ پېژندنې خدمت پرانیستل کېږي. د آفلاین کار لپاره د اړوندې ژبې آفلاین بسته نصب کړئ."
             textSize = 18f
             setPadding(28, 48, 28, 28)
-        })
+        }
+        setContentView(voiceIntro)
+        voiceIntro.applySundusSystemBarInsets()
         launchRecognition()
     }
 
