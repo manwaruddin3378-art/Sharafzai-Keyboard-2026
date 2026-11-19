@@ -46,6 +46,7 @@ class NotesActivity : Activity() {
             setTextColor(Color.rgb(5, 48, 77)); setPadding(0, dp(6), 0, dp(10))
         })
         setContentView(root)
+        root.applySundusSystemBarInsets()
         return root
     }
     private fun btn(label: String, click: () -> Unit) = Button(this).apply {
