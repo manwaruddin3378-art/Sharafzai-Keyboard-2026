@@ -2589,12 +2589,15 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun animateKeyPress(view: View, pressed: Boolean) {
+        // Lift the complete key visibly upward; scaling reinforces the raised-key effect.
         view.animate().cancel()
         view.animate()
-            .translationY(if (pressed) -dp(3).toFloat() else 0f)
-            .setDuration(if (pressed) 55L else 110L)
+            .translationY(if (pressed) -dp(7).toFloat() else 0f)
+            .scaleX(if (pressed) 1.035f else 1f)
+            .scaleY(if (pressed) 1.035f else 1f)
+            .setDuration(if (pressed) 65L else 120L)
             .start()
-        view.elevation = dp(if (pressed) 7 else 3).toFloat()
+        view.elevation = dp(if (pressed) 12 else 3).toFloat()
     }
 
     private fun addKeyRow(
@@ -2603,9 +2606,14 @@ class KeyboardService : InputMethodService() {
         height: Int
     ) {
         val actualHeight = (height * listOf(0.78f, 0.90f, 1.0f, 1.10f, 1.22f)[keySizeLevel]).toInt()
+        // Allow pressed keys to rise above the row instead of being clipped at its top.
+        parent.clipChildren = false
+        parent.clipToPadding = false
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
+            clipChildren = false
+            clipToPadding = false
         }
 
         keys.forEachIndexed { index, spec ->
