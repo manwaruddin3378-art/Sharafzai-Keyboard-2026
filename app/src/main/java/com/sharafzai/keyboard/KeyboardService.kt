@@ -790,6 +790,28 @@ class KeyboardService : InputMethodService() {
             setPadding(dp(3), dp(4), dp(3), dp(4))
             background = FloralPatternDrawable(theme.background)
         }
+        // Android 15/16 edge-to-edge can place the IME's final key row behind
+        // the three-button/gesture navigation area. Reserve only the actual
+        // navigation-bar inset; the keyboard's visual layout remains unchanged.
+        if (Build.VERSION.SDK_INT >= 35) {
+            val baseLeft = root.paddingLeft
+            val baseTop = root.paddingTop
+            val baseRight = root.paddingRight
+            val baseBottom = root.paddingBottom
+            root.setOnApplyWindowInsetsListener { view, insets ->
+                val navigationBottom = insets.getInsets(
+                    android.view.WindowInsets.Type.navigationBars()
+                ).bottom
+                view.setPadding(
+                    baseLeft,
+                    baseTop,
+                    baseRight,
+                    baseBottom + navigationBottom
+                )
+                insets
+            }
+            root.requestApplyInsets()
+        }
 
         val dhikrView = TextView(this).apply {
             text = adhkar[floatingDhikrIndex % adhkar.size]
@@ -2655,6 +2677,7 @@ class KeyboardService : InputMethodService() {
                         MotionEvent.ACTION_DOWN -> {
                             downRawX = event.rawX
                             downRawY = event.rawY
+                            showAlternatePopup(frame, value)
                             glideStarted = false
                             longPressHandled = false
                             pendingLongPressOutput = ""
@@ -2668,7 +2691,10 @@ class KeyboardService : InputMethodService() {
                                 (event.rawX - downRawX).toDouble(),
                                 (event.rawY - downRawY).toDouble()
                             )
-                            if (moved > dp(10)) handler.removeCallbacks(longPressTask)
+                            if (moved > dp(10)) {
+                                handler.removeCallbacks(longPressTask)
+                                dismissAlternatePopup()
+                            }
                             if (moved > dp(17)) glideStarted = true
                             if (glideStarted && !longPressHandled) {
                                 findGlideKey(event.rawX, event.rawY)?.let { addGlidePath(path, it.value) }
@@ -2722,6 +2748,7 @@ class KeyboardService : InputMethodService() {
                         MotionEvent.ACTION_DOWN -> {
                             alternateDownX = event.rawX
                             alternateDownY = event.rawY
+                            showAlternatePopup(frame, value)
                             alternatePending = ""
                             alternateLongPress = false
                             handler.postDelayed(
