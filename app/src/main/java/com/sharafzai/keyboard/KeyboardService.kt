@@ -2532,12 +2532,16 @@ class KeyboardService : InputMethodService() {
         popup.setOnDismissListener {
             if (alternatePopupWindow === popup) alternatePopupWindow = null
         }
-        // Position the preview using screen coordinates. showAsDropDown can
-        // be shifted/clipped by edge-to-edge IME windows on Android 15/16.
+        // PopupWindow.showAtLocation expects coordinates in the IME window,
+        // not absolute screen coordinates. Using getLocationOnScreen here adds
+        // the IME window's vertical offset a second time on some Vivo devices,
+        // which makes the selected-key preview appear below the pressed key.
+        // Use window-relative coordinates and place the preview above the key.
         val location = IntArray(2)
-        anchor.getLocationOnScreen(location)
-        val x = (location[0] + (anchor.width - dp(42)) / 2).coerceAtLeast(0)
-        val y = (location[1] - dp(48)).coerceAtLeast(dp(4))
+        anchor.getLocationInWindow(location)
+        val popupSize = dp(42)
+        val x = (location[0] + (anchor.width - popupSize) / 2).coerceAtLeast(0)
+        val y = (location[1] - popupSize - dp(6)).coerceAtLeast(dp(4))
         popup.showAtLocation(anchor, Gravity.TOP or Gravity.START, x, y)
     }
 
