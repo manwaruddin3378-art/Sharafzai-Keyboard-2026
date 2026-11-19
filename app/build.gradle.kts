@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.sharafzai.keyboard"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.sharafzai.keyboard"
         minSdk = 21
-        targetSdk = 34
-        versionCode = 17
-        versionName = "1.12"
+        targetSdk = 36
+        versionCode = 18
+        versionName = "1.13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
