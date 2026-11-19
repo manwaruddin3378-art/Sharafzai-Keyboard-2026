@@ -26,6 +26,15 @@ class KeyboardSmokeTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
 
+        // Release-readiness guardrails: Android 16 target and no network permission.
+        val appInfo = instrumentation.targetContext.packageManager
+            .getPackageInfo(instrumentation.targetContext.packageName, 0)
+        assertEquals("SUNDUS must target Android 16 (API 36)", 36, appInfo.applicationInfo?.targetSdkVersion)
+        assertTrue(
+            "SUNDUS must remain offline and must not request INTERNET permission",
+            appInfo.requestedPermissions?.contains(android.Manifest.permission.INTERNET) != true
+        )
+
         // Enable the IME first, but do not select it until a real editor window has focus.
         val enableResult = device.executeShellCommand("ime enable com.sharafzai.keyboard/.KeyboardService")
         Log.e("SUNDUS_IME_DIAG", "enable=[" + enableResult + "]")
