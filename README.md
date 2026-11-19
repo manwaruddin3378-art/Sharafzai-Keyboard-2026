@@ -34,9 +34,9 @@ SUNDUS یوازې د Android لپاره یو څوژبی، آفلاین او د �
 ## تخنیکي معلومات
 
 - Application ID: com.sharafzai.keyboard
-- Version: 1.12 (versionCode 17)
+- Version: 1.13 (versionCode 18)
 - Minimum Android: API 21 (Android 5.0)
-- Target Android: API 34
+- Target Android: API 36 (Android 16)
 - د ازمایښتي APK جوړول د GitHub Actions له لارې په اتومات ډول کېږي؛ د لاسلیک شوي Release APK جوړول یوازې هغه وخت فعالېږي چې د پروژې خصوصي Keystore او اړوند Secrets په GitHub کې تنظیم شوي وي.
-- د Android په تنظیماتو کې د کیبورډ فعالول او انتخابول د کاروونکي له خوا ترسره کېږي.
+- د Android په تنظیماتو کې د کیبورډ فعالول او انتخابول د کاروونکي له خوا ترسره کېږي. د Android 16 (API 36) لپاره د جوړولو او هدف ټاکلو ملاتړ لري؛ د API 21 او پورته نسخو ملاتړ ساتل شوی.
 - د وروستي موبایل-محور ازمېښت لپاره به د کاروونکي له نصب وروسته د اصلي وسیلې پر بنسټ ارزونه ترسره کېږي.
