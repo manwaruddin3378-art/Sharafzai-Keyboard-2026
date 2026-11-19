@@ -99,6 +99,7 @@ class MainActivity : Activity() {
             setPadding(8, 28, 8, 8)
         })
         setContentView(root)
+        root.applySundusSystemBarInsets()
     }
 
     override fun onResume() {
