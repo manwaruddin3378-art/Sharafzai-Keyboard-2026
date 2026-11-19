@@ -118,7 +118,7 @@ jobs:
 
             # Wait inside the emulator shell so the host runner does not split a loop.
             timeout 120s adb shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 2; done'
-            test "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" = "30"
+            test "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" = "36"
             test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
             adb shell pm list packages >/dev/null
             adb devices -l
