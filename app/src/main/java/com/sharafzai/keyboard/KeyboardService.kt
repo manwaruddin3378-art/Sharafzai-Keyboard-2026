@@ -787,10 +787,11 @@ class KeyboardService : InputMethodService() {
         glideKeys.clear()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            // Android 15+ targets SDK 35+ with edge-to-edge IME windows.
-            // Reserve the actual navigation-bar inset plus a visible 8dp gap;
-            // a fixed padding alone is insufficient on devices with tall nav bars.
-            setPadding(dp(3), dp(4), dp(3), dp(12))
+            // Keep the final keyboard row visibly separated from the phone's
+            // navigation controls. Some Vivo/Funtouch IME windows report a zero
+            // navigation-bar inset while the system buttons are still visible, so
+            // always reserve a generous fallback gap as well as the real inset.
+            setPadding(dp(3), dp(4), dp(3), dp(28))
             background = FloralPatternDrawable(theme.background)
             setOnApplyWindowInsetsListener { view, insets ->
                 val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
@@ -801,7 +802,7 @@ class KeyboardService : InputMethodService() {
                     @Suppress("DEPRECATION")
                     insets.systemWindowInsetBottom
                 }
-                val safeBottom = maxOf(dp(12), navigationInset + dp(8))
+                val safeBottom = maxOf(dp(28), navigationInset + dp(12))
                 view.setPadding(dp(3), dp(4), dp(3), safeBottom)
                 Log.e("SUNDUS_IME_INSETS", "navigationInset=$navigationInset safeBottom=$safeBottom")
                 insets
@@ -817,7 +818,7 @@ class KeyboardService : InputMethodService() {
                         @Suppress("DEPRECATION")
                         existingInsets.systemWindowInsetBottom
                     }
-                    setPadding(dp(3), dp(4), dp(3), maxOf(dp(12), navigationInset + dp(8)))
+                    setPadding(dp(3), dp(4), dp(3), maxOf(dp(28), navigationInset + dp(12)))
                 }
             }
         }
