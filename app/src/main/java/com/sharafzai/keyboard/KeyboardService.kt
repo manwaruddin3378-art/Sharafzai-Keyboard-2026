@@ -2588,6 +2588,15 @@ class KeyboardService : InputMethodService() {
         return previous[b.length]
     }
 
+    private fun animateKeyPress(view: View, pressed: Boolean) {
+        view.animate().cancel()
+        view.animate()
+            .translationY(if (pressed) -dp(3).toFloat() else 0f)
+            .setDuration(if (pressed) 55L else 110L)
+            .start()
+        view.elevation = dp(if (pressed) 7 else 3).toFloat()
+    }
+
     private fun addKeyRow(
         parent: LinearLayout,
         keys: List<KeySpec>,
@@ -2687,9 +2696,10 @@ class KeyboardService : InputMethodService() {
                     }
                 }
 
-                frame.setOnTouchListener { _, event ->
+                frame.setOnTouchListener { pressedView, event ->
                     when (event.actionMasked) {
                         MotionEvent.ACTION_DOWN -> {
+                            animateKeyPress(pressedView, true)
                             downRawX = event.rawX
                             downRawY = event.rawY
                             showAlternatePopup(frame, value)
@@ -2717,6 +2727,7 @@ class KeyboardService : InputMethodService() {
                             true
                         }
                         MotionEvent.ACTION_UP -> {
+                            animateKeyPress(pressedView, false)
                             handler.removeCallbacks(longPressTask)
                             dismissAlternatePopup()
                             if (longPressHandled) {
@@ -2739,6 +2750,7 @@ class KeyboardService : InputMethodService() {
                             }
                         }
                         MotionEvent.ACTION_CANCEL -> {
+                            animateKeyPress(pressedView, false)
                             handler.removeCallbacks(longPressTask)
                             dismissAlternatePopup()
                             true
@@ -2758,9 +2770,10 @@ class KeyboardService : InputMethodService() {
                 }
                 var alternateDownX = 0f
                 var alternateDownY = 0f
-                frame.setOnTouchListener { _, event ->
+                frame.setOnTouchListener { pressedView, event ->
                     when (event.actionMasked) {
                         MotionEvent.ACTION_DOWN -> {
+                            animateKeyPress(pressedView, true)
                             alternateDownX = event.rawX
                             alternateDownY = event.rawY
                             showAlternatePopup(frame, value)
@@ -2781,6 +2794,7 @@ class KeyboardService : InputMethodService() {
                             true
                         }
                         MotionEvent.ACTION_UP -> {
+                            animateKeyPress(pressedView, false)
                             handler.removeCallbacks(alternateTask)
                             dismissAlternatePopup()
                             if (alternateLongPress && alternatePending.isNotEmpty()) {
@@ -2793,6 +2807,7 @@ class KeyboardService : InputMethodService() {
                             true
                         }
                         MotionEvent.ACTION_CANCEL -> {
+                            animateKeyPress(pressedView, false)
                             handler.removeCallbacks(alternateTask)
                             dismissAlternatePopup()
                             alternatePending = ""
