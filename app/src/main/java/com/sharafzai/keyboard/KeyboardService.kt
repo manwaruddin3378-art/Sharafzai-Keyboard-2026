@@ -785,13 +785,13 @@ class KeyboardService : InputMethodService() {
 
     private fun buildKeyboard(): View {
         glideKeys.clear()
-        // The IME root reserves a real, separately coloured bottom safe area.
-        // Previously padding shared the floral background, visually joining the
-        // keyboard to Vivo's navigation controls.
+        // Keep a clearly visible bottom separation from the phone navigation controls.
+        // The 32dp minimum is intentional because some Vivo IME windows report a zero
+        // navigation-bar inset even while their three-button navigation area is visible.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(20))
-            setBackgroundColor(Color.rgb(2, 10, 24))
+            setPadding(0, 0, 0, dp(32))
+            setBackgroundColor(Color.rgb(18, 36, 58))
             clipToPadding = true
             setOnApplyWindowInsetsListener { view, insets ->
                 val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
@@ -802,7 +802,7 @@ class KeyboardService : InputMethodService() {
                     @Suppress("DEPRECATION")
                     insets.systemWindowInsetBottom
                 }
-                val safeBottom = maxOf(dp(20), navigationInset + dp(8))
+                val safeBottom = maxOf(dp(32), navigationInset + dp(12))
                 view.setPadding(0, 0, 0, safeBottom)
                 Log.e("SUNDUS_IME_INSETS", "navigationInset=$navigationInset safeBottom=$safeBottom")
                 insets
@@ -817,7 +817,7 @@ class KeyboardService : InputMethodService() {
                         @Suppress("DEPRECATION")
                         existingInsets.systemWindowInsetBottom
                     }
-                    setPadding(0, 0, 0, maxOf(dp(20), navigationInset + dp(8)))
+                    setPadding(0, 0, 0, maxOf(dp(32), navigationInset + dp(12)))
                 }
             }
         }
