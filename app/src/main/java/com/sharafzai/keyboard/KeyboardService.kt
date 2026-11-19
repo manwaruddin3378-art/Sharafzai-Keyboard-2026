@@ -790,28 +790,9 @@ class KeyboardService : InputMethodService() {
             setPadding(dp(3), dp(4), dp(3), dp(4))
             background = FloralPatternDrawable(theme.background)
         }
-        // Android 15/16 edge-to-edge can place the IME's final key row behind
-        // the three-button/gesture navigation area. Reserve only the actual
-        // navigation-bar inset; the keyboard's visual layout remains unchanged.
-        if (Build.VERSION.SDK_INT >= 35) {
-            val baseLeft = root.paddingLeft
-            val baseTop = root.paddingTop
-            val baseRight = root.paddingRight
-            val baseBottom = root.paddingBottom
-            root.setOnApplyWindowInsetsListener { view, insets ->
-                val navigationBottom = insets.getInsets(
-                    android.view.WindowInsets.Type.navigationBars()
-                ).bottom
-                view.setPadding(
-                    baseLeft,
-                    baseTop,
-                    baseRight,
-                    baseBottom + navigationBottom
-                )
-                insets
-            }
-            root.requestApplyInsets()
-        }
+        // IME windows already receive navigation-bar insets from Android.
+        // Do not add them again here: doing so pushes the keyboard into the
+        // three-button navigation area on Android 15/16.
 
         val dhikrView = TextView(this).apply {
             text = adhkar[floatingDhikrIndex % adhkar.size]
@@ -2507,7 +2488,13 @@ class KeyboardService : InputMethodService() {
         popup.setOnDismissListener {
             if (alternatePopupWindow === popup) alternatePopupWindow = null
         }
-        popup.showAsDropDown(anchor, 0, -anchor.height - dp(44))
+        // Position the preview using screen coordinates. showAsDropDown can
+        // be shifted/clipped by edge-to-edge IME windows on Android 15/16.
+        val location = IntArray(2)
+        anchor.getLocationOnScreen(location)
+        val x = (location[0] + (anchor.width - dp(42)) / 2).coerceAtLeast(0)
+        val y = (location[1] - dp(48)).coerceAtLeast(dp(4))
+        popup.showAtLocation(anchor, Gravity.TOP or Gravity.START, x, y)
     }
 
     private fun addGlidePath(path: MutableList<String>, value: String) {
