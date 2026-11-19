@@ -2622,7 +2622,9 @@ class KeyboardService : InputMethodService() {
         view.stateListAnimator = null
         view.pivotY = view.height.toFloat()
         if (pressed) {
-            view.bringToFront()
+            // Do not call bringToFront(): it changes the child's index inside the
+            // horizontal key row and makes keys appear to swap positions after taps.
+            // elevation/translationZ already draw this key above its neighbours.
             // Apply the lift immediately: very short taps must still visibly move upward.
             view.translationY = -dp(8).toFloat()
             view.translationZ = dp(8).toFloat()
