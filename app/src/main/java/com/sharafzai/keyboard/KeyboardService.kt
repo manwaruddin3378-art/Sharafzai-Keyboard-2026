@@ -786,11 +786,11 @@ class KeyboardService : InputMethodService() {
     private fun buildKeyboard(): View {
         glideKeys.clear()
         // Keep a clearly visible bottom separation from the phone navigation controls.
-        // The 32dp minimum is intentional because some Vivo IME windows report a zero
+        // The 44dp minimum is intentional because some Vivo IME windows report a zero
         // navigation-bar inset even while their three-button navigation area is visible.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(32))
+            setPadding(0, 0, 0, dp(44))
             setBackgroundColor(Color.rgb(18, 36, 58))
             clipToPadding = true
             setOnApplyWindowInsetsListener { view, insets ->
@@ -802,7 +802,7 @@ class KeyboardService : InputMethodService() {
                     @Suppress("DEPRECATION")
                     insets.systemWindowInsetBottom
                 }
-                val safeBottom = maxOf(dp(32), navigationInset + dp(12))
+                val safeBottom = maxOf(dp(44), navigationInset + dp(16))
                 view.setPadding(0, 0, 0, safeBottom)
                 Log.e("SUNDUS_IME_INSETS", "navigationInset=$navigationInset safeBottom=$safeBottom")
                 insets
@@ -817,7 +817,7 @@ class KeyboardService : InputMethodService() {
                         @Suppress("DEPRECATION")
                         existingInsets.systemWindowInsetBottom
                     }
-                    setPadding(0, 0, 0, maxOf(dp(32), navigationInset + dp(12)))
+                    setPadding(0, 0, 0, maxOf(dp(44), navigationInset + dp(16)))
                 }
             }
         }
