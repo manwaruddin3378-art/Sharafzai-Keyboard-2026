@@ -2589,7 +2589,8 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun animateKeyPress(view: View, pressed: Boolean) {
-        // A key can only rise if every ancestor allows drawing outside its bounds.
+        // Keep the raised key visible outside its row and prevent platform press animators
+        // from competing with the explicit upward movement.
         var ancestor = view.parent
         while (ancestor is android.view.ViewGroup) {
             ancestor.clipChildren = false
@@ -2598,19 +2599,28 @@ class KeyboardService : InputMethodService() {
         }
 
         view.animate().cancel()
+        view.stateListAnimator = null
+        view.pivotY = view.height.toFloat()
         if (pressed) {
-            // Draw the touched key above its neighbours so the upward movement is visible.
             view.bringToFront()
-            view.translationZ = dp(16).toFloat()
+            // Apply the lift immediately: very short taps must still visibly move upward.
+            view.translationY = -dp(8).toFloat()
+            view.translationZ = dp(8).toFloat()
+            view.animate()
+                .translationY(-dp(8).toFloat())
+                .scaleX(1.035f)
+                .scaleY(1.035f)
+                .setDuration(55L)
+                .start()
         } else {
+            view.animate()
+                .translationY(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(105L)
+                .start()
             view.translationZ = 0f
         }
-        view.animate()
-            .translationY(if (pressed) -dp(10).toFloat() else 0f)
-            .scaleX(if (pressed) 1.025f else 1f)
-            .scaleY(if (pressed) 1.025f else 1f)
-            .setDuration(if (pressed) 90L else 130L)
-            .start()
         view.elevation = dp(3).toFloat()
     }
 
@@ -2632,7 +2642,10 @@ class KeyboardService : InputMethodService() {
 
         keys.forEachIndexed { index, spec ->
 
-            val frame = FrameLayout(this)
+            val frame = FrameLayout(this).apply {
+                // Use only the explicit lift animation; disable Android's default pressed animator.
+                stateListAnimator = null
+            }
 
             val value = when {
                 shifted && spec.shifted.isNotEmpty() ->
@@ -2876,6 +2889,7 @@ class KeyboardService : InputMethodService() {
         action: () -> Unit
     ) {
         val button = Button(this).apply {
+            stateListAnimator = null
             text = label
             if (label == "123") contentDescription = "Numbers and symbols"
             if (label == "ABC") contentDescription = "Return to letters"
