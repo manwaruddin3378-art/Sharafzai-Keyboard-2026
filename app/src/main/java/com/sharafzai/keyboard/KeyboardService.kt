@@ -785,26 +785,14 @@ class KeyboardService : InputMethodService() {
 
     private fun buildKeyboard(): View {
         glideKeys.clear()
+        // The IME root reserves a real, separately coloured bottom safe area.
+        // Previously padding shared the floral background, visually joining the
+        // keyboard to Vivo's navigation controls.
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            // The IME root previously painted its floral background behind the
-            // bottom padding. The padding existed, but looked like keyboard surface,
-            // so the last key row still appeared attached to the phone navigation bar.
-            // Inset the drawable itself: the reserved bottom strip is now transparent
-            // and visibly separates the keyboard surface from the system navigation area.
-            fun applyBottomSafeArea(navigationInset: Int) {
-                val safeBottom = maxOf(dp(32), navigationInset + dp(16))
-                setPadding(dp(3), dp(4), dp(3), safeBottom)
-                background = android.graphics.drawable.InsetDrawable(
-                    FloralPatternDrawable(theme.background), 0, 0, 0, safeBottom
-                )
-                Log.e(
-                    "SUNDUS_IME_INSETS",
-                    "navigationInset=$navigationInset transparentBottomGap=$safeBottom"
-                )
-            }
-
-            applyBottomSafeArea(0)
+            setPadding(0, 0, 0, dp(20))
+            setBackgroundColor(Color.rgb(2, 10, 24))
+            clipToPadding = true
             setOnApplyWindowInsetsListener { view, insets ->
                 val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
                     insets.getInsetsIgnoringVisibility(
@@ -814,18 +802,11 @@ class KeyboardService : InputMethodService() {
                     @Suppress("DEPRECATION")
                     insets.systemWindowInsetBottom
                 }
-                val safeBottom = maxOf(dp(32), navigationInset + dp(16))
-                view.setPadding(dp(3), dp(4), dp(3), safeBottom)
-                view.background = android.graphics.drawable.InsetDrawable(
-                    FloralPatternDrawable(theme.background), 0, 0, 0, safeBottom
-                )
-                Log.e(
-                    "SUNDUS_IME_INSETS",
-                    "navigationInset=$navigationInset transparentBottomGap=$safeBottom"
-                )
+                val safeBottom = maxOf(dp(20), navigationInset + dp(8))
+                view.setPadding(0, 0, 0, safeBottom)
+                Log.e("SUNDUS_IME_INSETS", "navigationInset=$navigationInset safeBottom=$safeBottom")
                 insets
             }
-            // Insets may already have arrived before this view was attached.
             if (Build.VERSION.SDK_INT >= 23) {
                 rootWindowInsets?.let { existingInsets ->
                     val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
@@ -836,10 +817,26 @@ class KeyboardService : InputMethodService() {
                         @Suppress("DEPRECATION")
                         existingInsets.systemWindowInsetBottom
                     }
-                    applyBottomSafeArea(navigationInset)
+                    setPadding(0, 0, 0, maxOf(dp(20), navigationInset + dp(8)))
                 }
             }
         }
+        // Keyboard rows are placed on an inner surface. The outer root's bottom
+        // padding therefore stays a visible gap instead of showing keyboard art.
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(3), dp(4), dp(3), 0)
+            background = FloralPatternDrawable(theme.background)
+            clipChildren = false
+            clipToPadding = false
+        }
+        root.addView(
+            content,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
 
         val dhikrView = TextView(this).apply {
             text = adhkar[floatingDhikrIndex % adhkar.size]
@@ -920,7 +917,7 @@ class KeyboardService : InputMethodService() {
         brandRow.addView(analogClock, LinearLayout.LayoutParams(dp(50), dp(50)).apply {
             setMargins(dp(3), dp(1), dp(1), dp(1))
         })
-        root.addView(brandRow, rowParams(54))
+        content.addView(brandRow, rowParams(54))
 
         val datesView = TextView(this).apply {
             text = buildDateTimeParts()
@@ -934,7 +931,7 @@ class KeyboardService : InputMethodService() {
             setShadowLayer(dp(1).toFloat(), 0f, 0f, Color.WHITE)
         }
         dateTimeView = datesView
-        root.addView(datesView, rowParams(22))
+        content.addView(datesView, rowParams(22))
         dateTimeHandler.removeCallbacks(dateTimeTicker)
         dateTimeHandler.postDelayed(dateTimeTicker, 1_000L)
 
@@ -976,9 +973,9 @@ class KeyboardService : InputMethodService() {
             setBackgroundColor(theme.suggestion)
         }
 
-        root.addView(languageStrip, rowParams(30))
+        content.addView(languageStrip, rowParams(30))
 
-        root.addView(suggestionContainer, rowParams(26))
+        content.addView(suggestionContainer, rowParams(26))
 
         // Compact optional toolbar: hidden by default, expanded on demand.
         val quickToolsRow = LinearLayout(this).apply {
@@ -1037,7 +1034,7 @@ class KeyboardService : InputMethodService() {
                 refreshKeyboard()
             }
         }
-        root.addView(quickToolsRow, rowParams(if (quickActionsVisible) 36 else 28))
+        content.addView(quickToolsRow, rowParams(if (quickActionsVisible) 36 else 28))
 
         if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible && !phrasePanelVisible) {
             val nativeNumberRow = when (language) {
@@ -1054,7 +1051,7 @@ class KeyboardService : InputMethodService() {
                 }
             }
 
-            if (numberRowEnabled) addKeyRow(root, numberRow, 37)
+            if (numberRowEnabled) addKeyRow(content, numberRow, 37)
 
             val rows = when (language) {
                 0 -> pashtoRows
@@ -1065,30 +1062,30 @@ class KeyboardService : InputMethodService() {
             }
 
             rows.forEach { row ->
-                addKeyRow(root, row, 42)
+                addKeyRow(content, row, 42)
             }
         }
 
 
 
         if (symbolsPanelVisible) {
-            addSymbolsPanel(root)
+            addSymbolsPanel(content)
         }
 
         if (emojiPanelVisible) {
-            addEmojiPanel(root)
+            addEmojiPanel(content)
         }
 
         if (savedTextsPanelVisible) {
-            addSavedTextsPanel(root)
+            addSavedTextsPanel(content)
         }
 
         if (phrasePanelVisible) {
-            addPhrasePanel(root)
+            addPhrasePanel(content)
         }
 
         if (settingsPanelVisible) {
-            addSettingsPanel(root)
+            addSettingsPanel(content)
         }
 
         // Balanced bottom row: compact Space, usable punctuation and a dedicated Backspace.
@@ -1150,7 +1147,7 @@ class KeyboardService : InputMethodService() {
         bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 1.28f))
         bottom.addView(centerZone, LinearLayout.LayoutParams(0, dp(46), 1.18f))
         bottom.addView(rightZone, LinearLayout.LayoutParams(0, dp(46), 2.10f))
-        root.addView(bottom, rowParams(46))
+        content.addView(bottom, rowParams(46))
 
         return root
     }
