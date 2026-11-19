@@ -56,6 +56,7 @@ class KeyboardSettingsTextActivity : Activity() {
             setPadding(0, dp(8), 0, dp(12))
         })
         setContentView(layout)
+        layout.applySundusSystemBarInsets()
         return layout
     }
 
