@@ -33,6 +33,7 @@ class AutoTextActivity : Activity() {
             setTextColor(Color.rgb(5, 48, 77)); setPadding(0, dp(8), 0, dp(12))
         })
         setContentView(root)
+        root.applySundusSystemBarInsets()
         return root
     }
     private fun button(label: String, action: () -> Unit) = Button(this).apply {
