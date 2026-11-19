@@ -2589,15 +2589,29 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun animateKeyPress(view: View, pressed: Boolean) {
-        // Lift the complete key visibly upward; scaling reinforces the raised-key effect.
+        // A key can only rise if every ancestor allows drawing outside its bounds.
+        var ancestor = view.parent
+        while (ancestor is android.view.ViewGroup) {
+            ancestor.clipChildren = false
+            ancestor.clipToPadding = false
+            ancestor = ancestor.parent
+        }
+
         view.animate().cancel()
+        if (pressed) {
+            // Draw the touched key above its neighbours so the upward movement is visible.
+            view.bringToFront()
+            view.translationZ = dp(16).toFloat()
+        } else {
+            view.translationZ = 0f
+        }
         view.animate()
-            .translationY(if (pressed) -dp(7).toFloat() else 0f)
-            .scaleX(if (pressed) 1.035f else 1f)
-            .scaleY(if (pressed) 1.035f else 1f)
-            .setDuration(if (pressed) 65L else 120L)
+            .translationY(if (pressed) -dp(10).toFloat() else 0f)
+            .scaleX(if (pressed) 1.025f else 1f)
+            .scaleY(if (pressed) 1.025f else 1f)
+            .setDuration(if (pressed) 90L else 130L)
             .start()
-        view.elevation = dp(if (pressed) 12 else 3).toFloat()
+        view.elevation = dp(3).toFloat()
     }
 
     private fun addKeyRow(
