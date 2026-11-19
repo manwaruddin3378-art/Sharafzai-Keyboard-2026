@@ -787,11 +787,39 @@ class KeyboardService : InputMethodService() {
         glideKeys.clear()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            // Keep a small visual gap between the last key row and the
-            // system navigation controls (three-button or gesture navigation).
-            // This is internal keyboard spacing, not an extra system-bar inset.
+            // Android 15+ targets SDK 35+ with edge-to-edge IME windows.
+            // Reserve the actual navigation-bar inset plus a visible 8dp gap;
+            // a fixed padding alone is insufficient on devices with tall nav bars.
             setPadding(dp(3), dp(4), dp(3), dp(12))
             background = FloralPatternDrawable(theme.background)
+            setOnApplyWindowInsetsListener { view, insets ->
+                val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
+                    insets.getInsetsIgnoringVisibility(
+                        android.view.WindowInsets.Type.navigationBars()
+                    ).bottom
+                } else {
+                    @Suppress("DEPRECATION")
+                    insets.systemWindowInsetBottom
+                }
+                val safeBottom = maxOf(dp(12), navigationInset + dp(8))
+                view.setPadding(dp(3), dp(4), dp(3), safeBottom)
+                Log.e("SUNDUS_IME_INSETS", "navigationInset=$navigationInset safeBottom=$safeBottom")
+                insets
+            }
+            // Insets may already have arrived before this view was attached.
+            if (Build.VERSION.SDK_INT >= 23) {
+                rootWindowInsets?.let { existingInsets ->
+                    val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
+                        existingInsets.getInsetsIgnoringVisibility(
+                            android.view.WindowInsets.Type.navigationBars()
+                        ).bottom
+                    } else {
+                        @Suppress("DEPRECATION")
+                        existingInsets.systemWindowInsetBottom
+                    }
+                    setPadding(dp(3), dp(4), dp(3), maxOf(dp(12), navigationInset + dp(8)))
+                }
+            }
         }
 
         val dhikrView = TextView(this).apply {
