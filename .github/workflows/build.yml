@@ -103,8 +103,8 @@ jobs:
         timeout-minutes: 35
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
-          # Android 11 uses a lighter system image and is more stable on hosted runners without KVM.
-          api-level: 30
+          # Run the smoke test on Android 16 to validate the current target-SDK behavior.
+          api-level: 36
           target: default
           arch: x86_64
           profile: pixel_2
