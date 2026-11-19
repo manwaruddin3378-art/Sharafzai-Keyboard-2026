@@ -787,12 +787,12 @@ class KeyboardService : InputMethodService() {
         glideKeys.clear()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(3), dp(4), dp(3), dp(4))
+            // Keep a small visual gap between the last key row and the
+            // system navigation controls (three-button or gesture navigation).
+            // This is internal keyboard spacing, not an extra system-bar inset.
+            setPadding(dp(3), dp(4), dp(3), dp(12))
             background = FloralPatternDrawable(theme.background)
         }
-        // IME windows already receive navigation-bar insets from Android.
-        // Do not add them again here: doing so pushes the keyboard into the
-        // three-button navigation area on Android 15/16.
 
         val dhikrView = TextView(this).apply {
             text = adhkar[floatingDhikrIndex % adhkar.size]
