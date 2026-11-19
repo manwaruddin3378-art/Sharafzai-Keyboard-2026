@@ -787,12 +787,24 @@ class KeyboardService : InputMethodService() {
         glideKeys.clear()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            // Keep the final keyboard row visibly separated from the phone's
-            // navigation controls. Some Vivo/Funtouch IME windows report a zero
-            // navigation-bar inset while the system buttons are still visible, so
-            // always reserve a generous fallback gap as well as the real inset.
-            setPadding(dp(3), dp(4), dp(3), dp(28))
-            background = FloralPatternDrawable(theme.background)
+            // The IME root previously painted its floral background behind the
+            // bottom padding. The padding existed, but looked like keyboard surface,
+            // so the last key row still appeared attached to the phone navigation bar.
+            // Inset the drawable itself: the reserved bottom strip is now transparent
+            // and visibly separates the keyboard surface from the system navigation area.
+            fun applyBottomSafeArea(navigationInset: Int) {
+                val safeBottom = maxOf(dp(32), navigationInset + dp(16))
+                setPadding(dp(3), dp(4), dp(3), safeBottom)
+                background = android.graphics.drawable.InsetDrawable(
+                    FloralPatternDrawable(theme.background), 0, 0, 0, safeBottom
+                )
+                Log.e(
+                    "SUNDUS_IME_INSETS",
+                    "navigationInset=$navigationInset transparentBottomGap=$safeBottom"
+                )
+            }
+
+            applyBottomSafeArea(0)
             setOnApplyWindowInsetsListener { view, insets ->
                 val navigationInset = if (Build.VERSION.SDK_INT >= 30) {
                     insets.getInsetsIgnoringVisibility(
@@ -802,9 +814,15 @@ class KeyboardService : InputMethodService() {
                     @Suppress("DEPRECATION")
                     insets.systemWindowInsetBottom
                 }
-                val safeBottom = maxOf(dp(28), navigationInset + dp(12))
+                val safeBottom = maxOf(dp(32), navigationInset + dp(16))
                 view.setPadding(dp(3), dp(4), dp(3), safeBottom)
-                Log.e("SUNDUS_IME_INSETS", "navigationInset=$navigationInset safeBottom=$safeBottom")
+                view.background = android.graphics.drawable.InsetDrawable(
+                    FloralPatternDrawable(theme.background), 0, 0, 0, safeBottom
+                )
+                Log.e(
+                    "SUNDUS_IME_INSETS",
+                    "navigationInset=$navigationInset transparentBottomGap=$safeBottom"
+                )
                 insets
             }
             // Insets may already have arrived before this view was attached.
@@ -818,7 +836,7 @@ class KeyboardService : InputMethodService() {
                         @Suppress("DEPRECATION")
                         existingInsets.systemWindowInsetBottom
                     }
-                    setPadding(dp(3), dp(4), dp(3), maxOf(dp(28), navigationInset + dp(12)))
+                    applyBottomSafeArea(navigationInset)
                 }
             }
         }
