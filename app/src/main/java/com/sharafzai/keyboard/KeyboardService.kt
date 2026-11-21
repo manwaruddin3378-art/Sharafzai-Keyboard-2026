@@ -2242,6 +2242,19 @@ class KeyboardService : InputMethodService() {
             })
         }
         parent.addView(secondary, rowParams(38))
+
+        // Extra everyday text helpers, kept inside the same ellipsis menu.
+        val tertiary = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(tertiary, "ایمیل", 1f, 36) { insertQuickText("ایمیل: ") }
+        addSpecial(tertiary, "شمېره", 1f, 36) { insertQuickText("شمېره: ") }
+        addSpecial(tertiary, "پته", 1f, 36) { insertQuickText("پته: ") }
+        addSpecial(tertiary, "نېټه/وخت", 1f, 36) {
+            val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
+            }.format(java.util.Date())
+            insertQuickText(stamp)
+        }
+        parent.addView(tertiary, rowParams(38))
     }
 
     private fun showAddPhraseDialog() {
@@ -2749,9 +2762,11 @@ class KeyboardService : InputMethodService() {
             text = alternate
             textSize = 22f
             gravity = Gravity.CENTER
-            setTextColor(if (themeIndex == 0 || themeIndex == 1) Color.WHITE else Color.rgb(35, 42, 52))
-            background = roundedBackground(theme.special, dp(12))
-            elevation = dp(8).toFloat()
+            // Alternate-letter preview stays clean: no dark tile or ring behind the glyph.
+            setTextColor(Color.BLACK)
+            setShadowLayer(dp(1).toFloat(), 0f, 0f, Color.WHITE)
+            background = null
+            elevation = 0f
         }
         val popup = PopupWindow(preview, dp(42), dp(42), false).apply {
             isOutsideTouchable = false
