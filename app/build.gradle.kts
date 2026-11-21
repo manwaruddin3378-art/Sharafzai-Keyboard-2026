@@ -12,7 +12,7 @@ android {
         minSdk = 21
         targetSdk = 36
         versionCode = 23
-        versionName = "1.9.3"
+        versionName = "1.9.3" // Islamic honorifics and multilingual phrase expansion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
