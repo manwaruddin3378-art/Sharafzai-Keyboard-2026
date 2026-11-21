@@ -2992,7 +2992,18 @@ class KeyboardService : InputMethodService() {
         height: Int,
         action: () -> Unit
     ) {
+        val keyHeightScale = listOf(0.78f, 0.90f, 1.0f, 1.10f, 1.22f)[keySizeLevel]
+        // Special keys follow the same vertical size preference as letter keys.
+        parent.clipChildren = false
+        parent.clipToPadding = false
+        var clippingAncestor = parent.parent
+        while (clippingAncestor is android.view.ViewGroup) {
+            clippingAncestor.clipChildren = false
+            clippingAncestor.clipToPadding = false
+            clippingAncestor = clippingAncestor.parent
+        }
         val button = Button(this).apply {
+            scaleY = keyHeightScale
             stateListAnimator = null
             text = label
             if (label == "123") contentDescription = "Numbers and symbols"
