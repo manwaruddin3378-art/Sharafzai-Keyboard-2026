@@ -105,7 +105,7 @@ class KeyboardLayoutSmokeTest {
         assertNull("Hide-keyboard shortcut must not be visible", device.findObject(By.text("پټول")))
 
         // The 123 key opens one unified symbols/harakat/Islamic-marks panel.
-        val symbolsButton = device.wait(Until.findObject(By.text("123")), 5_000)
+        val symbolsButton = device.wait(Until.findObject(By.desc("Numbers, harakat and symbols")), 5_000)
         assertNotNull("Symbols button is missing", symbolsButton)
         tapKey(symbolsButton!!)
         assertNotNull("General symbols category is missing", device.wait(Until.findObject(By.text("نښې")), 3_000))
