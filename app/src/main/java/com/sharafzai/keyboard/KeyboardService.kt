@@ -978,7 +978,7 @@ class KeyboardService : InputMethodService() {
 
         // Secondary tools stay out of the typing surface; use the main app for settings.
 
-        if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible && !phrasePanelVisible) {
+        if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible && !phrasePanelVisible && !quickActionsVisible) {
             val nativeNumberRow = when (language) {
                 0 -> pashtoNumbers
                 1 -> arabicNumbers
@@ -1030,6 +1030,10 @@ class KeyboardService : InputMethodService() {
             addSettingsPanel(content)
         }
 
+        if (quickActionsVisible) {
+            addQuickActionsPanel(content)
+        }
+
         // Balanced bottom row: compact Space, usable punctuation and a dedicated Backspace.
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -1064,8 +1068,9 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(leftZone, "😀", 0.90f, 44) {
-            emojiPanelVisible = !emojiPanelVisible
+        addSpecial(leftZone, "⋯", 0.90f, 44) {
+            quickActionsVisible = !quickActionsVisible
+            emojiPanelVisible = false
             symbolsPanelVisible = false
             savedTextsPanelVisible = false
             settingsPanelVisible = false
@@ -1082,7 +1087,7 @@ class KeyboardService : InputMethodService() {
             gravity = Gravity.CENTER
         }
         // A single, truly centered spacebar.
-        addSpecial(centerZone, "فاصله", 1f, 44) {
+        addSpecial(centerZone, "SUNDUS", 1f, 44) {
             val inserted = runCatching { currentInputConnection?.commitText(" ", 1) ?: false }
                 .getOrDefault(false)
             if (inserted) updateSuggestions()
@@ -2147,6 +2152,97 @@ class KeyboardService : InputMethodService() {
         refreshKeyboard()
     }
 
+    // One discreet overflow key groups phrases, emoji and everyday insertions.
+    private fun addQuickActionsPanel(parent: LinearLayout) {
+        val heading = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = "د ورځنیو اسانتیاوو پینل"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        heading.addView(title, LinearLayout.LayoutParams(0, dp(30), 1f))
+        addSpecial(heading, "×", 0.65f, 30) {
+            quickActionsVisible = false
+            refreshKeyboard()
+        }
+        parent.addView(heading, rowParams(32))
+
+        val primary = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(primary, "جملې", 1f, 36) {
+            phraseCategory = when (language) { 0 -> 1; 1 -> 2; 2 -> 3; else -> 4 }
+            phraseIndex = 0
+            quickActionsVisible = false
+            phrasePanelVisible = true
+            refreshKeyboard()
+        }
+        addSpecial(primary, "اسلامي", 1f, 36) {
+            phraseCategory = 0
+            phraseIndex = 0
+            quickActionsVisible = false
+            phrasePanelVisible = true
+            refreshKeyboard()
+        }
+        addSpecial(primary, "ایموجي", 1f, 36) {
+            quickActionsVisible = false
+            emojiPanelVisible = true
+            emojiCategory = 0
+            emojiPage = 0
+            refreshKeyboard()
+        }
+        addSpecial(primary, "نښې", 1f, 36) {
+            quickActionsVisible = false
+            symbolsPanelVisible = true
+            symbolsCategory = 0
+            refreshKeyboard()
+        }
+        parent.addView(primary, rowParams(38))
+
+        fun insertQuickText(value: String) {
+            val inserted = runCatching { currentInputConnection?.commitText(value, 1) ?: false }
+                .getOrDefault(false)
+            if (inserted) {
+                quickActionsVisible = false
+                refreshKeyboard()
+                updateSuggestions()
+            }
+        }
+        val secondary = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(secondary, "نېټه", 1f, 36) {
+            val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
+            }.format(java.util.Date())
+            insertQuickText(date)
+        }
+        addSpecial(secondary, "وخت", 1f, 36) {
+            val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
+            }.format(java.util.Date())
+            insertQuickText(time)
+        }
+        addSpecial(secondary, "سلام", 1f, 36) {
+            insertQuickText(when (language) {
+                0 -> "السلام علیکم ورحمة الله وبرکاته"
+                1 -> "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ"
+                2 -> "Hello! How are you?"
+                else -> "سلام و احترام"
+            })
+        }
+        addSpecial(secondary, "مننه", 1f, 36) {
+            insertQuickText(when (language) {
+                0 -> "ډېره مننه"
+                1 -> "شُكْرًا جَزِيلًا"
+                2 -> "Thank you very much"
+                else -> "بسیار تشکر"
+            })
+        }
+        parent.addView(secondary, rowParams(38))
+    }
+
     private fun showAddPhraseDialog() {
         val selected = runCatching { currentInputConnection?.getSelectedText(0)?.toString().orEmpty() }.getOrDefault("")
         openKeyboardSettingsTextActivity(
@@ -2163,7 +2259,7 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun addPhrasePanel(parent: LinearLayout) {
-        val categories = listOf("اسلامي", "پښتو", "English", "دري")
+        val categories = listOf("اسلامي", "پښتو", "عربي", "English", "دري")
         val categoryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         categories.forEachIndexed { index, label ->
             addSpecial(categoryRow, label, 1f, 28) {
@@ -2178,7 +2274,7 @@ class KeyboardService : InputMethodService() {
         }
         parent.addView(categoryRow, rowParams(30))
 
-        val phraseGroups = listOf(
+        val basePhraseGroups = listOf(
             listOf(
                 "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
                 "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
@@ -2347,7 +2443,170 @@ class KeyboardService : InputMethodService() {
                 "برای شما سلامتی، آرامش و موفقیت آرزو می‌کنم."
             )
         )
-        val phrases = phraseGroups[phraseCategory.coerceIn(0, 3)]
+        val phraseGroups = listOf(
+            basePhraseGroups[0],
+            basePhraseGroups[1] + listOf(
+                "السلام علیکم ورحمة الله وبرکاته، هیله ده روغ او جوړ یاست.",
+                "وعلیکم السلام ورحمة الله وبرکاته، الحمدلله ښه یم.",
+                "ستاسو له پیغام څخه ډېره مننه.",
+                "مهرباني وکړئ، لږ نور وضاحت راکړئ.",
+                "ستاسو ځواب ته په تمه یم.",
+                "زه به موضوع په دقت وڅېړم.",
+                "ستاسو خبره مې ترلاسه کړه.",
+                "اوس مهال بوخت یم، وروسته به ځواب درکړم.",
+                "مهرباني وکړئ دا سند راته راولېږئ.",
+                "دا فایل مې ترلاسه کړ، مننه.",
+                "ستاسو له همکارۍ څخه مننه.",
+                "هیله ده ورځ مو په خیر تېره شي.",
+                "الله تعالی مو مل شه.",
+                "که اړتیا وي، زه حاضر یم مرسته وکړم.",
+                "مهرباني وکړئ زما اړیکه خوندي کړئ.",
+                "زه به ژر بېرته اړیکه ونیسم.",
+                "ستاسو غوښتنه ومنل شوه.",
+                "دا موضوع لا تر څېړنې لاندې ده.",
+                "مهرباني وکړئ لږ انتظار وکړئ.",
+                "ستاسو د وخت او پاملرنې مننه.",
+                "زه له تاسو سره موافق یم.",
+                "په دې اړه به وروسته خبرې وکړو.",
+                "دا معلومات ډېر ګټور وو.",
+                "مهرباني وکړئ خپل نظر شریک کړئ.",
+                "ستاسو د بریا په هیله.",
+                "الله تعالی دې چارې اسانه کړي.",
+                "زه اوس په لاره کې یم.",
+                "مهرباني وکړئ ځای او وخت راته وښایئ.",
+                "زه به د غونډې وخت درته تایید کړم.",
+                "ستاسو پیغام مې اړوند کس ته ولېږه.",
+                "که کومه پوښتنه لرئ، راته ولیکئ.",
+                "بښنه غواړم، ځواب مې وځنډېد.",
+                "له صبر او زغم څخه مو مننه.",
+                "په درنښت او نېکو هیلو."
+            ),
+            listOf(
+                "السَّلَامُ عَلَيْكُمْ، كَيْفَ حَالُكُمْ؟",
+                "وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ.",
+                "أَنَا بِخَيْرٍ، وَالْحَمْدُ لِلَّهِ.",
+                "شُكْرًا جَزِيلًا لَكُمْ عَلَى رِسَالَتِكُمْ.",
+                "أَرْجُو إِرْسَالَ مَزِيدٍ مِنَ التَّفَاصِيلِ.",
+                "سَأُرَاجِعُ الْمَوْضُوعَ بِعِنَايَةٍ.",
+                "وَصَلَتْنِي رِسَالَتُكُمْ، شُكْرًا.",
+                "أَنَا مَشْغُولٌ حَالِيًّا، وَسَأَرُدُّ عَلَيْكُمْ لَاحِقًا.",
+                "مِنْ فَضْلِكُمْ، أَرْسِلُوا الْمِلَفَّ.",
+                "تَمَّ اسْتِلَامُ الْمِلَفِّ، شُكْرًا.",
+                "أُقَدِّرُ تَعَاوُنَكُمْ وَدَعْمَكُمْ.",
+                "أَتَمَنَّى لَكُمْ يَوْمًا سَعِيدًا.",
+                "فِي أَمَانِ اللَّهِ وَحِفْظِهِ.",
+                "يَسُرُّنِي أَنْ أُسَاعِدَكُمْ عِنْدَ الْحَاجَةِ.",
+                "يُرْجَى حِفْظُ رَقْمِ التَّوَاصُلِ.",
+                "سَأَتَوَاصَلُ مَعَكُمْ قَرِيبًا.",
+                "تَمَّ قَبُولُ طَلَبِكُمْ.",
+                "الْمَوْضُوعُ مَا زَالَ قَيْدَ الْمُرَاجَعَةِ.",
+                "يُرْجَى الِانْتِظَارُ قَلِيلًا.",
+                "شُكْرًا لَوَقْتِكُمْ وَاهْتِمَامِكُمْ.",
+                "أُوَافِقُكُمْ فِي هَذَا الرَّأْيِ.",
+                "سَنُنَاقِشُ هَذَا الْأَمْرَ لَاحِقًا.",
+                "هَذِهِ الْمَعْلُومَاتُ مُفِيدَةٌ جِدًّا.",
+                "يُرْجَى مُشَارَكَةُ رَأْيِكُمْ.",
+                "مَعَ أَطْيَبِ التَّمَنِّيَاتِ بِالنَّجَاحِ.",
+                "بَارَكَ اللَّهُ فِي أَعْمَالِكُمْ.",
+                "أَنَا فِي الطَّرِيقِ الْآنَ.",
+                "مِنْ فَضْلِكُمْ، حَدِّدُوا الْمَكَانَ وَالزَّمَانَ.",
+                "سَأُؤَكِّدُ لَكُمْ مَوْعِدَ الِاجْتِمَاعِ.",
+                "أَرْسَلْتُ رِسَالَتَكُمْ إِلَى الشَّخْصِ الْمَعْنِيِّ.",
+                "إِنْ كَانَ لَدَيْكُمْ أَيُّ سُؤَالٍ فَأَرْسِلُوهُ.",
+                "أَعْتَذِرُ عَنْ تَأَخُّرِ الرَّدِّ.",
+                "شُكْرًا لَكُمْ عَلَى صَبْرِكُمْ.",
+                "أَتَمَنَّى لَكُمُ الصِّحَّةَ وَالسَّلَامَةَ.",
+                "يَسْعَدُنِي التَّعَاوُنُ مَعَكُمْ.",
+                "سَأُرْسِلُ الْمَعْلُومَاتِ فِي أَقْرَبِ وَقْتٍ.",
+                "هَلْ يُنَاسِبُكُمُ هَذَا الْمَوْعِدُ؟",
+                "نَعَمْ، هَذَا الْوَقْتُ مُنَاسِبٌ.",
+                "عَفْوًا، لَمْ أَفْهَمِ النُّقْطَةَ الْأَخِيرَةَ.",
+                "هَلْ يُمْكِنُكُمْ إِعَادَةُ إِرْسَالِ الرِّسَالَةِ؟",
+                "أَرْجُو تَأْكِيدَ الِاسْتِلَامِ.",
+                "تَمَّ إِنْجَازُ الْمَهَمَّةِ بِحَمْدِ اللَّهِ.",
+                "سَأُوَافِيكُمْ بِالنَّتِيجَةِ بَعْدَ الْمُرَاجَعَةِ.",
+                "الْأَمْرُ وَاضِحٌ، شُكْرًا لِلتَّوْضِيحِ.",
+                "لَا مُشْكِلَةَ، تَفَضَّلُوا.",
+                "أَرْجُو لَكُمُ التَّوْفِيقَ وَالسَّدَادَ.",
+                "مَعَ خَالِصِ الِاحْتِرَامِ وَالتَّقْدِيرِ.",
+                "إِلَى اللِّقَاءِ، فِي أَمَانِ اللَّهِ.",
+                "أَرْجُو إِفَادَتِي بِالْوَقْتِ الْمُنَاسِبِ.",
+                "شَكَرَ اللَّهُ سَعْيَكُمْ وَبَارَكَ فِيكُمْ."
+            ),
+            basePhraseGroups[2] + listOf(
+                "Hello! I hope you are doing well.",
+                "Thank you very much for your message.",
+                "Could you please provide more details?",
+                "I will review this matter carefully.",
+                "I have received your message.",
+                "I am busy at the moment and will reply later.",
+                "Please send me the document.",
+                "I have received the file. Thank you.",
+                "I appreciate your cooperation and support.",
+                "Have a wonderful day.",
+                "May God bless you and your family.",
+                "I am happy to help whenever needed.",
+                "Please save my contact information.",
+                "I will get back to you shortly.",
+                "Your request has been received.",
+                "This matter is still under review.",
+                "Please wait a moment.",
+                "Thank you for your time and attention.",
+                "I agree with your point.",
+                "We can discuss this matter later.",
+                "This information is very helpful.",
+                "Please share your opinion.",
+                "Wishing you success and happiness.",
+                "I am on my way now.",
+                "Please let me know the location and time.",
+                "I will confirm the meeting time.",
+                "I have forwarded your message.",
+                "Feel free to contact me if you have questions.",
+                "Sorry for the delayed response.",
+                "Thank you for your patience.",
+                "That sounds good to me.",
+                "Could you please call me when available?",
+                "I will send the details as soon as possible.",
+                "Best regards and sincere wishes."
+            ),
+            basePhraseGroups[3] + listOf(
+                "سلام، امیدوارم صحت‌مند و خوشحال باشید.",
+                "از پیام شما بسیار تشکر.",
+                "لطفاً معلومات بیشتری ارائه کنید.",
+                "این موضوع را با دقت بررسی می‌کنم.",
+                "پیام شما را دریافت کردم.",
+                "فعلاً مصروف هستم، بعداً پاسخ می‌دهم.",
+                "لطفاً سند را برایم بفرستید.",
+                "فایل را دریافت کردم، تشکر.",
+                "از همکاری و پشتیبانی شما سپاسگزارم.",
+                "روز خوش و پربرکتی داشته باشید.",
+                "خداوند شما و خانواده‌تان را حفظ کند.",
+                "در صورت نیاز، خوشحال می‌شوم کمک کنم.",
+                "لطفاً شماره تماس مرا ذخیره کنید.",
+                "به زودی دوباره تماس می‌گیرم.",
+                "درخواست شما دریافت شد.",
+                "این موضوع هنوز زیر بررسی است.",
+                "لطفاً کمی انتظار کنید.",
+                "از وقت و توجه شما تشکر.",
+                "با نظر شما موافق هستم.",
+                "در این مورد بعداً صحبت می‌کنیم.",
+                "این معلومات بسیار مفید است.",
+                "لطفاً نظر خود را شریک سازید.",
+                "برای شما موفقیت آرزو می‌کنم.",
+                "من اکنون در راه هستم.",
+                "لطفاً مکان و زمان را برایم مشخص کنید.",
+                "زمان جلسه را برای شما تأیید می‌کنم.",
+                "پیام شما را به شخص مربوط فرستادم.",
+                "اگر پرسشی دارید، لطفاً بنویسید.",
+                "ببخشید که پاسخ من به تأخیر افتاد.",
+                "از صبر و حوصله شما تشکر.",
+                "این پیشنهاد برایم مناسب است.",
+                "لطفاً در فرصت مناسب با من تماس بگیرید.",
+                "جزئیات را هرچه زودتر می‌فرستم.",
+                "با احترام و آرزوی بهترین‌ها."
+            )
+        )
+        val phrases = phraseGroups[phraseCategory.coerceIn(0, 4)]
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
@@ -2708,7 +2967,9 @@ class KeyboardService : InputMethodService() {
                 val hint = TextView(this).apply {
                     text = longPressOutput
                     textSize = 9f
-                    setTextColor(theme.accent)
+                    setTextColor(Color.BLACK)
+                    typeface = Typeface.DEFAULT_BOLD
+                    setShadowLayer(dp(1).toFloat(), 0f, dp(1).toFloat(), Color.WHITE)
                     gravity = Gravity.CENTER
                     setPadding(0, 0, 0, 0)
                     // Alternate glyph is a clean, transparent hint above the key.
@@ -2944,7 +3205,7 @@ class KeyboardService : InputMethodService() {
             contentDescription = label
             if (label == "123") contentDescription = "Numbers, harakat and symbols"
             if (label == "😀") contentDescription = "Emoji and Islamic emoji"
-            if (label == "فاصله") contentDescription = "Space"
+            if (label == "فاصله" || label == "SUNDUS") contentDescription = "Space"
             if (label == "ABC") contentDescription = "Return to letters"
             if (label == "کش") contentDescription = "Insert tatweel — کشیده توری زیاتول"
             textSize = if (label == "⌫") 18f else 12f
