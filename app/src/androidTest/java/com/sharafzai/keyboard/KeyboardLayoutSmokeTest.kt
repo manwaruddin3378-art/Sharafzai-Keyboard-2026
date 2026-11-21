@@ -152,12 +152,15 @@ class KeyboardLayoutSmokeTest {
         device.findObject(By.text("عربي")).click()
         assertNotNull("Arabic letter keys did not appear", device.wait(Until.findObject(By.text("ض")), 3_000))
         device.findObject(By.text("English")).click()
+        val lowerA = device.wait(Until.findObject(By.text("a")), 3_000)
+        assertNotNull("English letter A key is missing", lowerA)
+        val lowerABounds = lowerA!!.visibleBounds
         val shift = device.wait(Until.findObject(By.text("⇧")), 3_000)
         assertNotNull("Shift key is missing", shift)
         shift!!.click()
-        val upperA = device.wait(Until.findObject(By.text("A")), 3_000)
-        assertNotNull("Shift did not expose the uppercase English key", upperA)
-        upperA!!.click()
+        // The uppercase alternate is also shown as a small hint before Shift;
+        // tap the unchanged key position so the test activates the actual key body.
+        assertTrue("Could not tap the shifted A key", device.click(lowerABounds.centerX(), lowerABounds.centerY()))
         assertEquals("Shifted English key did not type uppercase A", "A", activeEditor.text.toString())
     }
 }
