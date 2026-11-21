@@ -7,7 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.UiObject
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -22,7 +22,7 @@ class KeyboardLayoutSmokeTest {
     fun requestedLayoutAndCoreTypingControlsWork() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
-        fun tapKey(key: UiObject) {
+        fun tapKey(key: UiObject2) {
             val bounds = key.visibleBounds
             assertTrue("Could not tap visible key at $bounds", device.click(bounds.centerX(), bounds.centerY()))
         }
