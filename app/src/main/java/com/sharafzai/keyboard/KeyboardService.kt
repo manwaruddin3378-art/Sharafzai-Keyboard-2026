@@ -1771,11 +1771,6 @@ class KeyboardService : InputMethodService() {
                                 currentInputConnection?.commitText(selected, 1)
                                 updateSuggestions()
                             }
-                            .setNeutralButton("کاپي") { _, _ ->
-                                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("خوندي شوی متن", selected))
-                                Toast.makeText(this, "متن کاپي شو؛ اوس یې پیسټ کولای شئ.", Toast.LENGTH_SHORT).show()
-                            }
                             .setNegativeButton("حذف") { _, _ ->
                                 val updated = prefs.getStringSet("clipboardFavorites", emptySet())
                                     ?.toMutableSet() ?: mutableSetOf()
@@ -1807,13 +1802,6 @@ class KeyboardService : InputMethodService() {
                 ).show()
                 if (saved) refreshKeyboard()
                 true
-            }
-            addSpecial(favoriteRow, "کاپي", 0.55f, 36) {
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(
-                    android.content.ClipData.newPlainText("خوندي شوی متن", item)
-                )
-                Toast.makeText(this, "متن کاپي شو؛ اوس یې پیسټ کولای شئ.", Toast.LENGTH_SHORT).show()
             }
             parent.addView(favoriteRow, rowParams(39))
         }
@@ -2085,11 +2073,6 @@ class KeyboardService : InputMethodService() {
             .setTitle(note.title)
             .setMessage(note.body)
             .setPositiveButton("سمول") { _, _ -> showNoteEditor(note) }
-            .setNeutralButton("کاپي") { _, _ ->
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(android.content.ClipData.newPlainText(note.title, note.body))
-                Toast.makeText(this, "د نوټ متن کاپي شو", Toast.LENGTH_SHORT).show()
-            }
             .setNegativeButton("نور") { _, _ ->
                 ImeDialogBuilder()
                     .setTitle("د نوټ نورې چارې")
