@@ -976,64 +976,7 @@ class KeyboardService : InputMethodService() {
 
         content.addView(suggestionContainer, rowParams(26))
 
-        // Compact optional toolbar: hidden by default, expanded on demand.
-        val quickToolsRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        if (quickActionsVisible) {
-            addSpecial(quickToolsRow, "پټول", 0.75f, 34) {
-                quickActionsVisible = false
-                refreshKeyboard()
-            }
-            addSpecial(quickToolsRow, "🎨 رنګونه", 1.1f, 34) {
-                quickActionsVisible = false
-                refreshKeyboard()
-                showThemePicker()
-            }
-            addSpecial(quickToolsRow, "جملې", 1f, 34) {
-                quickActionsVisible = false
-                emojiPanelVisible = false
-                savedTextsPanelVisible = false
-                symbolsPanelVisible = false
-                settingsPanelVisible = false
-                phrasePanelVisible = true
-                refreshKeyboard()
-            }
-            addSpecial(quickToolsRow, "😀 ایموجي", 1f, 34) {
-                quickActionsVisible = false
-                symbolsPanelVisible = false
-                savedTextsPanelVisible = false
-                settingsPanelVisible = false
-                phrasePanelVisible = false
-                emojiPanelVisible = !emojiPanelVisible
-                refreshKeyboard()
-            }
-            addSpecial(quickToolsRow, "خوندي شوي", 1.1f, 34) {
-                quickActionsVisible = false
-                emojiPanelVisible = false
-                symbolsPanelVisible = false
-                settingsPanelVisible = false
-                phrasePanelVisible = false
-                savedTextsPanelVisible = !savedTextsPanelVisible
-                refreshKeyboard()
-            }
-            addSpecial(quickToolsRow, "⚙", 0.75f, 34) {
-                quickActionsVisible = false
-                emojiPanelVisible = false
-                savedTextsPanelVisible = false
-                symbolsPanelVisible = false
-                phrasePanelVisible = false
-                settingsPanelVisible = !settingsPanelVisible
-                refreshKeyboard()
-            }
-        } else {
-            addSpecial(quickToolsRow, "•••", 1f, 28) {
-                quickActionsVisible = true
-                refreshKeyboard()
-            }
-        }
-        content.addView(quickToolsRow, rowParams(if (quickActionsVisible) 36 else 28))
+        // Secondary tools stay out of the typing surface; use the main app for settings.
 
         if (!emojiPanelVisible && !savedTextsPanelVisible && !symbolsPanelVisible && !settingsPanelVisible && !phrasePanelVisible) {
             val nativeNumberRow = when (language) {
@@ -1110,7 +1053,7 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(leftZone, if (symbolsPanelVisible) "ABC" else "123", 1f, 44) {
+        addSpecial(leftZone, if (symbolsPanelVisible) "ABC" else "123", 0.95f, 44) {
             symbolsPanelVisible = !symbolsPanelVisible
             if (symbolsPanelVisible) {
                 emojiPanelVisible = false
@@ -1121,22 +1064,28 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
+        addSpecial(leftZone, "😀", 0.95f, 44) {
+            emojiPanelVisible = !emojiPanelVisible
+            symbolsPanelVisible = false
+            savedTextsPanelVisible = false
+            settingsPanelVisible = false
+            phrasePanelVisible = false
+            refreshKeyboard()
+        }
 
         val centerZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        // Arabic-script elongation (U+0640 TATWEEL): tap repeatedly to extend
-        // the preceding letter, e.g. حن + کش + في = حنـفي.
+        // Insert tatweel after the selected or immediately preceding Arabic-script letter.
         if (language != 2) {
-            addSpecial(centerZone, "کش", 0.52f, 44) {
-                val inserted = runCatching {
-                    currentInputConnection?.commitText("\u0640", 1) ?: false
-                }.getOrDefault(false)
-                if (inserted) updateSuggestions()
-            }
+            addSpecial(centerZone, "کش", 0.52f, 44) { elongateSelectedOrPreviousLetter() }
         }
-        addSpecial(centerZone, "سندس", 1f, 44) { expandAutoTextAndSpace() }
+        addSpecial(centerZone, "فاصله", 1.48f, 44) {
+            val inserted = runCatching { currentInputConnection?.commitText(" ", 1) ?: false }
+                .getOrDefault(false)
+            if (inserted) updateSuggestions()
+        }
 
         val rightZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -2773,11 +2722,11 @@ class KeyboardService : InputMethodService() {
             if (longPressOutput.isNotEmpty()) {
                 val hint = TextView(this).apply {
                     text = longPressOutput
-                    textSize = 10f
-                    setTextColor(Color.BLACK)
+                    textSize = 9f
+                    setTextColor(theme.accent)
                     gravity = Gravity.CENTER
-                    setPadding(dp(2), dp(1), dp(2), dp(1))
-                    // Alternate glyph stays inside the upper-right corner of its key.
+                    setPadding(0, 0, 0, 0)
+                    // Alternate glyph is a clean, transparent hint above the key.
                     background = null
                 }
 
@@ -3006,7 +2955,9 @@ class KeyboardService : InputMethodService() {
             scaleY = keyHeightScale
             stateListAnimator = null
             text = label
-            if (label == "123") contentDescription = "Numbers and symbols"
+            if (label == "123") contentDescription = "Numbers, harakat and symbols"
+            if (label == "😀") contentDescription = "Emoji and Islamic emoji"
+            if (label == "فاصله") contentDescription = "Space"
             if (label == "ABC") contentDescription = "Return to letters"
             if (label == "کش") contentDescription = "Insert tatweel — کشیده توری زیاتول"
             textSize = if (label == "⌫") 18f else 12f
@@ -3038,7 +2989,7 @@ class KeyboardService : InputMethodService() {
             letterSpacing = 0.01f
         }
 
-        if (label == "Space" || label.contains("SUNDUS") || label == "سندس") {
+        if (label == "Space" || label == "فاصله" || label.contains("SUNDUS") || label == "سندس") {
             var downX = 0f
             button.setOnTouchListener { view, event ->
                 when (event.action) {
@@ -3173,6 +3124,24 @@ class KeyboardService : InputMethodService() {
         )
 
         parent.addView(button, params)
+    }
+
+    private fun elongateSelectedOrPreviousLetter() {
+        val connection = currentInputConnection ?: return
+        val tatweel = "\\u0640"
+        val selected = runCatching { connection.getSelectedText(0)?.toString().orEmpty() }
+            .getOrDefault("")
+        val inserted = if (selected.isNotEmpty() && selected.last().isLetter()) {
+            runCatching { connection.commitText(selected + tatweel, 1) }.getOrDefault(false)
+        } else {
+            val previous = runCatching { connection.getTextBeforeCursor(2, 0)?.toString().orEmpty() }
+                .getOrDefault("")
+            if (previous.lastOrNull()?.isLetter() == true) {
+                runCatching { connection.commitText(tatweel, 1) }.getOrDefault(false)
+            } else false
+        }
+        if (inserted) updateSuggestions()
+        else Toast.makeText(this, "لومړی یو توری وټاکئ یا کرسر د توري تر شا کېږدئ.", Toast.LENGTH_SHORT).show()
     }
 
     private fun isWordCharacter(char: Char): Boolean {
