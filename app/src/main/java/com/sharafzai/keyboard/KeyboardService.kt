@@ -739,6 +739,20 @@ class KeyboardService : InputMethodService() {
             currentInputConnection?.commitText(if (language == 2) ", " else "، ", 1)
             updateSuggestions()
         }
+        // Arabic tatweel: each tap extends the preceding Arabic/Pashto/Dari letter.
+        // Repeated taps produce forms such as: حنــــفی
+        addSpecial(bottom, "ـ", 0.72f, 44) {
+            val connection = currentInputConnection
+            if (connection != null) {
+                val before = connection.getTextBeforeCursor(1, 0)?.toString().orEmpty()
+                if (before.isNotEmpty() && before.last().isLetter()) {
+                    connection.commitText("ـ", 1)
+                    updateSuggestions()
+                } else {
+                    Toast.makeText(this, "لومړی توری ولیکئ، بیا د کش تڼۍ کېکاږئ.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
         addSpecial(bottom, ".", 0.65f, 44) {
             currentInputConnection?.commitText(". ", 1)
             updateSuggestions()
