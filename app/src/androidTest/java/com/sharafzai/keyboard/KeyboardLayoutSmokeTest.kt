@@ -141,11 +141,11 @@ class KeyboardLayoutSmokeTest {
         assertNotNull("Pashto letter key is missing", letterN)
         letterN!!.click()
         device.findObject(By.text("کش")).click()
-        assertEquals("Tatweel should follow the selected/preceding letter", "ن\\u0640", activeEditor.text.toString())
+        assertEquals("Tatweel should follow the selected/preceding letter", "نـ", activeEditor.text.toString())
         device.findObject(By.text("فاصله")).click()
         assertEquals("Spacebar did not insert a space", "ن\\u0640 ", activeEditor.text.toString())
         device.findObject(By.text("⌫")).click()
-        assertEquals("Backspace did not remove the previous space", "ن\\u0640", activeEditor.text.toString())
+        assertEquals("Backspace did not remove the previous space", "نـ", activeEditor.text.toString())
 
         // Language switching and Shift remain available after the layout changes.
         instrumentation.runOnMainSync { activeEditor.setText("") }
