@@ -384,7 +384,7 @@ class KeyboardService : InputMethodService() {
         listOf(
             k("ظ", "ئ"), k("ط", "ې"), k("ز", "ژ"),
             k("ر", "ء"), k("ذ", "‌"), k("د", "ډ"),
-            k("ړ"), k("و", "ږ"), k("/", "؟")
+            k("ړ"), k("و", "ږ", "ؤ"), k("/", "؟")
         )
     )
 
@@ -1647,9 +1647,13 @@ class KeyboardService : InputMethodService() {
                 "ٛ", "ٜ", "ٝ", "ٞ", "ٟ", "ـ", "ٕ", "ٖ"
             )
             2 -> listOf(
-                "﷽", "ﷺ", "ﷻ", "☪", "۞", "۩", "ٱ", "۝",
-                "ۖ", "ۗ", "ۚ", "ۙ", "ۛ", "ۜ", "﴿", "﴾",
-                "٭", "۞", "۩", "☾", "☽", "۞", "۝", "﷽"
+                "﷽", "ﷺ", "ﷻ", "ﷲ", "ﷳ", "ﷴ", "ﷵ", "ﷶ",
+                "ﷷ", "ﷸ", "ﷹ", "ﷺ", "☪", "۞", "۩", "ٱ",
+                "۝", "ۖ", "ۗ", "ۚ", "ۙ", "ۛ", "ۜ", "۞",
+                "﴿", "﴾", "۩", "۞", "۟", "۠", "ۡ", "ۢ",
+                "ۣ", "ۤ", "ۥ", "ۦ", "ۧ", "ۨ", "۪", "۫",
+                "۬", "ۭ", "ۮ", "ۯ", "۞", "۩", "☾", "☽",
+                "٭", "۞", "۝", "﷽", "ﷺ", "ﷻ", "☪", "۩"
             )
             else -> listOf(
                 "@", "#", "$", "%", "&", "*", "+", "=",
@@ -2760,15 +2764,19 @@ class KeyboardService : InputMethodService() {
         dismissAlternatePopup()
         val preview = TextView(this).apply {
             text = alternate
-            textSize = 22f
+            textSize = 27f
+            typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            // Alternate-letter preview stays clean: no dark tile or ring behind the glyph.
             setTextColor(Color.BLACK)
-            setShadowLayer(dp(1).toFloat(), 0f, 0f, Color.WHITE)
-            background = null
-            elevation = 0f
+            setPadding(dp(5), dp(3), dp(5), dp(3))
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(2), Color.rgb(35, 45, 60))
+            }
+            elevation = dp(8).toFloat()
         }
-        val popup = PopupWindow(preview, dp(42), dp(42), false).apply {
+        val popup = PopupWindow(preview, dp(50), dp(50), false).apply {
             isOutsideTouchable = false
             elevation = dp(8).toFloat()
         }
