@@ -140,7 +140,7 @@ jobs:
             adb shell settings put secure show_ime_with_hard_keyboard 1
 
             gradle --stop
-            timeout 600s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sharafzai.keyboard.KeyboardSmokeTest
+            timeout 600s gradle --no-daemon --stacktrace :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sharafzai.keyboard.KeyboardLayoutSmokeTest
 
       - name: Upload Android test reports
         if: always()
