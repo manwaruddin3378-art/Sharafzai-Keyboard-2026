@@ -3130,7 +3130,7 @@ class KeyboardService : InputMethodService() {
 
     private fun elongateSelectedOrPreviousLetter() {
         val connection = currentInputConnection ?: return
-        val tatweel = "\\u0640"
+        val tatweel = "\u0640"
         val selected = runCatching { connection.getSelectedText(0)?.toString().orEmpty() }
             .getOrDefault("")
         val inserted = if (selected.isNotEmpty() && selected.last().isLetter()) {
