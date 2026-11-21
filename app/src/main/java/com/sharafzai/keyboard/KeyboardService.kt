@@ -2228,13 +2228,13 @@ class KeyboardService : InputMethodService() {
             val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply {
                 timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
             }.format(java.util.Date())
-            insertQuickText(date)
+            insertQuickText("📅 $date")
         }
         addSpecial(secondary, "🕒 وخت", 1f, 36) {
             val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).apply {
                 timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
             }.format(java.util.Date())
-            insertQuickText(time)
+            insertQuickText("🕒 $time")
         }
         addSpecial(secondary, "سلام", 1f, 36) {
             insertQuickText(when (language) {
@@ -2256,14 +2256,18 @@ class KeyboardService : InputMethodService() {
 
         // Extra everyday text helpers, kept inside the same ellipsis menu.
         val tertiary = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(tertiary, "✉️ ایمیل", 1f, 36) { insertQuickText("ایمیل: ") }
-        addSpecial(tertiary, "🔢 شمېره", 1f, 36) { insertQuickText("شمېره: ") }
+        addSpecial(tertiary, "✉️ ایمیل", 1f, 36) {
+            val savedEmail = getSharedPreferences("SharafzaiSettings", MODE_PRIVATE)
+                .getString("preferredEmail", "").orEmpty()
+            insertQuickText(if (savedEmail.isBlank()) "✉️ " else "✉️ $savedEmail")
+        }
+        addSpecial(tertiary, "📞 ټیلیفون", 1f, 36) { insertQuickText("📞 ") }
         addSpecial(tertiary, "پته", 1f, 36) { insertQuickText("پته: ") }
         addSpecial(tertiary, "نېټه/وخت", 1f, 36) {
             val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).apply {
                 timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
             }.format(java.util.Date())
-            insertQuickText(stamp)
+            insertQuickText("📅 $stamp")
         }
         parent.addView(tertiary, rowParams(38))
 
@@ -2905,40 +2909,14 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun animateKeyPress(view: View, pressed: Boolean) {
-        // Keep the raised key visible outside its row and prevent platform press animators
-        // from competing with the explicit upward movement.
-        var ancestor = view.parent
-        while (ancestor is android.view.ViewGroup) {
-            ancestor.clipChildren = false
-            ancestor.clipToPadding = false
-            ancestor = ancestor.parent
-        }
-
+        // Keys remain completely stationary; the separate preview popup provides
+        // the visual feedback above the pressed key without a ripple or key movement.
         view.animate().cancel()
         view.stateListAnimator = null
-        view.pivotY = view.height.toFloat()
-        if (pressed) {
-            // Do not call bringToFront(): it changes the child's index inside the
-            // horizontal key row and makes keys appear to swap positions after taps.
-            // elevation/translationZ already draw this key above its neighbours.
-            // Apply the lift immediately: very short taps must still visibly move upward.
-            view.translationY = -dp(8).toFloat()
-            view.translationZ = dp(8).toFloat()
-            view.animate()
-                .translationY(-dp(8).toFloat())
-                .scaleX(1.035f)
-                .scaleY(1.035f)
-                .setDuration(55L)
-                .start()
-        } else {
-            view.animate()
-                .translationY(0f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(105L)
-                .start()
-            view.translationZ = 0f
-        }
+        view.translationY = 0f
+        view.translationZ = 0f
+        view.scaleX = 1f
+        view.scaleY = 1f
         view.elevation = dp(3).toFloat()
     }
 
@@ -3280,9 +3258,15 @@ class KeyboardService : InputMethodService() {
             var downX = 0f
             button.setOnTouchListener { view, event ->
                 when (event.action) {
-                    MotionEvent.ACTION_DOWN -> { animateKeyPress(view, true); downX = event.x; true }
+                    MotionEvent.ACTION_DOWN -> {
+                        animateKeyPress(view, true)
+                        if (keyPreviewEnabled) showAlternatePopup(view, label)
+                        downX = event.x
+                        true
+                    }
                     MotionEvent.ACTION_UP -> {
                         animateKeyPress(view, false)
+                        dismissAlternatePopup()
                         val delta = event.x - downX
                         if (kotlin.math.abs(delta) > dp(18)) {
                             val steps = (kotlin.math.abs(delta) / dp(12)).toInt().coerceAtLeast(1)
@@ -3309,6 +3293,7 @@ class KeyboardService : InputMethodService() {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         animateKeyPress(button, true)
+                        if (keyPreviewEnabled) showAlternatePopup(button, label)
                         touchStartX = event.x
                         swipeDeleteTriggered = false
                         wordDeleteMode = false
@@ -3358,6 +3343,7 @@ class KeyboardService : InputMethodService() {
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         animateKeyPress(button, false)
+                        dismissAlternatePopup()
                         wordTask?.let { handler.removeCallbacks(it) }
                         repeatTask?.let { handler.removeCallbacks(it) }
                         wordTask = null
@@ -3374,10 +3360,12 @@ class KeyboardService : InputMethodService() {
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
                         animateKeyPress(pressedView, true)
+                        if (keyPreviewEnabled) showAlternatePopup(pressedView, label)
                         true
                     }
                     MotionEvent.ACTION_UP -> {
                         animateKeyPress(pressedView, false)
+                        dismissAlternatePopup()
                         performKeyFeedback(pressedView)
                         if (label in setOf("لټون", "ژباړه", "قاموس", "🎨 رنګونه")) {
                             Log.i("SUNDUS_TOOL", "Toolbar action tapped: $label")
@@ -3390,6 +3378,7 @@ class KeyboardService : InputMethodService() {
                     }
                     MotionEvent.ACTION_CANCEL -> {
                         animateKeyPress(pressedView, false)
+                        dismissAlternatePopup()
                         true
                     }
                     else -> true
