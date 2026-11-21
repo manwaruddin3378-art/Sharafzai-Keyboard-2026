@@ -1126,6 +1126,16 @@ class KeyboardService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
+        // Arabic-script elongation (U+0640 TATWEEL): tap repeatedly to extend
+        // the preceding letter, e.g. حن + کش + في = حنـفي.
+        if (language != 2) {
+            addSpecial(centerZone, "کش", 0.52f, 44) {
+                val inserted = runCatching {
+                    currentInputConnection?.commitText("\u0640", 1) ?: false
+                }.getOrDefault(false)
+                if (inserted) updateSuggestions()
+            }
+        }
         addSpecial(centerZone, "سندس", 1f, 44) { expandAutoTextAndSpace() }
 
         val rightZone = LinearLayout(this).apply {
@@ -2914,6 +2924,7 @@ class KeyboardService : InputMethodService() {
             text = label
             if (label == "123") contentDescription = "Numbers and symbols"
             if (label == "ABC") contentDescription = "Return to letters"
+            if (label == "کش") contentDescription = "Insert tatweel — کشیده توری زیاتول"
             textSize = if (label == "⌫") 18f else 12f
             if (label == "⌫") {
                 contentDescription = "Backspace - د مخکني توري پاکول"
@@ -3084,6 +3095,9 @@ class KeyboardService : InputMethodService() {
         val type = Character.getType(char)
 
         return char.isLetterOrDigit() ||
+            // Keep Arabic tatweel inside a word so suggestions and cursor word logic
+            // continue to recognize the full word after elongation.
+            char == '\u0640' ||
             // Keep the Persian/Dari/Pashto zero-width non-joiner inside compound words.
             char == '\u200C' ||
             type == Character.NON_SPACING_MARK.toInt() ||
