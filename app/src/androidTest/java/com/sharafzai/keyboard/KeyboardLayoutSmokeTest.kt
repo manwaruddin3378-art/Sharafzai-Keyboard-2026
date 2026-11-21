@@ -108,28 +108,45 @@ class KeyboardLayoutSmokeTest {
         val symbolsButton = device.wait(Until.findObject(By.desc("Numbers, harakat and symbols")), 5_000)
         assertNotNull("Symbols button is missing", symbolsButton)
         tapKey(symbolsButton!!)
-        assertNotNull("General symbols category is missing", device.wait(Until.findObject(By.desc("نښې")), 3_000))
-        val harakatTab = device.wait(Until.findObject(By.desc("اعراب")), 3_000)
+        assertNotNull("General symbols category is missing", device.wait(Until.findObject(By.text("نښې")), 3_000))
+        val harakatTab = device.wait(Until.findObject(By.text("اعراب")), 3_000)
         assertNotNull("Harakat category is missing", harakatTab)
         tapKey(harakatTab!!)
         assertNotNull("Arabic harakat are not displayed", device.wait(Until.findObject(By.text("َ")), 3_000))
-        assertNotNull("Islamic symbols category is missing", device.findObject(By.desc("اسلامي")))
+        assertNotNull("Islamic symbols category is missing", device.findObject(By.text("اسلامي")))
         val returnToLetters = device.findObject(By.desc("Return to letters"))
         assertNotNull("ABC return key is missing", returnToLetters)
         tapKey(returnToLetters!!)
 
-        // The dedicated emoji key opens a categorized panel containing Islamic emoji.
-        val emojiButton = device.wait(Until.findObject(By.desc("Emoji and Islamic emoji")), 5_000)
-        assertNotNull("Dedicated emoji button is missing", emojiButton)
-        tapKey(emojiButton!!)
+        // One discreet overflow key groups multilingual phrases, Islamic phrases and emoji.
+        val moreButton = device.wait(Until.findObject(By.text("⋯")), 5_000)
+        assertNotNull("Unified quick-tools button is missing", moreButton)
+        tapKey(moreButton!!)
+        assertNotNull("Quick phrases action is missing", device.wait(Until.findObject(By.text("جملې")), 3_000))
+        assertNotNull("Separate Islamic phrases action is missing", device.findObject(By.text("اسلامي")))
+        tapKey(device.findObject(By.text("جملې")))
+        listOf("پښتو", "عربي", "English", "دري").forEach { label ->
+            assertNotNull("Phrase language category is missing: $label", device.wait(Until.findObject(By.text(label)), 3_000))
+        }
+        tapKey(device.findObject(By.text("عربي")))
+        assertNotNull("Arabic phrase list did not open", device.wait(Until.findObject(By.textContains("السَّلَامُ عَلَيْكُمْ")), 3_000))
+        tapKey(device.findObject(By.text("×")))
+
+        tapKey(device.findObject(By.text("⋯")))
+        tapKey(device.findObject(By.text("اسلامي")))
+        assertNotNull("Islamic phrase list did not open", device.wait(Until.findObject(By.textContains("بِسْمِ اللَّهِ")), 3_000))
+        tapKey(device.findObject(By.text("×")))
+
+        tapKey(device.findObject(By.text("⋯")))
+        tapKey(device.findObject(By.text("ایموجي")))
         val islamicEmojiTab = device.wait(Until.findObject(By.text("☪️")), 5_000)
         assertNotNull("Islamic emoji category is missing", islamicEmojiTab)
         tapKey(islamicEmojiTab!!)
         assertNotNull("Islamic emoji such as the mosque are missing", device.wait(Until.findObject(By.text("🕌")), 3_000))
-        tapKey(device.findObject(By.desc("Emoji and Islamic emoji")))
+        tapKey(device.findObject(By.desc("د ایموجي بندول")))
 
         // Verify that the spacebar is centered, then exercise space, tatweel and backspace.
-        val spacebar = device.wait(Until.findObject(By.text("فاصله")), 5_000)
+        val spacebar = device.wait(Until.findObject(By.desc("Space")), 5_000)
         assertNotNull("Centered spacebar is missing", spacebar)
         val centerX = spacebar!!.visibleBounds.centerX()
         assertTrue(
@@ -147,7 +164,7 @@ class KeyboardLayoutSmokeTest {
         tapKey(letterN!!)
         tapKey(device.findObject(By.text("کش")))
         assertEquals("Tatweel should follow the selected/preceding letter", "نـ", activeEditor.text.toString())
-        tapKey(device.findObject(By.text("فاصله")))
+        tapKey(device.findObject(By.desc("Space")))
         assertEquals("Spacebar did not insert a space", "نـ ", activeEditor.text.toString())
         tapKey(device.findObject(By.text("⌫")))
         assertEquals("Backspace did not remove the previous space", "نـ", activeEditor.text.toString())
