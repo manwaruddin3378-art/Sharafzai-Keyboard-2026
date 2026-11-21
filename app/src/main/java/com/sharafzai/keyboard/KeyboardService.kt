@@ -1729,9 +1729,35 @@ class KeyboardService : InputMethodService() {
         val pageSize = 48
         val pageCount = ((selected.size + pageSize - 1) / pageSize).coerceAtLeast(1)
         emojiPage = emojiPage.coerceIn(0, pageCount - 1)
-        selected.drop(emojiPage * pageSize).take(pageSize).chunked(8).forEach { row ->
-            addKeyRow(parent, row.map { k(it) }, 31)
+
+        // Keep the emoji grid inside a bounded viewport. On short screens and
+        // landscape layouts users can scroll the grid instead of losing the
+        // bottom controls below the visible IME window.
+        val emojiScroll = ScrollView(this).apply {
+            isFillViewport = false
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            clipToPadding = false
+            setPadding(0, dp(2), 0, dp(2))
         }
+        val emojiRows = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            clipToPadding = false
+        }
+        selected.drop(emojiPage * pageSize).take(pageSize).chunked(8).forEach { row ->
+            addKeyRow(emojiRows, row.map { k(it) }, 31)
+        }
+        emojiScroll.addView(emojiRows)
+        val screenHeightDp = resources.displayMetrics.heightPixels / resources.displayMetrics.density
+        val emojiViewportDp = (screenHeightDp * 0.22f).toInt().coerceIn(105, 170)
+        parent.addView(
+            emojiScroll,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(emojiViewportDp)
+            )
+        )
+
         val pageNav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         addSpecial(pageNav, "❮", 0.7f, 30) {
             emojiPage = if (emojiPage <= 0) pageCount - 1 else emojiPage - 1
