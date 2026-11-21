@@ -128,7 +128,7 @@ class KeyboardLayoutSmokeTest {
         listOf("پښتو", "عربي", "English", "دري").forEach { label ->
             assertNotNull("Phrase language category is missing: $label", device.wait(Until.findObject(By.text(label)), 3_000))
         }
-        tapKey(device.findObject(By.text("عربي")))
+        tapKey(device.findObjects(By.text("عربي")).last())
         assertNotNull("Arabic phrase list did not open", device.wait(Until.findObject(By.textContains("السَّلَامُ عَلَيْكُمْ")), 3_000))
         tapKey(device.findObject(By.text("×")))
 
