@@ -1,5 +1,7 @@
 package com.sharafzai.keyboard
 
+import android.annotation.SuppressLint
+
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -59,6 +61,7 @@ class DhikrOverlayService : Service() {
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
         val filter = IntentFilter(ACTION_SETTINGS_CHANGED)
