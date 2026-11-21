@@ -745,7 +745,7 @@ class KeyboardService : InputMethodService() {
             val connection = currentInputConnection
             if (connection != null) {
                 val before = connection.getTextBeforeCursor(1, 0)?.toString().orEmpty()
-                if (before.isNotEmpty() && before.last().isLetter()) {
+                if (before.isNotEmpty() && (before.last().isLetter() || before.last() == 'ـ')) {
                     connection.commitText("ـ", 1)
                     updateSuggestions()
                 } else {
