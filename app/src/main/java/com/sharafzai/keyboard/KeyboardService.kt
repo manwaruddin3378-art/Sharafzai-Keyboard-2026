@@ -1064,7 +1064,7 @@ class KeyboardService : InputMethodService() {
             }
             refreshKeyboard()
         }
-        addSpecial(leftZone, "😀", 0.95f, 44) {
+        addSpecial(leftZone, "😀", 0.90f, 44) {
             emojiPanelVisible = !emojiPanelVisible
             symbolsPanelVisible = false
             savedTextsPanelVisible = false
@@ -1072,16 +1072,17 @@ class KeyboardService : InputMethodService() {
             phrasePanelVisible = false
             refreshKeyboard()
         }
+        // Keep the elongation key beside the left-side controls, not beside Space.
+        if (language != 2) {
+            addSpecial(leftZone, "کش", 0.70f, 44) { elongateSelectedOrPreviousLetter() }
+        }
 
         val centerZone = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        // Insert tatweel after the selected or immediately preceding Arabic-script letter.
-        if (language != 2) {
-            addSpecial(centerZone, "کش", 0.52f, 44) { elongateSelectedOrPreviousLetter() }
-        }
-        addSpecial(centerZone, "فاصله", 1.48f, 44) {
+        // A single, truly centered spacebar.
+        addSpecial(centerZone, "فاصله", 1f, 44) {
             val inserted = runCatching { currentInputConnection?.commitText(" ", 1) ?: false }
                 .getOrDefault(false)
             if (inserted) updateSuggestions()
@@ -1102,9 +1103,10 @@ class KeyboardService : InputMethodService() {
         addSpecial(rightZone, "⌫", 1.65f, 44) { deletePreviousCharacter() }
         addSpecial(rightZone, "↵", 1.0f, 44) { performEnterAction() }
 
-        bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 1.28f))
-        bottom.addView(centerZone, LinearLayout.LayoutParams(0, dp(46), 1.18f))
-        bottom.addView(rightZone, LinearLayout.LayoutParams(0, dp(46), 2.10f))
+        // Equal side zones keep the center of the spacebar aligned with the screen center.
+        bottom.addView(leftZone, LinearLayout.LayoutParams(0, dp(46), 1.9f))
+        bottom.addView(centerZone, LinearLayout.LayoutParams(0, dp(46), 1.1f))
+        bottom.addView(rightZone, LinearLayout.LayoutParams(0, dp(46), 1.9f))
         content.addView(bottom, rowParams(46))
 
         return root
