@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -21,6 +22,10 @@ class KeyboardLayoutSmokeTest {
     fun requestedLayoutAndCoreTypingControlsWork() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
+        fun tapKey(key: UiObject) {
+            val bounds = key.visibleBounds
+            assertTrue("Could not tap visible key at $bounds", device.click(bounds.centerX(), bounds.centerY()))
+        }
         val appInfo = instrumentation.targetContext.packageManager
             .getPackageInfo(instrumentation.targetContext.packageName, 0)
         assertEquals("SUNDUS must target Android 16 (API 36)", 36, appInfo.applicationInfo?.targetSdkVersion)
@@ -102,26 +107,26 @@ class KeyboardLayoutSmokeTest {
         // The 123 key opens one unified symbols/harakat/Islamic-marks panel.
         val symbolsButton = device.wait(Until.findObject(By.text("123")), 5_000)
         assertNotNull("Symbols button is missing", symbolsButton)
-        symbolsButton!!.click()
+        tapKey(symbolsButton!!)
         assertNotNull("General symbols category is missing", device.wait(Until.findObject(By.text("نښې")), 3_000))
         val harakatTab = device.wait(Until.findObject(By.text("اعراب")), 3_000)
         assertNotNull("Harakat category is missing", harakatTab)
-        harakatTab!!.click()
+        tapKey(harakatTab!!)
         assertNotNull("Arabic harakat are not displayed", device.wait(Until.findObject(By.text("َ")), 3_000))
         assertNotNull("Islamic symbols category is missing", device.findObject(By.text("اسلامي")))
         val returnToLetters = device.findObject(By.desc("Return to letters"))
         assertNotNull("ABC return key is missing", returnToLetters)
-        returnToLetters!!.click()
+        tapKey(returnToLetters!!)
 
         // The dedicated emoji key opens a categorized panel containing Islamic emoji.
         val emojiButton = device.wait(Until.findObject(By.desc("Emoji and Islamic emoji")), 5_000)
         assertNotNull("Dedicated emoji button is missing", emojiButton)
-        emojiButton!!.click()
+        tapKey(emojiButton!!)
         val islamicEmojiTab = device.wait(Until.findObject(By.text("☪️")), 5_000)
         assertNotNull("Islamic emoji category is missing", islamicEmojiTab)
-        islamicEmojiTab!!.click()
+        tapKey(islamicEmojiTab!!)
         assertNotNull("Islamic emoji such as the mosque are missing", device.wait(Until.findObject(By.text("🕌")), 3_000))
-        device.findObject(By.desc("Emoji and Islamic emoji")).click()
+        tapKey(device.findObject(By.desc("Emoji and Islamic emoji")))
 
         // Verify that the spacebar is centered, then exercise space, tatweel and backspace.
         val spacebar = device.wait(Until.findObject(By.text("فاصله")), 5_000)
@@ -139,12 +144,12 @@ class KeyboardLayoutSmokeTest {
         device.waitForIdle()
         val letterN = device.wait(Until.findObject(By.text("ن")), 3_000)
         assertNotNull("Pashto letter key is missing", letterN)
-        letterN!!.click()
-        device.findObject(By.text("کش")).click()
+        tapKey(letterN!!)
+        tapKey(device.findObject(By.text("کش")))
         assertEquals("Tatweel should follow the selected/preceding letter", "نـ", activeEditor.text.toString())
-        device.findObject(By.text("فاصله")).click()
-        assertEquals("Spacebar did not insert a space", "ن\\u0640 ", activeEditor.text.toString())
-        device.findObject(By.text("⌫")).click()
+        tapKey(device.findObject(By.text("فاصله")))
+        assertEquals("Spacebar did not insert a space", "نـ ", activeEditor.text.toString())
+        tapKey(device.findObject(By.text("⌫")))
         assertEquals("Backspace did not remove the previous space", "نـ", activeEditor.text.toString())
 
         // Language switching and Shift remain available after the layout changes.
@@ -157,7 +162,7 @@ class KeyboardLayoutSmokeTest {
         val lowerABounds = lowerA!!.visibleBounds
         val shift = device.wait(Until.findObject(By.text("⇧")), 3_000)
         assertNotNull("Shift key is missing", shift)
-        shift!!.click()
+        tapKey(shift!!)
         // The uppercase alternate is also shown as a small hint before Shift;
         // tap the unchanged key position so the test activates the actual key body.
         assertTrue("Could not tap the shifted A key", device.click(lowerABounds.centerX(), lowerABounds.centerY()))
