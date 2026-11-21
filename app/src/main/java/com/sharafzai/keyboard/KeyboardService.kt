@@ -67,6 +67,7 @@ class KeyboardService : InputMethodService() {
     private var autoTextEnabled = true
     private var hapticEnabled = true
     private var soundEnabled = false
+    private var keyPreviewEnabled = true
     private var pendingVoiceText = ""
     private var restoreKeyboardPending = false
     private val dhikrSettingsReceiver = object : BroadcastReceiver() {
@@ -214,6 +215,7 @@ class KeyboardService : InputMethodService() {
         autoTextEnabled = prefs.getBoolean("autoTextEnabled", true)
         hapticEnabled = prefs.getBoolean("hapticEnabled", true)
         soundEnabled = prefs.getBoolean("soundEnabled", false)
+        keyPreviewEnabled = prefs.getBoolean("keyPreviewEnabled", true)
         val voiceFilter = IntentFilter(VoiceInputActivity.ACTION_VOICE_TEXT)
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(voiceReceiver, voiceFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -1250,6 +1252,11 @@ class KeyboardService : InputMethodService() {
             saveSettings()
             refreshKeyboard()
         }
+        addSpecial(soundRow, if (keyPreviewEnabled) "مخکتنه: ښکاره" else "مخکتنه: پټه", 1.25f, 38) {
+            keyPreviewEnabled = !keyPreviewEnabled
+            saveSettings()
+            refreshKeyboard()
+        }
         parent.addView(soundRow, rowParams(41))
 
         // Personal dictionary editor is temporarily removed because opening its
@@ -2167,7 +2174,7 @@ class KeyboardService : InputMethodService() {
             text = "د ورځنیو اسانتیاوو پینل"
             textSize = 13f
             gravity = Gravity.CENTER
-            setTextColor(Color.BLACK)
+            setTextColor(Color.rgb(255, 222, 145))
             typeface = Typeface.DEFAULT_BOLD
         }
         heading.addView(title, LinearLayout.LayoutParams(0, dp(30), 1f))
@@ -2217,13 +2224,13 @@ class KeyboardService : InputMethodService() {
             }
         }
         val secondary = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(secondary, "نېټه", 1f, 36) {
+        addSpecial(secondary, "📅 نېټه", 1f, 36) {
             val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply {
                 timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
             }.format(java.util.Date())
             insertQuickText(date)
         }
-        addSpecial(secondary, "وخت", 1f, 36) {
+        addSpecial(secondary, "🕒 وخت", 1f, 36) {
             val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).apply {
                 timeZone = java.util.TimeZone.getTimeZone("Asia/Kabul")
             }.format(java.util.Date())
@@ -2249,8 +2256,8 @@ class KeyboardService : InputMethodService() {
 
         // Extra everyday text helpers, kept inside the same ellipsis menu.
         val tertiary = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        addSpecial(tertiary, "ایمیل", 1f, 36) { insertQuickText("ایمیل: ") }
-        addSpecial(tertiary, "شمېره", 1f, 36) { insertQuickText("شمېره: ") }
+        addSpecial(tertiary, "✉️ ایمیل", 1f, 36) { insertQuickText("ایمیل: ") }
+        addSpecial(tertiary, "🔢 شمېره", 1f, 36) { insertQuickText("شمېره: ") }
         addSpecial(tertiary, "پته", 1f, 36) { insertQuickText("پته: ") }
         addSpecial(tertiary, "نېټه/وخت", 1f, 36) {
             val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).apply {
@@ -2259,6 +2266,14 @@ class KeyboardService : InputMethodService() {
             insertQuickText(stamp)
         }
         parent.addView(tertiary, rowParams(38))
+
+        val settingsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        addSpecial(settingsRow, "⚙ تنظیمات", 1f, 36) {
+            quickActionsVisible = false
+            settingsPanelVisible = true
+            refreshKeyboard()
+        }
+        parent.addView(settingsRow, rowParams(38))
     }
 
     private fun showAddPhraseDialog() {
@@ -3033,7 +3048,7 @@ class KeyboardService : InputMethodService() {
                     if (!glideStarted && longPressOutput.isNotEmpty()) {
                         // Preview the alternate while held; insert it only when the finger is released.
                         pendingLongPressOutput = longPressOutput
-                        showAlternatePopup(frame, longPressOutput)
+                        if (keyPreviewEnabled) showAlternatePopup(frame, longPressOutput)
                         longPressHandled = true
                     }
                 }
@@ -3046,7 +3061,7 @@ class KeyboardService : InputMethodService() {
                             downRawY = event.rawY
                             lastPathRawX = event.rawX
                             lastPathRawY = event.rawY
-                            showAlternatePopup(frame, value)
+                            if (keyPreviewEnabled) showAlternatePopup(frame, value)
                             glideStarted = false
                             longPressHandled = false
                             pendingLongPressOutput = ""
@@ -3123,7 +3138,7 @@ class KeyboardService : InputMethodService() {
                     if (longPressOutput.isNotEmpty()) {
                         alternatePending = longPressOutput
                         alternateLongPress = true
-                        showAlternatePopup(frame, longPressOutput)
+                        if (keyPreviewEnabled) showAlternatePopup(frame, longPressOutput)
                     }
                 }
                 var alternateDownX = 0f
@@ -3134,7 +3149,7 @@ class KeyboardService : InputMethodService() {
                             animateKeyPress(pressedView, true)
                             alternateDownX = event.rawX
                             alternateDownY = event.rawY
-                            showAlternatePopup(frame, value)
+                            if (keyPreviewEnabled) showAlternatePopup(frame, value)
                             alternatePending = ""
                             alternateLongPress = false
                             handler.postDelayed(
@@ -3900,6 +3915,7 @@ class KeyboardService : InputMethodService() {
             .putBoolean("autoTextEnabled", autoTextEnabled)
             .putBoolean("hapticEnabled", hapticEnabled)
             .putBoolean("soundEnabled", soundEnabled)
+            .putBoolean("keyPreviewEnabled", keyPreviewEnabled)
             .apply()
     }
 }
