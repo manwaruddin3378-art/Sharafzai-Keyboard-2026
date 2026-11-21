@@ -2947,8 +2947,9 @@ class KeyboardService : InputMethodService() {
             var downX = 0f
             button.setOnTouchListener { view, event ->
                 when (event.action) {
-                    MotionEvent.ACTION_DOWN -> { downX = event.x; true }
+                    MotionEvent.ACTION_DOWN -> { animateKeyPress(view, true); downX = event.x; true }
                     MotionEvent.ACTION_UP -> {
+                        animateKeyPress(view, false)
                         val delta = event.x - downX
                         if (kotlin.math.abs(delta) > dp(18)) {
                             val steps = (kotlin.math.abs(delta) / dp(12)).toInt().coerceAtLeast(1)
@@ -2959,7 +2960,7 @@ class KeyboardService : InputMethodService() {
                         }
                         true
                     }
-                    MotionEvent.ACTION_CANCEL -> true
+                    MotionEvent.ACTION_CANCEL -> { animateKeyPress(view, false); true }
                     else -> true
                 }
             }
@@ -2974,6 +2975,7 @@ class KeyboardService : InputMethodService() {
             button.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        animateKeyPress(button, true)
                         touchStartX = event.x
                         swipeDeleteTriggered = false
                         wordDeleteMode = false
@@ -3022,6 +3024,7 @@ class KeyboardService : InputMethodService() {
                         true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        animateKeyPress(button, false)
                         wordTask?.let { handler.removeCallbacks(it) }
                         repeatTask?.let { handler.removeCallbacks(it) }
                         wordTask = null
@@ -3034,14 +3037,29 @@ class KeyboardService : InputMethodService() {
                 }
             }
         } else {
-            button.setOnClickListener {
-                performKeyFeedback(it)
-                if (label in setOf("لټون", "ژباړه", "قاموس", "🎨 رنګونه")) {
-                    Log.i("SUNDUS_TOOL", "Toolbar action tapped: $label")
-                }
-                runCatching { action() }.onFailure { error ->
-                    Log.e("SUNDUS_TOOL", "Toolbar action failed: $label", error)
-                    Toast.makeText(this, "د «$label» برخه پرانیستل نه شوه؛ بیا هڅه وکړئ.", Toast.LENGTH_LONG).show()
+            button.setOnTouchListener { pressedView, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        animateKeyPress(pressedView, true)
+                        true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        animateKeyPress(pressedView, false)
+                        performKeyFeedback(pressedView)
+                        if (label in setOf("لټون", "ژباړه", "قاموس", "🎨 رنګونه")) {
+                            Log.i("SUNDUS_TOOL", "Toolbar action tapped: $label")
+                        }
+                        runCatching { action() }.onFailure { error ->
+                            Log.e("SUNDUS_TOOL", "Toolbar action failed: $label", error)
+                            Toast.makeText(this, "د «$label» برخه پرانیستل نه شوه؛ بیا هڅه وکړئ.", Toast.LENGTH_LONG).show()
+                        }
+                        true
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        animateKeyPress(pressedView, false)
+                        true
+                    }
+                    else -> true
                 }
             }
         }
