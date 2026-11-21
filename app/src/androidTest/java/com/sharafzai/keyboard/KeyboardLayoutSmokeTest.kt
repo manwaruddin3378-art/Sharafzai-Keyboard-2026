@@ -23,8 +23,10 @@ class KeyboardLayoutSmokeTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrumentation)
         fun tapKey(key: UiObject2) {
-            val bounds = key.visibleBounds
-            assertTrue("Could not tap visible key at $bounds", device.click(bounds.centerX(), bounds.centerY()))
+            // Use UiAutomator's accessibility click so a transient key-preview
+            // popup cannot make a valid visible key coordinate tap flaky.
+            key.click()
+            instrumentation.waitForIdleSync()
         }
         val appInfo = instrumentation.targetContext.packageManager
             .getPackageInfo(instrumentation.targetContext.packageName, 0)
@@ -133,8 +135,16 @@ class KeyboardLayoutSmokeTest {
         tapKey(device.findObject(By.text("×")))
 
         tapKey(device.findObject(By.text("⋯")))
+        tapKey(device.findObject(By.text("جملې")))
+        tapKey(device.findObjects(By.text("پښتو")).last())
+        assertNotNull("Pashto courtesy phrases are missing", device.findObject(By.text("مننه، خیر اوسی 🌹")))
+        tapKey(device.findObject(By.text("×")))
+
+        tapKey(device.findObject(By.text("⋯")))
         tapKey(device.findObject(By.text("اسلامي")))
         assertNotNull("Islamic phrase list did not open", device.wait(Until.findObject(By.textContains("بِسْمِ اللَّهِ")), 3_000))
+        assertNotNull("Full رضي الله عنه wording is missing", device.findObject(By.text("رَضِيَ اللَّهُ عَنْهُ")))
+        assertNotNull("Full رحمهم الله wording is missing", device.findObject(By.text("رَحِمَهُمُ اللَّهُ")))
         tapKey(device.findObject(By.text("×")))
 
         tapKey(device.findObject(By.text("⋯")))
