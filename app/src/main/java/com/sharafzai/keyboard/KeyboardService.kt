@@ -2602,7 +2602,36 @@ class KeyboardService : InputMethodService() {
                 nearest = key
             }
         }
-        return nearest?.takeIf { nearestDistance <= dp(48) }
+        return nearest?.takeIf {
+            val hitRadius = maxOf(
+                dp(48).toDouble(),
+                maxOf(it.view.width, it.view.height) * 0.72
+            )
+            nearestDistance <= hitRadius
+        }
+    }
+
+    // Sample points between motion events so a quick swipe does not skip
+    // intermediate keys when Android coalesces touch movement callbacks.
+    private fun addGlideSegment(
+        path: MutableList<String>,
+        fromX: Float,
+        fromY: Float,
+        toX: Float,
+        toY: Float
+    ) {
+        val distance = kotlin.math.hypot(
+            (toX - fromX).toDouble(),
+            (toY - fromY).toDouble()
+        )
+        val stepSize = dp(18).coerceAtLeast(1)
+        val steps = kotlin.math.ceil(distance / stepSize).toInt().coerceIn(1, 24)
+        for (step in 1..steps) {
+            val fraction = step.toFloat() / steps
+            val x = fromX + (toX - fromX) * fraction
+            val y = fromY + (toY - fromY) * fraction
+            findGlideKey(x, y)?.let { addGlidePath(path, it.value) }
+        }
     }
 
     private fun predictGlideWord(path: List<String>): String? {
@@ -2775,6 +2804,8 @@ class KeyboardService : InputMethodService() {
                 glideKeys.add(GlideKey(frame, spec.normal))
                 var downRawX = 0f
                 var downRawY = 0f
+                var lastPathRawX = 0f
+                var lastPathRawY = 0f
                 var glideStarted = false
                 var longPressHandled = false
                 var pendingLongPressOutput = ""
@@ -2794,6 +2825,8 @@ class KeyboardService : InputMethodService() {
                             animateKeyPress(pressedView, true)
                             downRawX = event.rawX
                             downRawY = event.rawY
+                            lastPathRawX = event.rawX
+                            lastPathRawY = event.rawY
                             showAlternatePopup(frame, value)
                             glideStarted = false
                             longPressHandled = false
@@ -2814,7 +2847,15 @@ class KeyboardService : InputMethodService() {
                             }
                             if (moved > dp(17)) glideStarted = true
                             if (glideStarted && !longPressHandled) {
-                                findGlideKey(event.rawX, event.rawY)?.let { addGlidePath(path, it.value) }
+                                addGlideSegment(
+                                    path,
+                                    lastPathRawX,
+                                    lastPathRawY,
+                                    event.rawX,
+                                    event.rawY
+                                )
+                                lastPathRawX = event.rawX
+                                lastPathRawY = event.rawY
                             }
                             true
                         }
@@ -2829,8 +2870,14 @@ class KeyboardService : InputMethodService() {
                                     updateSuggestions()
                                 }
                                 true
-                            } else if (glideStarted && path.size >= 3) {
-                                findGlideKey(event.rawX, event.rawY)?.let { addGlidePath(path, it.value) }
+                            } else if (glideStarted && path.size >= 2) {
+                                addGlideSegment(
+                                    path,
+                                    lastPathRawX,
+                                    lastPathRawY,
+                                    event.rawX,
+                                    event.rawY
+                                )
                                 val candidate = predictGlideWord(path)
                                 val output = candidate ?: path.joinToString("")
                                 currentInputConnection?.commitText(output, 1)
