@@ -11,8 +11,8 @@ android {
         applicationId = "com.sharafzai.keyboard"
         minSdk = 21
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.9.2"
+        versionCode = 23
+        versionName = "1.9.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
