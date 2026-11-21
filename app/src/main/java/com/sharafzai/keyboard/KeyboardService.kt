@@ -1060,6 +1060,7 @@ class KeyboardService : InputMethodService() {
         addSpecial(leftZone, if (symbolsPanelVisible) "ABC" else "123", 0.95f, 44) {
             symbolsPanelVisible = !symbolsPanelVisible
             if (symbolsPanelVisible) {
+                quickActionsVisible = false
                 emojiPanelVisible = false
                 savedTextsPanelVisible = false
                 settingsPanelVisible = false
