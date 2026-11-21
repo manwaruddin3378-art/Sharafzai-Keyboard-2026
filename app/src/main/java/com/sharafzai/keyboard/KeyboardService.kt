@@ -2078,9 +2078,16 @@ class KeyboardService : InputMethodService() {
 
     private fun dp(value: Int): Int {
         val density = resources.displayMetrics.density
-        val screenHeightDp = resources.displayMetrics.heightPixels / density
-        val compactScale = (screenHeightDp / 780f).coerceIn(0.82f, 1f)
-        return (value * density * compactScale).toInt()
+        // Use the current window configuration rather than the full physical display.
+        // This adapts row heights on compact phones, split-screen and landscape layouts.
+        val configuredHeightDp = resources.configuration.screenHeightDp
+        val screenHeightDp = if (configuredHeightDp > 0) {
+            configuredHeightDp.toFloat()
+        } else {
+            resources.displayMetrics.heightPixels / density
+        }
+        val compactScale = (screenHeightDp / 780f).coerceIn(0.68f, 1f)
+        return (value * density * compactScale).toInt().coerceAtLeast(1)
     }
 
     private fun showEmailSetup() {
