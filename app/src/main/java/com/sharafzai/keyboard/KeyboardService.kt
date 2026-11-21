@@ -2940,6 +2940,8 @@ class KeyboardService : InputMethodService() {
             scaleY = keyHeightScale
             stateListAnimator = null
             text = label
+            // Keep compact symbol/harakat tabs discoverable to screen readers and UI tests.
+            contentDescription = label
             if (label == "123") contentDescription = "Numbers, harakat and symbols"
             if (label == "😀") contentDescription = "Emoji and Islamic emoji"
             if (label == "فاصله") contentDescription = "Space"
